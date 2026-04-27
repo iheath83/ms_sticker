@@ -1,0 +1,75 @@
+<mjml>
+  <mj-head>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="'Helvetica Neue', Arial, sans-serif" />
+      <mj-text font-size="15px" line-height="1.7" color="#6B7280" />
+    </mj-attributes>
+    <mj-preview>Votre commande #{{orderNumber}} est en route !</mj-preview>
+  </mj-head>
+  <mj-body background-color="#F3F4F6">
+
+    <mj-section background-color="#0A0E27" padding="24px 32px">
+      <mj-column>
+        <mj-text align="center" font-size="22px" font-weight="900" color="#FFFFFF">
+          MS ADHÉSIF <span style="color:#DC2626;font-size:10px;vertical-align:super;">◆</span>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#EEF2FF" padding="40px 32px 32px">
+      <mj-column>
+        <mj-text align="center" font-size="28px" font-weight="800" color="#0A0E27" line-height="1.2">
+          C'est parti ! 📦
+        </mj-text>
+        <mj-text align="center" font-size="16px" color="#0A0E27" padding-top="12px">
+          Votre commande a été expédiée.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#FFFFFF" padding="24px 32px">
+      <mj-column>
+        <mj-table>
+          <tr style="border-bottom:1px solid #E5E7EB;">
+            <td style="padding:10px 0;font-size:13px;color:#6B7280;">N° commande</td>
+            <td style="padding:10px 0;font-size:13px;font-weight:700;color:#0A0E27;text-align:right;">#{{orderNumber}}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #E5E7EB;">
+            <td style="padding:10px 0;font-size:13px;color:#6B7280;">Numéro de suivi</td>
+            <td style="padding:10px 0;font-size:13px;font-weight:700;color:#0A0E27;text-align:right;font-family:monospace;">{{trackingNumber}}</td>
+          </tr>
+          <tr>
+            <td style="padding:10px 0;font-size:13px;color:#6B7280;">Transporteur</td>
+            <td style="padding:10px 0;font-size:13px;font-weight:700;color:#0A0E27;text-align:right;">{{trackingCarrier}}</td>
+          </tr>
+        </mj-table>
+        <mj-text padding-top="20px">
+          Bonjour {{customerName}},<br/><br/>
+          Votre commande est en route ! Vous pouvez suivre votre colis directement depuis votre espace client.
+        </mj-text>
+        <mj-button href="{{orderUrl}}" background-color="#DC2626" align="center">
+          Suivre mon colis →
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <mj-section background-color="#0A0E27" padding="28px 32px">
+      <mj-column>
+        <mj-text align="center" font-size="13px" font-weight="800" color="#FFFFFF">MS ADHÉSIF</mj-text>
+        <mj-text align="center" font-size="11px" color="#9CA3AF" line-height="1.6" padding-top="8px">
+          © {{year}} MS Adhésif — Lyon, France<br/>
+          Cet email est automatique, merci de ne pas y répondre directement.
+        </mj-text>
+        <mj-text align="center" font-size="11px" color="#6B7280" padding-top="12px">
+          <a href="{{orderUrl}}" style="color:#9CA3AF;text-decoration:none;">Voir ma commande</a>
+          &nbsp;·&nbsp;
+          <a href="https://msadhesif.fr/cgv" style="color:#9CA3AF;text-decoration:none;">CGV</a>
+          &nbsp;·&nbsp;
+          <a href="https://msadhesif.fr/politique-confidentialite" style="color:#9CA3AF;text-decoration:none;">Confidentialité</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+  </mj-body>
+</mjml>

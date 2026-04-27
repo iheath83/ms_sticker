@@ -1,0 +1,15 @@
+<mjml>
+  <mj-head>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="'Helvetica Neue', Arial, sans-serif" />
+      <mj-text font-size="15px" line-height="1.7" color="#6B7280" />
+      <mj-button background-color="#DC2626" color="#FFFFFF" font-size="15px" font-weight="700"
+                 border-radius="8px" padding="14px 32px" />
+    </mj-attributes>
+    <mj-style>
+      a { color: #DC2626; }
+      .brand-mono { font-family: 'Courier New', Courier, monospace; }
+    </mj-style>
+  </mj-head>
+</mjml>

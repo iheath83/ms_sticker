@@ -17,8 +17,16 @@ describe("validateTransition — allowed transitions", () => {
     if (r.ok) expect(r.eventType).toBe("order.submitted");
   });
 
-  it("proof_pending → proof_sent emits proof.uploaded", () => {
-    const r = validateTransition("proof_pending", "proof_sent");
+  it("proof_pending → paid emits payment.received", () => {
+    // New flow: payment happens before BAT (proof_pending → paid via Stripe webhook)
+    const r = validateTransition("proof_pending", "paid");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.eventType).toBe("payment.received");
+  });
+
+  it("paid → proof_sent emits proof.uploaded", () => {
+    // After payment, admin uploads BAT
+    const r = validateTransition("paid", "proof_sent");
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.eventType).toBe("proof.uploaded");
   });
@@ -41,10 +49,11 @@ describe("validateTransition — allowed transitions", () => {
     if (r.ok) expect(r.eventType).toBe("proof.uploaded");
   });
 
-  it("approved → paid emits payment.received", () => {
-    const r = validateTransition("approved", "paid");
+  it("approved → in_production emits production.started", () => {
+    // New flow: payment done upfront, so approval goes directly to in_production
+    const r = validateTransition("approved", "in_production");
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.eventType).toBe("payment.received");
+    if (r.ok) expect(r.eventType).toBe("production.started");
   });
 
   it("paid → in_production emits production.started", () => {

@@ -459,6 +459,7 @@ export const EMAIL_TEMPLATE_TYPES = [
   "order-shipped",
   "admin-new-order",
   "bat-reply",
+  "password-reset",
 ] as const;
 
 export type EmailTemplateType = (typeof EMAIL_TEMPLATE_TYPES)[number];

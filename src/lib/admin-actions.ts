@@ -376,7 +376,60 @@ export async function changeOrderStatus(
     },
   });
 
+  // Shipping notification — send email to customer when order is shipped
+  if (toStatus === "shipped") {
+    sendShippingEmail(orderId, trackingNumber, trackingCarrier).catch((err) =>
+      console.error("[admin] shipping email failed:", err),
+    );
+  }
+
   return { ok: true, data: undefined };
+}
+
+async function sendShippingEmail(
+  orderId: string,
+  trackingNumber: string | undefined,
+  trackingCarrier: string | undefined,
+): Promise<void> {
+  const [row] = await db
+    .select({ userId: orders.userId, guestEmail: orders.guestEmail, totalCents: orders.totalCents })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (!row) return;
+
+  let customerEmail: string | null = row.guestEmail ?? null;
+  let customerName: string | null = null;
+
+  if (row.userId) {
+    const [user] = await db
+      .select({ email: users.email, name: users.name })
+      .from(users)
+      .where(eq(users.id, row.userId))
+      .limit(1);
+    customerEmail = user?.email ?? customerEmail;
+    customerName = user?.name ?? null;
+  }
+
+  if (!customerEmail) return;
+
+  const { sendTemplatedEmail } = await import("@/lib/mail");
+  const appUrl = process.env.BETTER_AUTH_URL ?? process.env.APP_URL ?? "";
+
+  await sendTemplatedEmail(
+    "order-shipped",
+    customerEmail,
+    {
+      customerName: customerName ?? customerEmail,
+      orderNumber: orderId.slice(0, 8).toUpperCase(),
+      orderTotal: `${(row.totalCents / 100).toFixed(2)} €`,
+      orderUrl: `${appUrl}/account/orders/${orderId}`,
+      ...(trackingNumber ? { trackingNumber } : {}),
+      ...(trackingCarrier ? { trackingCarrier } : {}),
+    },
+    customerName ?? undefined,
+  );
 }
 
 // ─── Add internal note ────────────────────────────────────────────────────────

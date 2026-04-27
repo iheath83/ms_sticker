@@ -1,0 +1,92 @@
+# Production docker-compose — deploy on your VPS with:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Prerequisites on VPS:
+#   - Docker + Docker Compose v2 installed
+#   - Traefik running as reverse proxy (see docs/deploy.md)
+#   - .env file present at /srv/ms-adhesif/.env (never committed)
+
+services:
+  # ─── Next.js application ───────────────────────────────────────────────────
+  app:
+    image: ghcr.io/iheath83/ms_sticker:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - web
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ms-adhesif.rule=Host(`msadhesif.fr`) || Host(`www.msadhesif.fr`)"
+      - "traefik.http.routers.ms-adhesif.entrypoints=websecure"
+      - "traefik.http.routers.ms-adhesif.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ms-adhesif.loadbalancer.server.port=3000"
+      # HTTPS redirect
+      - "traefik.http.routers.ms-adhesif-http.rule=Host(`msadhesif.fr`) || Host(`www.msadhesif.fr`)"
+      - "traefik.http.routers.ms-adhesif-http.entrypoints=web"
+      - "traefik.http.routers.ms-adhesif-http.middlewares=https-redirect"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ─── PostgreSQL 16 ─────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-msadhesif}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:-msadhesif}
+    command: >
+      postgres
+        -c max_connections=100
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c maintenance_work_mem=64MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c log_min_duration_statement=1000
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-msadhesif} -d ${POSTGRES_DB:-msadhesif}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─── DB migration job (runs once at deploy, then exits) ────────────────────
+  migrate:
+    image: ghcr.io/iheath83/ms_sticker:${IMAGE_TAG:-latest}
+    restart: "no"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    command: ["node", "-e", "require('./scripts/migrate-prod.cjs')"]
+
+networks:
+  web:
+    external: true   # shared Traefik network — create with: docker network create web
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

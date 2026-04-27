@@ -203,6 +203,38 @@ export const DEFAULT_TEMPLATES: SeedTemplate[] = [
   },
 
   {
+    type: "password-reset",
+    name: "Réinitialisation mot de passe",
+    subject: "🔒 Réinitialisez votre mot de passe — MS Adhésif",
+    blocks: [
+      header,
+      {
+        type: "hero",
+        title: "Réinitialisation de mot de passe",
+        subtitle: "Vous avez demandé à changer votre mot de passe.",
+        bgColor: "#FEF2F2",
+        textColor: ink,
+      },
+      spacerSm,
+      {
+        type: "text",
+        content: "Bonjour {{customerName}},\n\nCliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Ce lien est valable pendant 1 heure.",
+        align: "left",
+      },
+      { type: "button", label: "Réinitialiser mon mot de passe", url: "{{resetUrl}}", bgColor: red, textColor: white },
+      spacerSm,
+      {
+        type: "text",
+        content: "Si vous n'avez pas fait cette demande, ignorez simplement cet email — votre mot de passe actuel reste inchangé.",
+        align: "left",
+      },
+      spacerSm,
+      divider,
+      footer,
+    ],
+  },
+
+  {
     type: "bat-reply",
     name: "Réponse BAT (admin → client)",
     subject: "📩 Réponse à votre révision — Commande #{{orderNumber}}",

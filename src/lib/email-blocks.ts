@@ -24,6 +24,7 @@ export interface TemplateVars {
   batPreviewUrl?: string;
   revisionMessage?: string;
   replyMessage?: string;
+  resetUrl?: string;
   companyName?: string;
   year?: string;
   [key: string]: string | undefined;
@@ -40,6 +41,7 @@ export const TEMPLATE_VAR_TOKENS: Record<string, string> = {
   "{{batPreviewUrl}}": "Lien BAT",
   "{{revisionMessage}}": "Message révision",
   "{{replyMessage}}": "Réponse admin",
+  "{{resetUrl}}": "Lien réinitialisation mot de passe",
   "{{companyName}}": "Nom entreprise",
   "{{year}}": "Année",
 };

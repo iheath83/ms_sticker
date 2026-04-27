@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import { sendTemplatedEmail } from "@/lib/mail";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -18,6 +19,17 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false, // simplified for MVP — enable in prod with Brevo
     minPasswordLength: 8,
+    sendResetPassword: async ({ user, url }) => {
+      await sendTemplatedEmail(
+        "password-reset",
+        user.email,
+        {
+          customerName: user.name ?? user.email.split("@")[0],
+          resetUrl: url,
+        },
+        user.name ?? undefined,
+      ).catch((err) => console.error("[auth] sendResetPassword email failed:", err));
+    },
   },
 
   session: {
