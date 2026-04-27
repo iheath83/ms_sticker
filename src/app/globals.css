@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+/* ============================================
+   MS ADHÉSIF — Design System
+   Palette : Bleu marine / Rouge vif / Blanc
+   Type : JetBrains Mono (technique) + Archivo
+   ============================================ */
+
+:root {
+  /* Brand colours */
+  --blue: #0B3D91;
+  --blue-deep: #081F4D;
+  --blue-soft: #1E52B8;
+  --red: #DC2626;
+  --red-deep: #991B1B;
+  --red-soft: #FCA5A5;
+  --white: #FFFFFF;
+  --cream: #FEFCF7;
+  --ink: #0A0E27;
+
+  /* Greys */
+  --grey-50: #F7F7F5;
+  --grey-100: #EDEDE8;
+  --grey-200: #DCDCD4;
+  --grey-400: #9A9A90;
+  --grey-600: #55554E;
+  --grey-800: #26262A;
+
+  /* Accents */
+  --yellow: #FFD60A;
+  --mint: #C8F9D4;
+
+  /* Shadows — blueprint flat style */
+  --shadow-flat: 4px 4px 0 0 var(--ink);
+  --shadow-blue: 6px 6px 0 0 var(--blue);
+  --shadow-red:  6px 6px 0 0 var(--red);
+  --shadow-soft: 0 10px 30px -10px rgba(10,14,39,0.15);
+
+  /* Radius */
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+}
+
+/* ---- Tailwind theme tokens ---- */
+@theme inline {
+  --color-background: var(--cream);
+  --color-foreground: var(--ink);
+
+  --color-ms-blue: var(--blue);
+  --color-ms-blue-deep: var(--blue-deep);
+  --color-ms-blue-soft: var(--blue-soft);
+  --color-ms-red: var(--red);
+  --color-ms-red-deep: var(--red-deep);
+  --color-ms-red-soft: var(--red-soft);
+  --color-ms-cream: var(--cream);
+  --color-ms-ink: var(--ink);
+  --color-ms-yellow: var(--yellow);
+  --color-ms-grey-50: var(--grey-50);
+  --color-ms-grey-100: var(--grey-100);
+  --color-ms-grey-200: var(--grey-200);
+  --color-ms-grey-400: var(--grey-400);
+  --color-ms-grey-600: var(--grey-600);
+}
+
+/* ---- Base reset ---- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--cream);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* ---- Ticker animation ---- */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-100%); }
+}
+
+.ticker-track {
+  display: inline-block;
+  animation: ticker-scroll 40s linear infinite;
+  padding-left: 100%;
+}
+
+/* ---- Blueprint corner brackets ---- */
+.bracketed {
+  position: relative;
+}
+.bracketed::before,
+.bracketed::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ink);
+}
+.bracketed::before { top: -6px; left: -6px; border-right: none; border-bottom: none; }
+.bracketed::after  { bottom: -6px; right: -6px; border-left: none; border-top: none; }
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--grey-50); }
+::-webkit-scrollbar-thumb { background: var(--grey-400); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink); }
+
+/* ---- Focus ---- */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}

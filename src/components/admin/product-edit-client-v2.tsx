@@ -1,0 +1,979 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { updateProductInfo, createVariant, updateVariant, deleteVariant } from "@/lib/product-catalog-actions";
+import { QUANTITY_TIERS } from "@/lib/pricing";
+import type { PricingTier, CustomPreset } from "@/lib/pricing";
+import { AdminImageUpload, AdminGalleryUpload } from "@/components/admin/admin-image-upload";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type VariantData = {
+  id: string;
+  productId: string;
+  name: string;
+  sku: string | null;
+  material: string;
+  availableFinishes: string[];
+  shapes: string[];
+  basePriceCents: number;
+  minQty: number;
+  weightGrams: number;
+  minWidthMm: number;
+  maxWidthMm: number;
+  minHeightMm: number;
+  maxHeightMm: number;
+  tiers: { minQty: number; discountPct: number }[] | null;
+  sizePrices: Record<string, number> | null;
+  customPresets: { id: string; label: string; widthMm: number; heightMm: number }[] | null;
+  imageUrl: string | null;
+  images: string[];
+  active: boolean;
+  sortOrder: number;
+};
+
+type ProductData = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null | undefined;
+  tagline: string | null | undefined;
+  features: string[];
+  imageUrl: string | null | undefined;
+  images: string[];
+  categoryId: string | null | undefined;
+  requiresCustomization: boolean;
+  active: boolean;
+  sortOrder: number;
+};
+
+const ALL_SHAPES = ["die-cut", "circle", "square", "rectangle", "kiss-cut"] as const;
+const SHAPE_LABELS: Record<string, string> = { "die-cut": "Die-cut", circle: "Cercle", square: "Carré", rectangle: "Rectangle", "kiss-cut": "Kiss-cut" };
+const ALL_FINISHES = ["gloss", "matte", "uv-laminated"] as const;
+const FINISH_LABELS: Record<string, string> = { gloss: "Brillant", matte: "Mat", "uv-laminated": "UV laminé" };
+const ALL_MATERIALS = ["vinyl", "holographic", "glitter", "transparent", "kraft"] as const;
+const MATERIAL_LABELS: Record<string, string> = { vinyl: "Vinyle", holographic: "Holographique", glitter: "Pailleté", transparent: "Transparent", kraft: "Kraft" };
+const ALL_SIZES = ["2x2", "3x3", "4x4", "5x5", "7x7", "custom"] as const;
+const SIZE_LABELS: Record<string, string> = { "2x2": "2×2 cm", "3x3": "3×3 cm", "4x4": "4×4 cm", "5x5": "5×5 cm", "7x7": "7×7 cm", custom: "Sur-mesure" };
+
+const inputStyle: React.CSSProperties = {
+  padding: "9px 12px",
+  borderRadius: 6,
+  border: "1px solid #D1D5DB",
+  fontSize: 13,
+  color: "#0A0E27",
+  background: "#fff",
+  fontFamily: "inherit",
+  width: "100%",
+  boxSizing: "border-box",
+  outline: "none",
+};
+
+const sectionStyle: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #E5E7EB",
+  borderRadius: 12,
+  padding: "20px 24px",
+  marginBottom: 16,
+};
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 style={{ fontFamily: "var(--font-archivo), system-ui, sans-serif", fontSize: 14, fontWeight: 800, color: "#0A0E27", margin: "0 0 16px" }}>
+      {children}
+    </h2>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
+      {children}
+    </label>
+  );
+}
+
+function Toggle({ value, onChange, labelOn, labelOff }: { value: boolean; onChange: (v: boolean) => void; labelOn: string; labelOff: string }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+      <div onClick={() => onChange(!value)} style={{ width: 44, height: 24, borderRadius: 12, background: value ? "#22C55E" : "#D1D5DB", position: "relative", cursor: "pointer", flexShrink: 0, transition: "background 0.2s" }}>
+        <div style={{ position: "absolute", top: 3, left: value ? 23 : 3, width: 18, height: 18, borderRadius: "50%", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.2)", transition: "left 0.2s" }} />
+      </div>
+      <span style={{ fontSize: 13, fontWeight: 600, color: value ? "#065F46" : "#6B7280" }}>{value ? labelOn : labelOff}</span>
+    </label>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export function ProductEditClientV2({
+  product: initialProduct,
+  variants: initialVariants,
+  categories,
+}: {
+  product: ProductData;
+  variants: VariantData[];
+  categories: { id: string; name: string }[];
+}) {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"general" | "variants" | "preview">("general");
+  const [variants, setVariants] = useState<VariantData[]>(initialVariants);
+
+  return (
+    <main style={{ padding: "32px 40px" }}>
+      <div style={{ marginBottom: 20, fontSize: 13, color: "#9CA3AF" }}>
+        <Link href="/admin/products" style={{ color: "#6B7280", textDecoration: "underline" }}>Produits</Link>
+        {" / "}
+        <span>{initialProduct.name}</span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontFamily: "var(--font-archivo), system-ui, sans-serif", fontSize: 24, fontWeight: 900, color: "#0A0E27", margin: 0 }}>
+          {initialProduct.name}
+        </h1>
+        <div style={{ display: "flex", gap: 8 }}>
+          <span style={{
+            padding: "4px 12px",
+            borderRadius: 20,
+            fontSize: 11,
+            fontWeight: 700,
+            background: initialProduct.requiresCustomization ? "#FEE2E2" : "#EFF6FF",
+            color: initialProduct.requiresCustomization ? "#991B1B" : "#1D4ED8",
+          }}>
+            {initialProduct.requiresCustomization ? "Personnalisé" : "Impression directe"}
+          </span>
+          <Link href={`/products/${initialProduct.slug}`} target="_blank" style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 12, fontWeight: 600, textDecoration: "none" }}>
+            Voir sur le site ↗
+          </Link>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 0, marginBottom: 24, borderBottom: "2px solid #E5E7EB" }}>
+        {([
+          { id: "general", label: "Général" },
+          { id: "variants", label: `Déclinaisons (${variants.length})` },
+          { id: "preview", label: "Aperçu" },
+        ] as const).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: "12px 20px",
+              border: "none",
+              borderBottom: activeTab === tab.id ? "2px solid #0A0E27" : "2px solid transparent",
+              marginBottom: -2,
+              background: "none",
+              fontSize: 13,
+              fontWeight: 700,
+              color: activeTab === tab.id ? "#0A0E27" : "#6B7280",
+              cursor: "pointer",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "general" && (
+        <GeneralTab
+          product={initialProduct}
+          categories={categories}
+          variants={variants}
+          onSaved={() => router.refresh()}
+          onGoToVariants={() => setActiveTab("variants")}
+        />
+      )}
+      {activeTab === "variants" && (
+        <VariantsTab
+          productId={initialProduct.id}
+          variants={variants}
+          onVariantsChange={setVariants}
+        />
+      )}
+      {activeTab === "preview" && (
+        <PreviewTab product={initialProduct} variants={variants} />
+      )}
+    </main>
+  );
+}
+
+// ─── General Tab ─────────────────────────────────────────────────────────────
+
+function GeneralTab({
+  product,
+  categories,
+  variants,
+  onSaved,
+  onGoToVariants,
+}: {
+  product: ProductData;
+  categories: { id: string; name: string }[];
+  variants: VariantData[];
+  onSaved: () => void;
+  onGoToVariants: () => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [name, setName] = useState(product.name);
+  const [slug, setSlug] = useState(product.slug);
+  const [description, setDescription] = useState(product.description ?? "");
+  const [tagline, setTagline] = useState(product.tagline ?? "");
+  const [features, setFeatures] = useState<string[]>(product.features ?? []);
+  const [newFeature, setNewFeature] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(product.imageUrl ?? null);
+  const [images, setImages] = useState<string[]>(product.images ?? []);
+  const [categoryId, setCategoryId] = useState(product.categoryId ?? "");
+  const [requiresCustomization, setRequiresCustomization] = useState(product.requiresCustomization);
+  const [active, setActive] = useState(product.active);
+  const [sortOrder, setSortOrder] = useState(String(product.sortOrder));
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  function handleSave() {
+    setError(null);
+    setSuccess(false);
+    startTransition(async () => {
+      const res = await updateProductInfo(product.id, {
+        name: name.trim(),
+        slug: slug.trim(),
+        description: description.trim() || null,
+        tagline: tagline.trim() || null,
+        features: features.filter(Boolean),
+        imageUrl: imageUrl || null,
+        images,
+        categoryId: categoryId || null,
+        requiresCustomization,
+        active,
+        sortOrder: parseInt(sortOrder) || 0,
+      });
+      if (res.ok) {
+        setSuccess(true);
+        onSaved();
+      } else {
+        setError(res.error);
+      }
+    });
+  }
+
+  return (
+    <div style={{ maxWidth: 720 }}>
+      {error && <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "#991B1B", marginBottom: 20 }}>{error}</div>}
+      {success && <div style={{ background: "#D1FAE5", border: "1px solid #6EE7B7", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "#065F46", marginBottom: 20 }}>Produit mis à jour.</div>}
+
+      <section style={sectionStyle}>
+        <SectionTitle>Informations générales</SectionTitle>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <FieldLabel>Nom du produit</FieldLabel>
+              <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <FieldLabel>Slug (URL)</FieldLabel>
+              <input value={slug} onChange={(e) => setSlug(e.target.value)} style={{ ...inputStyle, fontFamily: "monospace" }} />
+            </div>
+          </div>
+          <div>
+            <FieldLabel>Catégorie</FieldLabel>
+            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={inputStyle}>
+              <option value="">— Sans catégorie —</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <FieldLabel>Tagline (affiché sur la page produit)</FieldLabel>
+            <input value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Ex : Stickers premium résistants eau & UV" style={inputStyle} />
+          </div>
+          <div>
+            <FieldLabel>Description (Markdown)</FieldLabel>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} style={{ ...inputStyle, resize: "vertical" }} />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div>
+              <FieldLabel>Ordre d'affichage</FieldLabel>
+              <input type="number" min="0" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={inputStyle} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style={sectionStyle}>
+        <SectionTitle>Type de produit</SectionTitle>
+        <div style={{ display: "flex", gap: 12, marginBottom: 8 }}>
+          {[
+            { value: true, label: "Personnalisé", desc: "Upload fichier + BAT requis", color: "#DC2626", bg: "#FEE2E2" },
+            { value: false, label: "Impression directe", desc: "Pas de fichier, pas de BAT", color: "#1D4ED8", bg: "#EFF6FF" },
+          ].map((opt) => (
+            <button
+              key={String(opt.value)}
+              type="button"
+              onClick={() => setRequiresCustomization(opt.value)}
+              style={{
+                flex: 1,
+                padding: "14px 16px",
+                borderRadius: 8,
+                border: `2px solid ${requiresCustomization === opt.value ? opt.color : "#E5E7EB"}`,
+                background: requiresCustomization === opt.value ? opt.bg : "#F9FAFB",
+                cursor: "pointer",
+                textAlign: "left",
+              }}
+            >
+              <div style={{ fontWeight: 700, fontSize: 13, color: requiresCustomization === opt.value ? opt.color : "#374151" }}>{opt.label}</div>
+              <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: "#9CA3AF" }}>
+          Ce réglage détermine si les clients doivent uploader un fichier et passer par le process BAT.
+        </div>
+      </section>
+
+      {/* Matières disponibles */}
+      <section style={sectionStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <SectionTitle>Matières disponibles</SectionTitle>
+          <button
+            type="button"
+            onClick={onGoToVariants}
+            style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            Gérer dans Déclinaisons →
+          </button>
+        </div>
+        {variants.length === 0 ? (
+          <div style={{ fontSize: 13, color: "#9CA3AF", fontStyle: "italic" }}>
+            Aucune déclinaison. Cliquez sur &quot;Gérer dans Déclinaisons&quot; pour en créer une.
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+              {[...new Set(variants.map((v) => v.material))].map((mat) => {
+                const count = variants.filter((v) => v.material === mat).length;
+                return (
+                  <div
+                    key={mat}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "8px 14px",
+                      borderRadius: 8,
+                      border: "1.5px solid #E5E7EB",
+                      background: "#F9FAFB",
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27" }}>
+                      {MATERIAL_LABELS[mat] ?? mat}
+                    </span>
+                    <span style={{ fontSize: 11, color: "#9CA3AF" }}>
+                      {count} décl.
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <QuickAddMaterial
+              productId={product.id}
+              existingMaterials={[...new Set(variants.map((v) => v.material))]}
+              onAdded={onGoToVariants}
+            />
+          </div>
+        )}
+      </section>
+
+      <section style={sectionStyle}>
+        <SectionTitle>Points forts</SectionTitle>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {features.map((f, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ color: "#DC2626", fontWeight: 900, flexShrink: 0 }}>◆</span>
+              <input value={f} onChange={(e) => { const n = [...features]; n[i] = e.target.value; setFeatures(n); }} style={{ ...inputStyle, flex: 1 }} />
+              <button type="button" onClick={() => setFeatures(features.filter((_, j) => j !== i))} style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontSize: 14, flexShrink: 0 }}>✕</button>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8 }}>
+            <input type="text" placeholder="Ajouter un point fort…" value={newFeature} onChange={(e) => setNewFeature(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && newFeature.trim()) { e.preventDefault(); setFeatures([...features, newFeature.trim()]); setNewFeature(""); } }} style={{ ...inputStyle, flex: 1 }} />
+            <button type="button" onClick={() => { if (newFeature.trim()) { setFeatures([...features, newFeature.trim()]); setNewFeature(""); } }} style={{ padding: "8px 16px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>+ Ajouter</button>
+          </div>
+        </div>
+      </section>
+
+      <section style={sectionStyle}>
+        <SectionTitle>Images</SectionTitle>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <AdminImageUpload
+            label="Image principale"
+            value={imageUrl}
+            onChange={setImageUrl}
+            folder="products"
+            entityId={product.id}
+            hint="Recommandé : 800×800px minimum"
+          />
+          <AdminGalleryUpload
+            label="Galerie (photos supplémentaires)"
+            values={images}
+            onChange={setImages}
+            folder="products"
+            entityId={`${product.id}/gallery`}
+          />
+        </div>
+      </section>
+
+      <section style={sectionStyle}>
+        <SectionTitle>Statut</SectionTitle>
+        <Toggle value={active} onChange={setActive} labelOn="Produit actif (visible sur le site)" labelOff="Produit désactivé (masqué)" />
+      </section>
+
+      <div style={{ display: "flex", gap: 12 }}>
+        <button onClick={handleSave} disabled={isPending} style={{ padding: "12px 28px", borderRadius: 8, border: "none", background: "#0A0E27", color: "#fff", fontSize: 14, fontWeight: 700, cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.7 : 1 }}>
+          {isPending ? "Sauvegarde…" : "Sauvegarder les modifications"}
+        </button>
+        <Link href="/admin/products" style={{ padding: "12px 20px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
+          Retour
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Quick Add Material ───────────────────────────────────────────────────────
+
+function QuickAddMaterial({
+  productId,
+  existingMaterials,
+  onAdded,
+}: {
+  productId: string;
+  existingMaterials: string[];
+  onAdded: () => void;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [selected, setSelected] = useState("");
+
+  const available = ALL_MATERIALS.filter((m) => !existingMaterials.includes(m));
+
+  if (available.length === 0) return null;
+
+  function handleAdd() {
+    if (!selected) return;
+    startTransition(async () => {
+      const res = await createVariant({
+        productId,
+        name: MATERIAL_LABELS[selected] ?? selected,
+        sku: null,
+        material: selected,
+        availableFinishes: ["gloss"],
+        shapes: ["die-cut", "circle", "square"],
+        basePriceCents: 599,
+        minQty: 1,
+        weightGrams: 100,
+        minWidthMm: 20,
+        maxWidthMm: 300,
+        minHeightMm: 20,
+        maxHeightMm: 300,
+        tiers: null,
+        sizePrices: null,
+        customPresets: null,
+        imageUrl: null,
+        images: [],
+        active: true,
+        sortOrder: 99,
+      });
+      if (res.ok) onAdded();
+    });
+  }
+
+  return (
+    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <select
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+        style={{
+          padding: "7px 12px",
+          borderRadius: 6,
+          border: "1px solid #D1D5DB",
+          fontSize: 13,
+          color: "#374151",
+          background: "#fff",
+          outline: "none",
+        }}
+      >
+        <option value="">— Ajouter une matière —</option>
+        {available.map((m) => (
+          <option key={m} value={m}>{MATERIAL_LABELS[m] ?? m}</option>
+        ))}
+      </select>
+      <button
+        type="button"
+        onClick={handleAdd}
+        disabled={!selected || isPending}
+        style={{
+          padding: "7px 16px",
+          borderRadius: 6,
+          border: "none",
+          background: selected ? "#0A0E27" : "#E5E7EB",
+          color: selected ? "#fff" : "#9CA3AF",
+          fontSize: 12,
+          fontWeight: 700,
+          cursor: selected && !isPending ? "pointer" : "not-allowed",
+        }}
+      >
+        {isPending ? "…" : "+ Ajouter"}
+      </button>
+    </div>
+  );
+}
+
+// ─── Variants Tab ─────────────────────────────────────────────────────────────
+
+function VariantsTab({
+  productId,
+  variants,
+  onVariantsChange,
+}: {
+  productId: string;
+  variants: VariantData[];
+  onVariantsChange: (v: VariantData[]) => void;
+}) {
+  const [expandedId, setExpandedId] = useState<string | null>(variants.length === 1 ? variants[0]!.id : null);
+  const [isPending, startTransition] = useTransition();
+  const [globalError, setGlobalError] = useState<string | null>(null);
+
+  function handleAddVariant() {
+    startTransition(async () => {
+      const res = await createVariant({
+        productId,
+        name: "Nouvelle déclinaison",
+        sku: null,
+        material: "vinyl",
+        availableFinishes: ["gloss"],
+        shapes: ["die-cut", "circle", "square"],
+        basePriceCents: 599,
+        minQty: 1,
+        weightGrams: 100,
+        minWidthMm: 20,
+        maxWidthMm: 300,
+        minHeightMm: 20,
+        maxHeightMm: 300,
+        tiers: null,
+        sizePrices: null,
+        customPresets: null,
+        imageUrl: null,
+        images: [],
+        active: true,
+        sortOrder: variants.length,
+      });
+      if (res.ok) {
+        // Reload page to get new variant from DB
+        window.location.reload();
+      } else {
+        setGlobalError(res.error);
+      }
+    });
+  }
+
+  function handleDeleteVariant(id: string) {
+    if (variants.length <= 1) {
+      setGlobalError("Un produit doit avoir au moins une déclinaison.");
+      return;
+    }
+    if (!confirm("Supprimer cette déclinaison ?")) return;
+    startTransition(async () => {
+      const res = await deleteVariant(id);
+      if (res.ok) onVariantsChange(variants.filter((v) => v.id !== id));
+      else setGlobalError(res.error);
+    });
+  }
+
+  return (
+    <div style={{ maxWidth: 760 }}>
+      {globalError && <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>{globalError}</div>}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {variants.map((variant, i) => (
+          <VariantEditor
+            key={variant.id}
+            variant={variant}
+            isExpanded={expandedId === variant.id}
+            onToggle={() => setExpandedId(expandedId === variant.id ? null : variant.id)}
+            onSaved={(updated) => onVariantsChange(variants.map((v) => (v.id === updated.id ? updated : v)))}
+            onDelete={() => handleDeleteVariant(variant.id)}
+            index={i}
+          />
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={handleAddVariant}
+        disabled={isPending}
+        style={{ marginTop: 16, padding: "10px 20px", borderRadius: 8, border: "2px dashed #D1D5DB", background: "#F9FAFB", color: "#374151", fontSize: 13, fontWeight: 700, cursor: "pointer", width: "100%" }}
+      >
+        {isPending ? "Création…" : "+ Ajouter une déclinaison"}
+      </button>
+    </div>
+  );
+}
+
+// ─── Variant editor card ──────────────────────────────────────────────────────
+
+function VariantEditor({
+  variant,
+  isExpanded,
+  onToggle,
+  onSaved,
+  onDelete,
+  index,
+}: {
+  variant: VariantData;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onSaved: (v: VariantData) => void;
+  onDelete: () => void;
+  index: number;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const [name, setName] = useState(variant.name);
+  const [sku, setSku] = useState(variant.sku ?? "");
+  const [material, setMaterial] = useState(variant.material);
+  const [finishes, setFinishes] = useState<string[]>(variant.availableFinishes);
+  const [shapes, setShapes] = useState<string[]>(variant.shapes);
+  const [basePrice, setBasePrice] = useState((variant.basePriceCents / 100).toFixed(2));
+  const [minQty, setMinQty] = useState(String(variant.minQty));
+  const [weightGrams, setWeightGrams] = useState(String(variant.weightGrams));
+  const [minW, setMinW] = useState(String(variant.minWidthMm));
+  const [maxW, setMaxW] = useState(String(variant.maxWidthMm));
+  const [minH, setMinH] = useState(String(variant.minHeightMm));
+  const [maxH, setMaxH] = useState(String(variant.maxHeightMm));
+  const [tiers, setTiers] = useState<PricingTier[]>(
+    variant.tiers?.length
+      ? (variant.tiers as PricingTier[])
+      : QUANTITY_TIERS.map((t) => ({ minQty: t.minQty, discountPct: t.discountPct })),
+  );
+  const [sizePrices, setSizePrices] = useState<Record<string, string>>(() => {
+    const sp = variant.sizePrices ?? {};
+    return Object.fromEntries(Object.entries(sp).map(([k, v]) => [k, (v / 100).toFixed(2)]));
+  });
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>(
+    (variant.customPresets as CustomPreset[]) ?? [],
+  );
+  const [imageUrl, setImageUrl] = useState<string | null>(variant.imageUrl ?? null);
+  const [images, setImages] = useState<string[]>(variant.images ?? []);
+  const [active, setActive] = useState(variant.active);
+
+  function handleSave() {
+    setError(null);
+    setSuccess(false);
+    startTransition(async () => {
+      const input = {
+        productId: variant.productId,
+        name: name.trim(),
+        sku: sku.trim() || null,
+        material,
+        availableFinishes: finishes,
+        shapes,
+        basePriceCents: Math.round(parseFloat(basePrice) * 100) || 1,
+        minQty: parseInt(minQty) || 1,
+        weightGrams: parseInt(weightGrams) || 100,
+        minWidthMm: parseInt(minW) || 20,
+        maxWidthMm: parseInt(maxW) || 300,
+        minHeightMm: parseInt(minH) || 20,
+        maxHeightMm: parseInt(maxH) || 300,
+        tiers: tiers.filter((t) => t.minQty > 0).sort((a, b) => a.minQty - b.minQty),
+        sizePrices: Object.fromEntries(
+          Object.entries(sizePrices)
+            .filter(([, v]) => v.trim() !== "" && parseFloat(v) > 0)
+            .map(([k, v]) => [k, Math.round(parseFloat(v) * 100)]),
+        ),
+        customPresets: customPresets.filter((p) => p.id && p.label && p.widthMm > 0 && p.heightMm > 0),
+        imageUrl: imageUrl || null,
+        images,
+        active,
+        sortOrder: variant.sortOrder,
+      };
+      const res = await updateVariant(variant.id, input);
+      if (res.ok) {
+        setSuccess(true);
+        onSaved({ ...variant, ...input, sku: input.sku });
+      } else {
+        setError(res.error);
+      }
+    });
+  }
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
+      {/* Header */}
+      <div
+        onClick={onToggle}
+        style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", background: isExpanded ? "#F9FAFB" : "#fff" }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt={name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, border: "1px solid #E5E7EB" }} />
+          ) : (
+            <div style={{ width: 36, height: 36, background: "#F3F4F6", borderRadius: 6 }} />
+          )}
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#0A0E27" }}>{name}</div>
+            <div style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "monospace", marginTop: 2 }}>
+              {sku || "—"} · {material} · {(variant.basePriceCents / 100).toFixed(2)} € · {weightGrams}g
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "2px 8px",
+            borderRadius: 20,
+            background: active ? "#D1FAE5" : "#F3F4F6",
+            color: active ? "#065F46" : "#9CA3AF",
+          }}>{active ? "Actif" : "Inactif"}</span>
+          <span style={{ fontSize: 16, color: "#9CA3AF" }}>{isExpanded ? "▲" : "▼"}</span>
+        </div>
+      </div>
+
+      {/* Expanded content */}
+      {isExpanded && (
+        <div style={{ borderTop: "1px solid #E5E7EB", padding: "20px 24px" }}>
+          {error && <div style={{ background: "#FEE2E2", borderRadius: 8, padding: "8px 14px", fontSize: 12, color: "#991B1B", marginBottom: 16 }}>{error}</div>}
+          {success && <div style={{ background: "#D1FAE5", borderRadius: 8, padding: "8px 14px", fontSize: 12, color: "#065F46", marginBottom: 16 }}>Déclinaison sauvegardée.</div>}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Name + SKU */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div>
+                <FieldLabel>Nom de la déclinaison</FieldLabel>
+                <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+              </div>
+              <div>
+                <FieldLabel>SKU</FieldLabel>
+                <input value={sku} onChange={(e) => setSku(e.target.value)} style={{ ...inputStyle, fontFamily: "monospace" }} placeholder="Ex : MSA-VIN-GLOSS-001" />
+              </div>
+            </div>
+
+            {/* Material */}
+            <div>
+              <FieldLabel>Matière</FieldLabel>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {ALL_MATERIALS.map((m) => (
+                  <button key={m} type="button" onClick={() => setMaterial(m)} style={{ padding: "7px 14px", borderRadius: 8, border: `2px solid ${material === m ? "#0A0E27" : "#E5E7EB"}`, background: material === m ? "#0A0E27" : "#F9FAFB", color: material === m ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    {MATERIAL_LABELS[m]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Finishes + Shapes */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <div>
+                <FieldLabel>Finitions disponibles</FieldLabel>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {ALL_FINISHES.map((f) => {
+                    const on = finishes.includes(f);
+                    return <button key={f} type="button" onClick={() => setFinishes(on && finishes.length > 1 ? finishes.filter((x) => x !== f) : on ? finishes : [...finishes, f])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{FINISH_LABELS[f]}</button>;
+                  })}
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Formes disponibles</FieldLabel>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {ALL_SHAPES.map((s) => {
+                    const on = shapes.includes(s);
+                    return <button key={s} type="button" onClick={() => setShapes(on && shapes.length > 1 ? shapes.filter((x) => x !== s) : on ? shapes : [...shapes, s])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{SHAPE_LABELS[s]}</button>;
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Pricing + Dimensions */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+              <div>
+                <FieldLabel>Prix de base (€)</FieldLabel>
+                <div style={{ position: "relative" }}>
+                  <input type="number" step="0.01" min="0" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} style={{ ...inputStyle, paddingRight: 24 }} />
+                  <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
+                </div>
+              </div>
+              <div>
+                <FieldLabel>Qté min</FieldLabel>
+                <input type="number" min="1" value={minQty} onChange={(e) => setMinQty(e.target.value)} style={inputStyle} />
+              </div>
+              <div>
+                <FieldLabel>Poids (g)</FieldLabel>
+                <div style={{ position: "relative" }}>
+                  <input type="number" min="1" value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} style={{ ...inputStyle, paddingRight: 18 }} />
+                  <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>g</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+              {[["Larg. min (mm)", minW, setMinW], ["Larg. max (mm)", maxW, setMaxW], ["Haut. min (mm)", minH, setMinH], ["Haut. max (mm)", maxH, setMaxH]].map(([lbl, val, fn]) => (
+                <div key={String(lbl)}>
+                  <FieldLabel>{String(lbl)}</FieldLabel>
+                  <input type="number" value={String(val)} onChange={(e) => (fn as (v: string) => void)(e.target.value)} style={inputStyle} />
+                </div>
+              ))}
+            </div>
+
+            {/* Pricing tiers */}
+            <div>
+              <FieldLabel>Tarifs dégressifs</FieldLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 36px", gap: 8 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>Qté min</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>Remise (%)</span>
+                  <span />
+                </div>
+                {tiers.map((tier, i) => (
+                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 36px", gap: 8, alignItems: "center" }}>
+                    <input type="number" min="1" value={tier.minQty} onChange={(e) => { const n = [...tiers]; n[i] = { ...n[i]!, minQty: parseInt(e.target.value) || 1 }; setTiers(n); }} style={inputStyle} />
+                    <div style={{ position: "relative" }}>
+                      <input type="number" min="0" max="99" step="1" value={Math.round(tier.discountPct * 100)} onChange={(e) => { const n = [...tiers]; n[i] = { ...n[i]!, discountPct: (parseInt(e.target.value) || 0) / 100 }; setTiers(n); }} style={{ ...inputStyle, paddingRight: 26 }} />
+                      <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>%</span>
+                    </div>
+                    <button type="button" onClick={() => setTiers(tiers.filter((_, j) => j !== i))} disabled={tiers.length <= 1} style={{ padding: "6px", borderRadius: 6, border: "1px solid #E5E7EB", background: tiers.length <= 1 ? "#F9FAFB" : "#FEE2E2", color: tiers.length <= 1 ? "#D1D5DB" : "#991B1B", cursor: "pointer", fontSize: 12 }}>✕</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button type="button" onClick={() => setTiers([...tiers, { minQty: (tiers[tiers.length - 1]?.minQty ?? 50) * 2, discountPct: 0 }])} style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>+ Palier</button>
+                <button type="button" onClick={() => setTiers(QUANTITY_TIERS.map((t) => ({ minQty: t.minQty, discountPct: t.discountPct })))} style={{ padding: "7px 12px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#6B7280", cursor: "pointer", fontSize: 12 }}>Réinitialiser</button>
+              </div>
+            </div>
+
+            {/* Size prices */}
+            <div>
+              <FieldLabel>Prix par taille fixe (€ TTC pour 50 unités)</FieldLabel>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 8 }}>
+                {ALL_SIZES.filter((s) => s !== "custom").map((s) => (
+                  <div key={s}>
+                    <label style={{ fontSize: 10, color: "#9CA3AF", display: "block", marginBottom: 4 }}>{SIZE_LABELS[s]}</label>
+                    <div style={{ position: "relative" }}>
+                      <input type="number" step="0.01" min="0" placeholder="auto" value={sizePrices[s] ?? ""} onChange={(e) => { const v = e.target.value; setSizePrices((prev) => { const n = { ...prev }; if (v === "") delete n[s]; else n[s] = v; return n; }); }} style={{ ...inputStyle, paddingRight: 24, fontSize: 12 }} />
+                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {customPresets.filter((p) => p.id).map((preset) => (
+                <div key={`cp-${preset.id}`} style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10, marginBottom: 8, alignItems: "end" }}>
+                  <div style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{preset.label || preset.id} ({preset.widthMm}×{preset.heightMm}mm)</div>
+                  <div style={{ position: "relative" }}>
+                    <input type="number" step="0.01" min="0" placeholder="auto" value={sizePrices[preset.id] ?? ""} onChange={(e) => { const v = e.target.value; setSizePrices((prev) => { const n = { ...prev }; if (v === "") delete n[preset.id]; else n[preset.id] = v; return n; }); }} style={{ ...inputStyle, paddingRight: 24, fontSize: 12 }} />
+                    <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Custom presets */}
+            <div>
+              <FieldLabel>Présets de taille personnalisés</FieldLabel>
+              {customPresets.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 70px 70px 32px", gap: 8 }}>
+                    {["Libellé", "ID", "Larg.", "Haut.", ""].map((h) => <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>{h}</span>)}
+                  </div>
+                  {customPresets.map((p, i) => (
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 70px 70px 32px", gap: 8, alignItems: "center" }}>
+                      <input value={p.label} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, label: e.target.value }; setCustomPresets(n); }} style={inputStyle} placeholder="Carte postale" />
+                      <input value={p.id} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, id: e.target.value.replace(/\s+/g, "-").toLowerCase() }; setCustomPresets(n); }} style={{ ...inputStyle, fontFamily: "monospace" }} />
+                      <input type="number" min="5" value={p.widthMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, widthMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={inputStyle} />
+                      <input type="number" min="5" value={p.heightMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, heightMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={inputStyle} />
+                      <button type="button" onClick={() => setCustomPresets(customPresets.filter((_, j) => j !== i))} style={{ padding: "6px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontSize: 12 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button type="button" onClick={() => setCustomPresets([...customPresets, { id: `preset-${Date.now()}`, label: "", widthMm: 50, heightMm: 50 }])} style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>+ Préset</button>
+            </div>
+
+            {/* Variant image */}
+            <div>
+              <FieldLabel>Image de la déclinaison</FieldLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <AdminImageUpload
+                  label="Image principale"
+                  value={imageUrl}
+                  onChange={setImageUrl}
+                  folder="variants"
+                  entityId={variant.id}
+                  compact
+                />
+                <AdminGalleryUpload
+                  label="Galerie"
+                  values={images}
+                  onChange={setImages}
+                  folder="variants"
+                  entityId={`${variant.id}/gallery`}
+                  maxImages={6}
+                />
+              </div>
+            </div>
+
+            {/* Active */}
+            <Toggle value={active} onChange={setActive} labelOn="Déclinaison active" labelOff="Déclinaison désactivée" />
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: 10, paddingTop: 8, borderTop: "1px solid #E5E7EB" }}>
+              <button onClick={handleSave} disabled={isPending} style={{ padding: "10px 22px", borderRadius: 8, border: "none", background: "#0A0E27", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: isPending ? 0.7 : 1 }}>
+                {isPending ? "Sauvegarde…" : "Sauvegarder la déclinaison"}
+              </button>
+              <button type="button" onClick={onDelete} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #FCA5A5", background: "#FEF2F2", color: "#991B1B", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Preview Tab ──────────────────────────────────────────────────────────────
+
+function PreviewTab({ product, variants }: { product: ProductData; variants: VariantData[] }) {
+  return (
+    <div style={{ maxWidth: 640 }}>
+      <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "20px 24px", marginBottom: 16 }}>
+        <div style={{ fontWeight: 800, fontSize: 14, color: "#0A0E27", marginBottom: 12 }}>Informations</div>
+        <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
+          <tbody>
+            {[
+              ["Nom", product.name],
+              ["Slug", product.slug],
+              ["Type", product.requiresCustomization ? "Personnalisé (BAT)" : "Impression directe"],
+              ["Déclinaisons", `${variants.length} déclinaison${variants.length > 1 ? "s" : ""}`],
+              ["Statut", product.active ? "Actif" : "Inactif"],
+            ].map(([k, v]) => (
+              <tr key={k} style={{ borderBottom: "1px solid #F3F4F6" }}>
+                <td style={{ padding: "8px 0", fontWeight: 600, color: "#6B7280", width: 140 }}>{k}</td>
+                <td style={{ padding: "8px 0", color: "#0A0E27" }}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display: "flex", gap: 12 }}>
+        <Link
+          href={`/products/${product.slug}`}
+          target="_blank"
+          style={{ padding: "10px 20px", borderRadius: 8, background: "#0A0E27", color: "#fff", fontSize: 13, fontWeight: 700, textDecoration: "none" }}
+        >
+          Voir la page produit ↗
+        </Link>
+      </div>
+    </div>
+  );
+}
