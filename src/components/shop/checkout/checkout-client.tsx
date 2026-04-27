@@ -16,7 +16,9 @@ import { useSession } from "@/lib/auth-client";
 import type { CartItemFile } from "@/lib/cart-actions";
 import { getUserAddresses, saveAddress, type SavedAddress } from "@/lib/address-actions";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY;
+if (!stripeKey) throw new Error("NEXT_PUBLIC_STRIPE_PUBLIC_KEY is not set");
+const stripePromise = loadStripe(stripeKey);
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 

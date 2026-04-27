@@ -33,6 +33,13 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Admin routes must not be indexed by search engines
+      {
+        source: "/admin/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
+        ],
+      },
       // Cache static assets aggressively
       {
         source: "/_next/static/(.*)",

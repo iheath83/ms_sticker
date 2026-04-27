@@ -6,6 +6,7 @@ import {
   products,
   productVariants,
   orderItems,
+  users,
 } from "@/db/schema";
 import type {
   Category,
@@ -25,8 +26,13 @@ import { z } from "zod";
 
 async function requireAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session || role !== "admin") throw new Error("Non autorisé");
+  if (!session?.user) throw new Error("Non authentifié");
+  const [dbUser] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  if (dbUser?.role !== "admin") throw new Error("Non autorisé");
   return session;
 }
 

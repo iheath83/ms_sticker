@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { Client as MinioClient } from "minio";
 
@@ -16,7 +19,8 @@ const ALLOWED_MIME_TYPES = [
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-function getMinioClient() {
+// Reuse the MinIO singleton from storage.ts indirectly via env vars
+function getMinioClient(): MinioClient {
   const endPoint = process.env["MINIO_ENDPOINT"];
   if (!endPoint) throw new Error("MINIO_ENDPOINT is not set");
   return new MinioClient({
@@ -35,9 +39,17 @@ function getBucket(): string {
 }
 
 export async function POST(request: NextRequest) {
+  // ── Auth: verify admin role against DB (no unsafe cast) ───────────────────
   const session = await auth.api.getSession({ headers: await headers() });
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session || role !== "admin") {
+  if (!session?.user) {
+    return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  }
+  const [dbUser] = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  if (dbUser?.role !== "admin") {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
@@ -76,9 +88,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const client = getMinioClient();
-    const bucket = getBucket();
-    await client.putObject(bucket, key, buffer, buffer.length, { "content-type": file.type });
-
+    await client.putObject(getBucket(), key, buffer, buffer.length, { "content-type": file.type });
     const proxyUrl = `/api/uploads/download?key=${encodeURIComponent(key)}`;
     return NextResponse.json({ url: proxyUrl, key });
   } catch (err) {
