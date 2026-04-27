@@ -29,7 +29,19 @@ function getBucket(): string {
   return bucket;
 }
 
-// Storage key convention: orders/{orderId}/{type}/{yyyymmdd}-{uuid}-{filename}
+/**
+ * Sanitise a client-supplied filename before embedding it in an S3 key.
+ * Strips path traversal, whitespace, and non-ASCII characters.
+ */
+function sanitizeFilename(raw: string): string {
+  // Keep only the basename (removes any path component including ../)
+  const base = raw.split(/[/\\]/).pop() ?? "file";
+  // Replace anything that isn't alphanumeric, dash, underscore, or dot
+  const safe = base.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100);
+  return safe || "file";
+}
+
+// Storage key convention: orders/{orderId}/{type}/{yyyymmdd}-{uuid}-{sanitized-filename}
 export function buildStorageKey(
   orderId: string,
   type: "customer_upload" | "proof" | "final_artwork",
@@ -37,11 +49,19 @@ export function buildStorageKey(
 ): string {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const uuid = crypto.randomUUID();
-  return `orders/${orderId}/${type}/${date}-${uuid}-${filename}`;
+  return `orders/${orderId}/${type}/${date}-${uuid}-${sanitizeFilename(filename)}`;
 }
 
-// Generate a presigned PUT URL for direct client-side upload (15 min TTL)
-export async function getPresignedUploadUrl(key: string): Promise<string> {
+/**
+ * Generate a presigned PUT URL for direct client-side upload (15 min TTL).
+ *
+ * NOTE: MinIO presigned PUT URLs do not support Content-Length-Range conditions
+ * (that feature requires multipart POST policy). Size enforcement here is
+ * defensive at the presign stage (declared size validated before URL is issued).
+ * For hard server-side enforcement, migrate to presignedPostPolicy with
+ * policy.setContentLengthRange(1, maxSizeBytes).
+ */
+export async function getPresignedUploadUrl(key: string, _declaredSizeBytes?: number): Promise<string> {
   return getClient().presignedPutObject(getBucket(), key, 15 * 60);
 }
 

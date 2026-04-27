@@ -37,6 +37,10 @@ const envSchema = z.object({
   // App
   APP_URL: z.string().url(),
   APP_ENV: z.enum(["development", "production"]).default("development"),
+
+  // Public (build-time) — used by auth-client.ts on the client side
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  NEXT_PUBLIC_STRIPE_PUBLIC_KEY: z.string().startsWith("pk_"),
 });
 
 function createEnv() {

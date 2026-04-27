@@ -9,6 +9,7 @@ import { validateTransition } from "@/lib/order-state";
 import { sendTemplatedEmail } from "@/lib/mail";
 import { z } from "zod";
 import { clearDraftOrder } from "@/lib/cart-actions";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -101,6 +102,13 @@ export async function submitOrder(
   // 2. Get authenticated user (optional — order can be placed as guest)
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user.id ?? null;
+
+  // 3. Rate limit: 5 order submissions / hour per user or per email
+  const rateLimitKey = `submit-order:${userId ?? shipping.email}`;
+  const rl = await checkRateLimit(rateLimitKey, 5, 60 * 60);
+  if (!rl.allowed) {
+    return { ok: false, error: "Trop de commandes soumises. Réessayez dans une heure." };
+  }
 
   // 3. Get the draft order from cookie
   const jar = await cookies();

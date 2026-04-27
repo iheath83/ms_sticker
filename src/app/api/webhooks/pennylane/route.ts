@@ -18,11 +18,18 @@ export const runtime = "nodejs";
  * on vérifie simplement le Bearer token secret partagé.
  */
 export async function POST(req: NextRequest) {
-  // ── Auth: shared secret header ─────────────────────────────────────────────
+  // ── Auth: shared secret header (mandatory in production) ──────────────────
   const secret = process.env.PENNYLANE_WEBHOOK_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${secret}`) {
+  if (!secret) {
+    if (process.env.APP_ENV === "production") {
+      console.error("[pennylane-webhook] PENNYLANE_WEBHOOK_SECRET is not set in production");
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+    }
+    console.warn("[pennylane-webhook] PENNYLANE_WEBHOOK_SECRET not set — skipping auth (dev only)");
+  } else {
+    const authHeader = req.headers.get("authorization") ?? "";
+    if (authHeader !== `Bearer ${secret}`) {
+      console.warn("[pennylane-webhook] Invalid authorization header — request rejected");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }

@@ -1,7 +1,20 @@
 "use server";
 
+import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+
 const BASE_V3 = "https://panel.sendcloud.sc/api/v3";
 const BASE_V2 = "https://panel.sendcloud.sc/api/v2";
+
+async function requireAdmin(): Promise<void> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) throw new Error("Non authentifié");
+  const [dbUser] = await db.select({ role: users.role }).from(users).where(eq(users.id, session.user.id)).limit(1);
+  if (dbUser?.role !== "admin") throw new Error("Non autorisé");
+}
 
 function authHeader() {
   const pub = process.env.SENDCLOUD_PUBLIC_KEY ?? "";
@@ -64,6 +77,7 @@ interface ShippingMethodsResponse {
 export async function getShippingMethods(
   countryCode = "FR",
 ): Promise<{ ok: true; data: SendCloudShippingMethod[] } | { ok: false; error: string }> {
+  await requireAdmin();
   // Step 1: fetch v2 methods (names/carriers)
   const res = await scFetch<ShippingMethodsResponse>(
     `${BASE_V2}/shipping_methods?to_country=${countryCode}`,
@@ -170,6 +184,7 @@ interface AnnounceResponse {
 export async function createParcel(
   input: CreateParcelInput,
 ): Promise<{ ok: true; data: { id: number; tracking_number: string; carrier_code: string; label_url: string } } | { ok: false; error: string }> {
+  await requireAdmin();
   // Fetch from_address from SendCloud sender addresses
   const fromAddress = await getFromAddress(input.fromAddressId);
   if (!fromAddress) return { ok: false, error: "[SendCloud] Adresse d'expéditeur introuvable — vérifiez SENDCLOUD_FROM_ADDRESS_ID" };
@@ -228,6 +243,7 @@ export async function createParcel(
 // ─── Get label PDF URL (v3) ───────────────────────────────────────────────────
 
 export async function getLabelUrl(parcelId: number): Promise<string | null> {
+  await requireAdmin();
   // v3 label URL is a direct authenticated download endpoint
   return `${BASE_V3}/parcels/${parcelId}/documents/label`;
 }
@@ -235,6 +251,7 @@ export async function getLabelUrl(parcelId: number): Promise<string | null> {
 // ─── Auto-create order in SendCloud "Imported Orders" (no label) ─────────────
 
 export async function autoCreateSendCloudOrder(orderId: string): Promise<void> {
+  await requireAdmin();
   const integrationId = process.env.SENDCLOUD_INTEGRATION_ID
     ? Number(process.env.SENDCLOUD_INTEGRATION_ID)
     : 576127; // fallback to the API integration ID

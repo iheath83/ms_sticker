@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { orders, orderEvents } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { createHmac, timingSafeEqual } from "crypto";
 
 // SendCloud parcel status codes → order status mapping
 // https://sendcloud.dev/docs/shipping/parcel-statuses
@@ -16,10 +17,40 @@ const STATUS_MAP: Record<number, { orderStatus: string | null; eventType: string
   1000:{ orderStatus: null,       eventType: "sendcloud.status_update", label: "Annulé" },
 };
 
+/**
+ * Verify the SendCloud webhook HMAC-SHA256 signature.
+ * SendCloud signs the raw body with the integration's secret key.
+ * Header: X-Sendcloud-Signature (hex-encoded HMAC-SHA256)
+ */
+function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
+  if (!signature) return false;
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  try {
+    return timingSafeEqual(Buffer.from(signature, "hex"), Buffer.from(expected, "hex"));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
+  const rawBody = await req.text();
+
+  // ── Signature verification ─────────────────────────────────────────────────
+  const webhookSecret = process.env.SENDCLOUD_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const signature = req.headers.get("x-sendcloud-signature");
+    if (!verifySignature(rawBody, signature, webhookSecret)) {
+      console.warn("[sendcloud-webhook] Invalid signature — request rejected");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+  } else if (process.env.APP_ENV === "production") {
+    console.error("[sendcloud-webhook] SENDCLOUD_WEBHOOK_SECRET is not set in production");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  }
+
   let body: unknown;
   try {
-    body = await req.json();
+    body = JSON.parse(rawBody);
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
