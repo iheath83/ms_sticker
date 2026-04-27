@@ -56,9 +56,8 @@ const nextConfig: NextConfig = {
   // Reduce Docker image size — exclude source maps in prod
   productionBrowserSourceMaps: false,
 
-  // TypeScript & ESLint: fail build on errors
+  // TypeScript: fail build on errors
   typescript: { ignoreBuildErrors: false },
-  eslint:     { ignoreDuringBuilds: false },
 };
 
 export default nextConfig;
