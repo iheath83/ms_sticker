@@ -55,11 +55,13 @@ export const auth = betterAuth({
   secret: process.env["BETTER_AUTH_SECRET"] ?? "",
 
   trustedOrigins: [
-    process.env["APP_URL"] ?? "http://localhost:3000",
+    process.env["BETTER_AUTH_URL"],
+    process.env["APP_URL"],
+    process.env["NEXT_PUBLIC_APP_URL"],
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
-  ],
+  ].filter(Boolean) as string[],
 });
 
 export type Session = typeof auth.$Infer.Session;
