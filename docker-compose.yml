@@ -40,7 +40,9 @@ services:
 
   # ─── Next.js application ───────────────────────────────────────────────────
   app:
-    image: ghcr.io/iheath83/ms_sticker:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
     environment:
@@ -53,7 +55,9 @@ services:
 
   # ─── DB migrations (runs once at deploy, then exits) ───────────────────────
   migrate:
-    image: ghcr.io/iheath83/ms_sticker:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: "no"
     env_file: .env
     environment:
