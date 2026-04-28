@@ -8,48 +8,10 @@ import { auth } from "@/lib/auth";
 import { computePrice, type PricingInput } from "@/lib/pricing";
 import type { PricingShape, PricingMaterial, PricingFinish } from "@/lib/pricing";
 import { z } from "zod";
+import type { Cart, CartItem, CartItemFile, AddToCartResult } from "@/lib/cart-types";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export interface CartItemFile {
-  id: string;
-  key: string;
-  filename: string | null;
-  mimeType: string | null;
-}
-
-export interface CartItem {
-  id: string;
-  productId: string | null;
-  productName: string;
-  quantity: number;
-  widthMm: number;
-  heightMm: number;
-  shape: string;
-  finish: string;
-  material: string;
-  options: Record<string, boolean>;
-  unitPriceCents: number;
-  lineTotalCents: number;
-  customizationNote?: string | undefined;
-  file: CartItemFile | null;
-}
-
-export interface Cart {
-  orderId: string;
-  items: CartItem[];
-  subtotalCents: number;
-  taxAmountCents: number;
-  totalCents: number;
-  itemCount: number;
-}
-
-// Return type for addToCart includes the new itemId
-export interface AddToCartResult {
-  cart: Cart;
-  itemId: string;
-  orderId: string;
-}
+// Re-export types for backward compatibility (consumers should import from cart-types directly)
+export type { Cart, CartItem, CartItemFile, AddToCartResult, AddToCartInput } from "@/lib/cart-types";
 
 type Result<T = void> = { ok: true; data: T } | { ok: false; error: string };
 

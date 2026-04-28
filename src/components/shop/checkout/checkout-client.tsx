@@ -13,7 +13,7 @@ import { useCart } from "../cart-context";
 import { TruckIcon, SparklesIcon, ShieldIcon, ArrowIcon, TrashIcon } from "../icons";
 import { submitOrder, validateVatAction } from "@/lib/order-actions";
 import { useSession } from "@/lib/auth-client";
-import type { CartItemFile } from "@/lib/cart-actions";
+import type { CartItemFile } from "@/lib/cart-types";
 import { getUserAddresses, saveAddress, type SavedAddress } from "@/lib/address-actions";
 
 const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY;

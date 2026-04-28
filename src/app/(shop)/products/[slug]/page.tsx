@@ -4,6 +4,7 @@ import { materialToPreview } from "@/lib/product-utils";
 import { ProductConfigurator } from "@/components/shop/configurator/product-configurator";
 import { ProductDirectTemplate } from "@/components/shop/product-direct-template";
 import { QUANTITY_TIERS, type PricingTier, type PricingFinish, type PricingSize, type CustomPreset } from "@/lib/pricing";
+import { addToCart } from "@/lib/cart-actions";
 import type { Metadata } from "next";
 
 interface Props {
@@ -129,6 +130,7 @@ export default async function ProductPage({ params }: Props) {
       minQty={minQty}
       sizePrices={sizePrices}
       customPresets={customPresets}
+      addToCart={addToCart}
     />
   );
 }

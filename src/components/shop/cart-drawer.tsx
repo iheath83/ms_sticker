@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { CloseIcon, TrashIcon, ArrowIcon } from "./icons";
 import { useCart } from "./cart-context";
-import type { CartItemFile } from "@/lib/cart-actions";
+import type { CartItemFile } from "@/lib/cart-types";
 
 const qtyBtnStyle: React.CSSProperties = {
   background: "transparent",

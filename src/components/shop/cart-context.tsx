@@ -13,9 +13,8 @@ import {
   addToCart as addToCartAction,
   updateCartItemQty,
   removeCartItem,
-  type Cart,
-  type AddToCartInput,
 } from "@/lib/cart-actions";
+import type { Cart, AddToCartInput } from "@/lib/cart-types";
 
 interface CartContextValue {
   cart: Cart;

@@ -8,8 +8,8 @@ import { OrderSummary } from "./order-summary";
 import { StepperLayout } from "./stepper-layout";
 import { computePrice, QUANTITY_TIERS, SIZE_MM, type PricingSize, type PricingShape, type PricingMaterial, type PricingFinish, type PricingTier, type CustomPreset } from "@/lib/pricing";
 import { useCart } from "../cart-context";
-import { addToCart as addToCartAction } from "@/lib/cart-actions";
 import type { Product } from "@/db/schema";
+import type { AddToCartInput, AddToCartResult } from "@/lib/cart-types";
 import { materialToPreview } from "@/lib/product-utils";
 
 export interface ConfigState {
@@ -123,6 +123,8 @@ const MATERIAL_VISUALS: Record<string, { bg: string; border: string; label: stri
 /** Default basePriceCents when no product in DB */
 const DEFAULT_BASE_PRICE_CENTS = 2490;
 
+type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
+
 interface ProductConfiguratorProps {
   products?: Product[];
   defaultMaterial?: PricingMaterial;
@@ -137,6 +139,8 @@ interface ProductConfiguratorProps {
   minQty?: number | undefined;
   sizePrices?: Record<string, number> | undefined;
   customPresets?: CustomPreset[] | undefined;
+  // Server action passed as prop from the parent Server Component
+  addToCart: (input: AddToCartInput) => Promise<ActionResult<AddToCartResult>>;
 }
 
 export function ProductConfigurator({
@@ -153,6 +157,7 @@ export function ProductConfigurator({
   minQty = 1,
   sizePrices,
   customPresets = [],
+  addToCart: addToCartAction,
 }: ProductConfiguratorProps) {
   const router = useRouter();
   const { refreshCart, setCartOpen } = useCart();
