@@ -1,6 +1,5 @@
 import { ProductConfigurator } from "@/components/shop/configurator/product-configurator";
 import { getActiveProducts } from "@/lib/products";
-import { addToCart } from "@/lib/cart-actions";
 
 export const metadata = {
   title: "Configurateur Stickers — MS Adhésif",
@@ -10,5 +9,5 @@ export const metadata = {
 
 export default async function CustomStickersPage() {
   const products = await getActiveProducts();
-  return <ProductConfigurator products={products} addToCart={addToCart} />;
+  return <ProductConfigurator products={products} />;
 }

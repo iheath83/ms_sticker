@@ -8,19 +8,15 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
-import {
-  getCart,
-  addToCart as addToCartAction,
-  updateCartItemQty,
-  removeCartItem,
-} from "@/lib/cart-actions";
-import type { Cart, AddToCartInput } from "@/lib/cart-types";
+import type { Cart, AddToCartInput, AddToCartResult } from "@/lib/cart-types";
+
+type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
 interface CartContextValue {
   cart: Cart;
   cartOpen: boolean;
   isPending: boolean;
-  addToCart: (input: AddToCartInput) => Promise<void>;
+  addToCart: (input: AddToCartInput) => Promise<Result<AddToCartResult>>;
   updateQty: (itemId: string, qty: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   refreshCart: () => Promise<void>;
@@ -38,42 +34,71 @@ const EMPTY_CART: Cart = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  });
+  if (!res.ok) throw new Error(`Cart API error: ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart>(EMPTY_CART);
   const [cartOpen, setCartOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [addPending, setAddPending] = useState(false);
+  const [, startTransition] = useTransition();
 
-  // Load cart from DB on mount
   useEffect(() => {
-    getCart().then(setCart).catch(console.error);
+    apiFetch<Cart>("/api/cart").then(setCart).catch(console.error);
   }, []);
 
   async function refreshCart() {
-    const updated = await getCart();
+    const updated = await apiFetch<Cart>("/api/cart");
     setCart(updated);
   }
 
-  async function addToCart(input: AddToCartInput) {
-    startTransition(async () => {
-      const result = await addToCartAction(input);
+  async function addToCart(input: AddToCartInput): Promise<Result<AddToCartResult>> {
+    setAddPending(true);
+    try {
+      const result = await apiFetch<Result<AddToCartResult>>("/api/cart/items", {
+        method: "POST",
+        body: JSON.stringify(input),
+      });
       if (result.ok) {
         setCart(result.data.cart);
         setCartOpen(true);
       }
+      return result;
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    } finally {
+      setAddPending(false);
+    }
+  }
+
+  function updateQty(itemId: string, qty: number): Promise<void> {
+    return new Promise((resolve) => {
+      startTransition(async () => {
+        const result = await apiFetch<Result<Cart>>(`/api/cart/items/${itemId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ quantity: qty }),
+        });
+        if (result.ok) setCart(result.data);
+        resolve();
+      });
     });
   }
 
-  async function updateQty(itemId: string, qty: number) {
-    startTransition(async () => {
-      const result = await updateCartItemQty(itemId, qty);
-      if (result.ok) setCart(result.data);
-    });
-  }
-
-  async function removeItem(itemId: string) {
-    startTransition(async () => {
-      const result = await removeCartItem(itemId);
-      if (result.ok) setCart(result.data);
+  function removeItem(itemId: string): Promise<void> {
+    return new Promise((resolve) => {
+      startTransition(async () => {
+        const result = await apiFetch<Result<Cart>>(`/api/cart/items/${itemId}`, {
+          method: "DELETE",
+        });
+        if (result.ok) setCart(result.data);
+        resolve();
+      });
     });
   }
 
@@ -82,7 +107,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{
         cart,
         cartOpen,
-        isPending,
+        isPending: addPending,
         addToCart,
         updateQty,
         removeItem,

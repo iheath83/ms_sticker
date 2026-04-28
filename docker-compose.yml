@@ -38,6 +38,30 @@ services:
         echo 'Bucket ms-adhesif ready.';
       "
 
+  # ─── Next.js application ───────────────────────────────────────────────────
+  app:
+    image: ghcr.io/iheath83/ms_sticker:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - minio
+
+  # ─── DB migrations (runs once at deploy, then exits) ───────────────────────
+  migrate:
+    image: ghcr.io/iheath83/ms_sticker:latest
+    restart: "no"
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - postgres
+    command: ["node", "-e", "require('./scripts/migrate-prod.cjs')"]
+
 volumes:
   postgres_data:
   minio_data:
