@@ -56,6 +56,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # Migration files needed at runtime
 COPY --from=builder --chown=nextjs:nodejs /app/src/db/migrations ./src/db/migrations
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
 USER nextjs
 
