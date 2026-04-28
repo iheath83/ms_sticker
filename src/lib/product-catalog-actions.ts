@@ -219,7 +219,7 @@ export async function createProduct(input: NewProductInput): Promise<Result<{ id
     await db.insert(productVariants).values({
       productId: product!.id,
       name: `Variant ${data.material}`,
-      sku: `MSA-${data.material.toUpperCase()}-001`,
+      sku: `MSA-${data.material.toUpperCase()}-${product!.id.slice(0, 6).toUpperCase()}`,
       material: data.material,
       basePriceCents: data.basePriceCents,
       availableFinishes: ["gloss"],
