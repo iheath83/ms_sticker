@@ -8,11 +8,13 @@ import { CartProvider } from "@/components/shop/cart-context";
 import { getActiveProducts } from "@/lib/products";
 import AccountNav from "./account-nav";
 
+export const dynamic = "force-dynamic";
+
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login?callbackUrl=/account/orders");
 
-  const products = await getActiveProducts();
+  const products = await getActiveProducts().catch(() => []);
 
   return (
     <CartProvider>

@@ -6,7 +6,7 @@ import { CookieBanner } from "@/components/shop/cookie-banner";
 import { getActiveProducts } from "@/lib/products";
 
 export default async function ShopLayout({ children }: { children: React.ReactNode }) {
-  const products = await getActiveProducts();
+  const products = await getActiveProducts().catch(() => []);
 
   return (
     <CartProvider>

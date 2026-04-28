@@ -7,7 +7,7 @@ import { ReviewsSection } from "@/components/shop/home/reviews-section";
 import { getActiveProducts } from "@/lib/products";
 
 export default async function HomePage() {
-  const products = await getActiveProducts();
+  const products = await getActiveProducts().catch(() => []);
 
   return (
     <main>

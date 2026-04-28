@@ -8,6 +8,6 @@ export const metadata = {
 };
 
 export default async function CustomStickersPage() {
-  const products = await getActiveProducts();
+  const products = await getActiveProducts().catch(() => []);
   return <ProductConfigurator products={products} />;
 }
