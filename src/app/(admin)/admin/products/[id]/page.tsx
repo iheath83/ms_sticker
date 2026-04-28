@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getProductWithVariants, getCategories } from "@/lib/product-catalog-actions";
+import { getProductWithVariants, getCategories, getActiveOptionValues } from "@/lib/product-catalog-actions";
 import { ProductEditClientV2 } from "@/components/admin/product-edit-client-v2";
 
 export default async function AdminProductEditPage({
@@ -9,9 +9,12 @@ export default async function AdminProductEditPage({
 }) {
   const { id } = await params;
 
-  const [productData, cats] = await Promise.all([
+  const [productData, cats, shapes, finishes, materials] = await Promise.all([
     getProductWithVariants(id),
     getCategories(),
+    getActiveOptionValues("shape"),
+    getActiveOptionValues("finish"),
+    getActiveOptionValues("material"),
   ]);
 
   if (!productData) notFound();
@@ -58,6 +61,9 @@ export default async function AdminProductEditPage({
         sortOrder: v.sortOrder,
       }))}
       categories={cats.map((c) => ({ id: c.id, name: c.name }))}
+      shapes={shapes.map((s) => ({ slug: s.slug, label: s.label }))}
+      finishes={finishes.map((f) => ({ slug: f.slug, label: f.label }))}
+      materials={materials.map((m) => ({ slug: m.slug, label: m.label }))}
     />
   );
 }

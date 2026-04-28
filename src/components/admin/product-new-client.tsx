@@ -5,13 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createProduct } from "@/lib/product-catalog-actions";
 
-const ALL_MATERIALS = [
-  { id: "vinyl", label: "Vinyle" },
-  { id: "holographic", label: "Holographique" },
-  { id: "glitter", label: "Pailleté" },
-  { id: "transparent", label: "Transparent" },
-  { id: "kraft", label: "Kraft" },
-];
+type OptionItem = { slug: string; label: string };
 
 const inputStyle: React.CSSProperties = {
   padding: "9px 12px",
@@ -26,13 +20,19 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
-export function ProductNewClient({ categories }: { categories: { id: string; name: string }[] }) {
+export function ProductNewClient({
+  categories,
+  materials,
+}: {
+  categories: { id: string; name: string }[];
+  materials: OptionItem[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [requiresCustomization, setRequiresCustomization] = useState(true);
-  const [material, setMaterial] = useState("vinyl");
+  const [material, setMaterial] = useState(materials[0]?.slug ?? "vinyl");
   const [basePrice, setBasePrice] = useState("5.99");
   const [error, setError] = useState<string | null>(null);
 
@@ -134,17 +134,17 @@ export function ProductNewClient({ categories }: { categories: { id: string; nam
         <div>
           <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 8 }}>Matière principale</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {ALL_MATERIALS.map((m) => (
+            {materials.map((m) => (
               <button
-                key={m.id}
+                key={m.slug}
                 type="button"
-                onClick={() => setMaterial(m.id)}
+                onClick={() => setMaterial(m.slug)}
                 style={{
                   padding: "7px 14px",
                   borderRadius: 8,
-                  border: `2px solid ${material === m.id ? "#0A0E27" : "#E5E7EB"}`,
-                  background: material === m.id ? "#0A0E27" : "#F9FAFB",
-                  color: material === m.id ? "#fff" : "#374151",
+                  border: `2px solid ${material === m.slug ? "#0A0E27" : "#E5E7EB"}`,
+                  background: material === m.slug ? "#0A0E27" : "#F9FAFB",
+                  color: material === m.slug ? "#fff" : "#374151",
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: "pointer",

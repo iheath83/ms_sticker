@@ -5,6 +5,7 @@ import {
   categories,
   products,
   productVariants,
+  productOptionValues,
   orderItems,
   users,
 } from "@/db/schema";
@@ -12,11 +13,12 @@ import type {
   Category,
   Product,
   ProductVariant,
+  ProductOptionValue,
   NewCategory,
   NewProduct,
   NewProductVariant,
 } from "@/db/schema";
-import { eq, asc, desc, and, isNull, inArray } from "drizzle-orm";
+import { eq, asc, desc, and, isNull, inArray, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -561,4 +563,105 @@ export async function orderRequiresCustomization(orderId: string): Promise<boole
     .where(inArray(products.id, productIds));
 
   return prods.some((p) => p.requiresCustomization);
+}
+
+// ─── Product option values (shapes / finishes / materials) ────────────────────
+
+export async function getOptionValues(type: string): Promise<ProductOptionValue[]> {
+  return db
+    .select()
+    .from(productOptionValues)
+    .where(eq(productOptionValues.type, type))
+    .orderBy(asc(productOptionValues.sortOrder), asc(productOptionValues.label));
+}
+
+export async function getActiveOptionValues(type: string): Promise<ProductOptionValue[]> {
+  return db
+    .select()
+    .from(productOptionValues)
+    .where(and(eq(productOptionValues.type, type), eq(productOptionValues.active, true)))
+    .orderBy(asc(productOptionValues.sortOrder), asc(productOptionValues.label));
+}
+
+const optionValueSchema = z.object({
+  type: z.enum(["shape", "finish", "material"]),
+  slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug : lettres minuscules, chiffres et tirets"),
+  label: z.string().min(1).max(255),
+  description: z.string().optional().nullable(),
+  active: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+});
+
+export async function createOptionValue(
+  data: z.infer<typeof optionValueSchema>,
+): Promise<Result<ProductOptionValue>> {
+  await requireAdmin();
+  const parsed = optionValueSchema.safeParse(data);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalide" };
+
+  const existing = await db
+    .select({ id: productOptionValues.id })
+    .from(productOptionValues)
+    .where(and(eq(productOptionValues.type, parsed.data.type), eq(productOptionValues.slug, parsed.data.slug)))
+    .limit(1);
+  if (existing.length) return { ok: false, error: "Un slug identique existe déjà pour ce type." };
+
+  const [row] = await db
+    .insert(productOptionValues)
+    .values({ ...parsed.data, description: parsed.data.description ?? null })
+    .returning();
+  if (!row) return { ok: false, error: "Erreur lors de la création." };
+  return { ok: true, data: row };
+}
+
+export async function updateOptionValue(
+  id: string,
+  data: Partial<z.infer<typeof optionValueSchema>>,
+): Promise<Result<ProductOptionValue>> {
+  await requireAdmin();
+
+  const [row] = await db
+    .update(productOptionValues)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(productOptionValues.id, id))
+    .returning();
+  if (!row) return { ok: false, error: "Option introuvable." };
+  return { ok: true, data: row };
+}
+
+export async function deleteOptionValue(id: string): Promise<Result<void>> {
+  await requireAdmin();
+
+  await db.delete(productOptionValues).where(eq(productOptionValues.id, id));
+  return { ok: true, data: undefined };
+}
+
+// ─── Seeder: insert default option values if table is empty ───────────────────
+
+export async function seedOptionValues(): Promise<Result<{ inserted: number }>> {
+  await requireAdmin();
+
+  const existing = await db.select({ count: sql<number>`count(*)` }).from(productOptionValues);
+  if (Number(existing[0]?.count ?? 0) > 0) {
+    return { ok: true, data: { inserted: 0 } };
+  }
+
+  const defaults: Array<{ type: string; slug: string; label: string; sortOrder: number }> = [
+    { type: "shape", slug: "die-cut", label: "Die-cut", sortOrder: 0 },
+    { type: "shape", slug: "circle", label: "Cercle", sortOrder: 1 },
+    { type: "shape", slug: "square", label: "Carré", sortOrder: 2 },
+    { type: "shape", slug: "rectangle", label: "Rectangle", sortOrder: 3 },
+    { type: "shape", slug: "kiss-cut", label: "Kiss-cut", sortOrder: 4 },
+    { type: "finish", slug: "gloss", label: "Brillant", sortOrder: 0 },
+    { type: "finish", slug: "matte", label: "Mat", sortOrder: 1 },
+    { type: "finish", slug: "uv-laminated", label: "UV laminé", sortOrder: 2 },
+    { type: "material", slug: "vinyl", label: "Vinyle", sortOrder: 0 },
+    { type: "material", slug: "holographic", label: "Holographique", sortOrder: 1 },
+    { type: "material", slug: "glitter", label: "Pailleté", sortOrder: 2 },
+    { type: "material", slug: "transparent", label: "Transparent", sortOrder: 3 },
+    { type: "material", slug: "kraft", label: "Kraft", sortOrder: 4 },
+  ];
+
+  await db.insert(productOptionValues).values(defaults);
+  return { ok: true, data: { inserted: defaults.length } };
 }

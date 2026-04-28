@@ -495,3 +495,28 @@ export type OrderEvent = typeof orderEvents.$inferSelect;
 export type NewOrderEvent = typeof orderEvents.$inferInsert;
 export type OrderFile = typeof orderFiles.$inferSelect;
 export type ShippingRate = typeof shippingRates.$inferSelect;
+
+// ─── product_option_values ────────────────────────────────────────────────────
+// Référentiel admin-géré pour les formes, finitions et matières disponibles
+// type: "shape" | "finish" | "material"
+
+export const PRODUCT_OPTION_TYPES = ["shape", "finish", "material"] as const;
+export type ProductOptionType = (typeof PRODUCT_OPTION_TYPES)[number];
+
+export const productOptionValues = pgTable(
+  "product_option_values",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    type: varchar("type", { length: 30 }).notNull(),
+    slug: varchar("slug", { length: 100 }).notNull(),
+    label: varchar("label", { length: 255 }).notNull(),
+    description: text("description"),
+    active: boolean("active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("product_option_values_type_slug_idx").on(t.type, t.slug)],
+);
+
+export type ProductOptionValue = typeof productOptionValues.$inferSelect;
+export type NewProductOptionValue = typeof productOptionValues.$inferInsert;

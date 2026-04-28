@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { updateProductInfo, createVariant, updateVariant, deleteVariant } from "@/lib/product-catalog-actions";
+import { updateProductInfo, createVariant, updateVariant, deleteVariant, reorderVariants } from "@/lib/product-catalog-actions";
 import { QUANTITY_TIERS } from "@/lib/pricing";
 import type { PricingTier, CustomPreset } from "@/lib/pricing";
 import { AdminImageUpload, AdminGalleryUpload } from "@/components/admin/admin-image-upload";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+type OptionItem = { slug: string; label: string };
 
 type VariantData = {
   id: string;
@@ -49,12 +51,6 @@ type ProductData = {
   sortOrder: number;
 };
 
-const ALL_SHAPES = ["die-cut", "circle", "square", "rectangle", "kiss-cut"] as const;
-const SHAPE_LABELS: Record<string, string> = { "die-cut": "Die-cut", circle: "Cercle", square: "Carré", rectangle: "Rectangle", "kiss-cut": "Kiss-cut" };
-const ALL_FINISHES = ["gloss", "matte", "uv-laminated"] as const;
-const FINISH_LABELS: Record<string, string> = { gloss: "Brillant", matte: "Mat", "uv-laminated": "UV laminé" };
-const ALL_MATERIALS = ["vinyl", "holographic", "glitter", "transparent", "kraft"] as const;
-const MATERIAL_LABELS: Record<string, string> = { vinyl: "Vinyle", holographic: "Holographique", glitter: "Pailleté", transparent: "Transparent", kraft: "Kraft" };
 const ALL_SIZES = ["2x2", "3x3", "4x4", "5x5", "7x7", "custom"] as const;
 const SIZE_LABELS: Record<string, string> = { "2x2": "2×2 cm", "3x3": "3×3 cm", "4x4": "4×4 cm", "5x5": "5×5 cm", "7x7": "7×7 cm", custom: "Sur-mesure" };
 
@@ -112,10 +108,16 @@ export function ProductEditClientV2({
   product: initialProduct,
   variants: initialVariants,
   categories,
+  shapes,
+  finishes,
+  materials,
 }: {
   product: ProductData;
   variants: VariantData[];
   categories: { id: string; name: string }[];
+  shapes: OptionItem[];
+  finishes: OptionItem[];
+  materials: OptionItem[];
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"general" | "variants" | "preview">("general");
@@ -183,6 +185,7 @@ export function ProductEditClientV2({
           product={initialProduct}
           categories={categories}
           variants={variants}
+          materials={materials}
           onSaved={() => router.refresh()}
           onGoToVariants={() => setActiveTab("variants")}
         />
@@ -191,6 +194,9 @@ export function ProductEditClientV2({
         <VariantsTab
           productId={initialProduct.id}
           variants={variants}
+          shapes={shapes}
+          finishes={finishes}
+          materials={materials}
           onVariantsChange={setVariants}
         />
       )}
@@ -207,12 +213,14 @@ function GeneralTab({
   product,
   categories,
   variants,
+  materials,
   onSaved,
   onGoToVariants,
 }: {
   product: ProductData;
   categories: { id: string; name: string }[];
   variants: VariantData[];
+  materials: OptionItem[];
   onSaved: () => void;
   onGoToVariants: () => void;
 }) {
@@ -352,6 +360,7 @@ function GeneralTab({
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
               {[...new Set(variants.map((v) => v.material))].map((mat) => {
                 const count = variants.filter((v) => v.material === mat).length;
+                const matLabel = materials.find((m) => m.slug === mat)?.label ?? mat;
                 return (
                   <div
                     key={mat}
@@ -366,7 +375,7 @@ function GeneralTab({
                     }}
                   >
                     <span style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27" }}>
-                      {MATERIAL_LABELS[mat] ?? mat}
+                      {matLabel}
                     </span>
                     <span style={{ fontSize: 11, color: "#9CA3AF" }}>
                       {count} décl.
@@ -378,6 +387,7 @@ function GeneralTab({
             <QuickAddMaterial
               productId={product.id}
               existingMaterials={[...new Set(variants.map((v) => v.material))]}
+              materials={materials}
               onAdded={onGoToVariants}
             />
           </div>
@@ -444,25 +454,28 @@ function GeneralTab({
 function QuickAddMaterial({
   productId,
   existingMaterials,
+  materials,
   onAdded,
 }: {
   productId: string;
   existingMaterials: string[];
+  materials: OptionItem[];
   onAdded: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [selected, setSelected] = useState("");
 
-  const available = ALL_MATERIALS.filter((m) => !existingMaterials.includes(m));
+  const available = materials.filter((m) => !existingMaterials.includes(m.slug));
 
   if (available.length === 0) return null;
 
   function handleAdd() {
     if (!selected) return;
+    const mat = materials.find((m) => m.slug === selected);
     startTransition(async () => {
       const res = await createVariant({
         productId,
-        name: MATERIAL_LABELS[selected] ?? selected,
+        name: mat?.label ?? selected,
         sku: null,
         material: selected,
         availableFinishes: ["gloss"],
@@ -503,7 +516,7 @@ function QuickAddMaterial({
       >
         <option value="">— Ajouter une matière —</option>
         {available.map((m) => (
-          <option key={m} value={m}>{MATERIAL_LABELS[m] ?? m}</option>
+          <option key={m.slug} value={m.slug}>{m.label}</option>
         ))}
       </select>
       <button
@@ -532,12 +545,19 @@ function QuickAddMaterial({
 function VariantsTab({
   productId,
   variants,
+  shapes,
+  finishes,
+  materials,
   onVariantsChange,
 }: {
   productId: string;
   variants: VariantData[];
+  shapes: OptionItem[];
+  finishes: OptionItem[];
+  materials: OptionItem[];
   onVariantsChange: (v: VariantData[]) => void;
 }) {
+  const router = useRouter();
   const [expandedId, setExpandedId] = useState<string | null>(variants.length === 1 ? variants[0]!.id : null);
   const [isPending, startTransition] = useTransition();
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -548,9 +568,9 @@ function VariantsTab({
         productId,
         name: "Nouvelle déclinaison",
         sku: null,
-        material: "vinyl",
-        availableFinishes: ["gloss"],
-        shapes: ["die-cut", "circle", "square"],
+        material: materials[0]?.slug ?? "vinyl",
+        availableFinishes: [finishes[0]?.slug ?? "gloss"],
+        shapes: shapes.slice(0, 3).map((s) => s.slug),
         basePriceCents: 599,
         minQty: 1,
         weightGrams: 100,
@@ -567,8 +587,7 @@ function VariantsTab({
         sortOrder: variants.length,
       });
       if (res.ok) {
-        // Reload page to get new variant from DB
-        window.location.reload();
+        router.refresh();
       } else {
         setGlobalError(res.error);
       }
@@ -588,6 +607,23 @@ function VariantsTab({
     });
   }
 
+  function handleMoveVariant(id: string, direction: "up" | "down") {
+    const idx = variants.findIndex((v) => v.id === id);
+    if (idx === -1) return;
+    if (direction === "up" && idx === 0) return;
+    if (direction === "down" && idx === variants.length - 1) return;
+
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    const newOrder = [...variants];
+    [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx]!, newOrder[idx]!];
+    const reordered = newOrder.map((v, i) => ({ ...v, sortOrder: i }));
+    onVariantsChange(reordered);
+
+    startTransition(async () => {
+      await reorderVariants(reordered.map((v) => ({ id: v.id, sortOrder: v.sortOrder })));
+    });
+  }
+
   return (
     <div style={{ maxWidth: 760 }}>
       {globalError && <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>{globalError}</div>}
@@ -597,11 +633,17 @@ function VariantsTab({
           <VariantEditor
             key={variant.id}
             variant={variant}
+            shapes={shapes}
+            finishes={finishes}
+            materials={materials}
             isExpanded={expandedId === variant.id}
             onToggle={() => setExpandedId(expandedId === variant.id ? null : variant.id)}
             onSaved={(updated) => onVariantsChange(variants.map((v) => (v.id === updated.id ? updated : v)))}
             onDelete={() => handleDeleteVariant(variant.id)}
+            onMove={(dir) => handleMoveVariant(variant.id, dir)}
             index={i}
+            isFirst={i === 0}
+            isLast={i === variants.length - 1}
           />
         ))}
       </div>
@@ -622,18 +664,30 @@ function VariantsTab({
 
 function VariantEditor({
   variant,
+  shapes,
+  finishes,
+  materials,
   isExpanded,
   onToggle,
   onSaved,
   onDelete,
+  onMove,
   index,
+  isFirst,
+  isLast,
 }: {
   variant: VariantData;
+  shapes: OptionItem[];
+  finishes: OptionItem[];
+  materials: OptionItem[];
   isExpanded: boolean;
   onToggle: () => void;
   onSaved: (v: VariantData) => void;
   onDelete: () => void;
+  onMove: (dir: "up" | "down") => void;
   index: number;
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -642,8 +696,8 @@ function VariantEditor({
   const [name, setName] = useState(variant.name);
   const [sku, setSku] = useState(variant.sku ?? "");
   const [material, setMaterial] = useState(variant.material);
-  const [finishes, setFinishes] = useState<string[]>(variant.availableFinishes);
-  const [shapes, setShapes] = useState<string[]>(variant.shapes);
+  const [selectedFinishes, setFinishes] = useState<string[]>(variant.availableFinishes);
+  const [selectedShapes, setShapes] = useState<string[]>(variant.shapes);
   const [basePrice, setBasePrice] = useState((variant.basePriceCents / 100).toFixed(2));
   const [minQty, setMinQty] = useState(String(variant.minQty));
   const [weightGrams, setWeightGrams] = useState(String(variant.weightGrams));
@@ -676,8 +730,8 @@ function VariantEditor({
         name: name.trim(),
         sku: sku.trim() || null,
         material,
-        availableFinishes: finishes,
-        shapes,
+        availableFinishes: selectedFinishes,
+        shapes: selectedShapes,
         basePriceCents: Math.round(parseFloat(basePrice) * 100) || 1,
         minQty: parseInt(minQty) || 1,
         weightGrams: parseInt(weightGrams) || 100,
@@ -710,34 +764,51 @@ function VariantEditor({
   return (
     <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
       {/* Header */}
-      <div
-        onClick={onToggle}
-        style={{ padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", background: isExpanded ? "#F9FAFB" : "#fff" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt={name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, border: "1px solid #E5E7EB" }} />
-          ) : (
-            <div style={{ width: 36, height: 36, background: "#F3F4F6", borderRadius: 6 }} />
-          )}
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "#0A0E27" }}>{name}</div>
-            <div style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "monospace", marginTop: 2 }}>
-              {sku || "—"} · {material} · {(variant.basePriceCents / 100).toFixed(2)} € · {weightGrams}g
+      <div style={{ display: "flex", alignItems: "center" }}>
+        {/* Sort buttons */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 2, padding: "0 8px 0 12px" }}>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onMove("up"); }}
+            disabled={isFirst}
+            style={{ padding: "2px 6px", fontSize: 10, border: "1px solid #E5E7EB", borderRadius: 3, background: "#F9FAFB", color: isFirst ? "#D1D5DB" : "#374151", cursor: isFirst ? "default" : "pointer" }}
+          >▲</button>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onMove("down"); }}
+            disabled={isLast}
+            style={{ padding: "2px 6px", fontSize: 10, border: "1px solid #E5E7EB", borderRadius: 3, background: "#F9FAFB", color: isLast ? "#D1D5DB" : "#374151", cursor: isLast ? "default" : "pointer" }}
+          >▼</button>
+        </div>
+        <div
+          onClick={onToggle}
+          style={{ flex: 1, padding: "16px 20px 16px 4px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", background: isExpanded ? "#F9FAFB" : "#fff" }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt={name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, border: "1px solid #E5E7EB" }} />
+            ) : (
+              <div style={{ width: 36, height: 36, background: "#F3F4F6", borderRadius: 6 }} />
+            )}
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: "#0A0E27" }}>{name}</div>
+              <div style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "monospace", marginTop: 2 }}>
+                {sku || "—"} · {materials.find((m) => m.slug === material)?.label ?? material} · {(variant.basePriceCents / 100).toFixed(2)} € · {weightGrams}g
+              </div>
             </div>
           </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{
-            fontSize: 11,
-            fontWeight: 700,
-            padding: "2px 8px",
-            borderRadius: 20,
-            background: active ? "#D1FAE5" : "#F3F4F6",
-            color: active ? "#065F46" : "#9CA3AF",
-          }}>{active ? "Actif" : "Inactif"}</span>
-          <span style={{ fontSize: 16, color: "#9CA3AF" }}>{isExpanded ? "▲" : "▼"}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "2px 8px",
+              borderRadius: 20,
+              background: active ? "#D1FAE5" : "#F3F4F6",
+              color: active ? "#065F46" : "#9CA3AF",
+            }}>{active ? "Actif" : "Inactif"}</span>
+            <span style={{ fontSize: 16, color: "#9CA3AF" }}>{isExpanded ? "▲" : "▼"}</span>
+          </div>
         </div>
       </div>
 
@@ -764,9 +835,9 @@ function VariantEditor({
             <div>
               <FieldLabel>Matière</FieldLabel>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {ALL_MATERIALS.map((m) => (
-                  <button key={m} type="button" onClick={() => setMaterial(m)} style={{ padding: "7px 14px", borderRadius: 8, border: `2px solid ${material === m ? "#0A0E27" : "#E5E7EB"}`, background: material === m ? "#0A0E27" : "#F9FAFB", color: material === m ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                    {MATERIAL_LABELS[m]}
+                {materials.map((m) => (
+                  <button key={m.slug} type="button" onClick={() => setMaterial(m.slug)} style={{ padding: "7px 14px", borderRadius: 8, border: `2px solid ${material === m.slug ? "#0A0E27" : "#E5E7EB"}`, background: material === m.slug ? "#0A0E27" : "#F9FAFB", color: material === m.slug ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    {m.label}
                   </button>
                 ))}
               </div>
@@ -777,18 +848,18 @@ function VariantEditor({
               <div>
                 <FieldLabel>Finitions disponibles</FieldLabel>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {ALL_FINISHES.map((f) => {
-                    const on = finishes.includes(f);
-                    return <button key={f} type="button" onClick={() => setFinishes(on && finishes.length > 1 ? finishes.filter((x) => x !== f) : on ? finishes : [...finishes, f])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{FINISH_LABELS[f]}</button>;
+                  {finishes.map((f) => {
+                    const on = selectedFinishes.includes(f.slug);
+                    return <button key={f.slug} type="button" onClick={() => setFinishes(on && selectedFinishes.length > 1 ? selectedFinishes.filter((x) => x !== f.slug) : on ? selectedFinishes : [...selectedFinishes, f.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{f.label}</button>;
                   })}
                 </div>
               </div>
               <div>
                 <FieldLabel>Formes disponibles</FieldLabel>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {ALL_SHAPES.map((s) => {
-                    const on = shapes.includes(s);
-                    return <button key={s} type="button" onClick={() => setShapes(on && shapes.length > 1 ? shapes.filter((x) => x !== s) : on ? shapes : [...shapes, s])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{SHAPE_LABELS[s]}</button>;
+                  {shapes.map((s) => {
+                    const on = selectedShapes.includes(s.slug);
+                    return <button key={s.slug} type="button" onClick={() => setShapes(on && selectedShapes.length > 1 ? selectedShapes.filter((x) => x !== s.slug) : on ? selectedShapes : [...selectedShapes, s.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{s.label}</button>;
                   })}
                 </div>
               </div>
