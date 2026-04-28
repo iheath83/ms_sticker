@@ -17,8 +17,7 @@ import type { CartItemFile } from "@/lib/cart-types";
 import { getUserAddresses, saveAddress, type SavedAddress } from "@/lib/address-actions";
 
 const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY;
-if (!stripeKey) throw new Error("NEXT_PUBLIC_STRIPE_PUBLIC_KEY is not set");
-const stripePromise = loadStripe(stripeKey);
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -827,6 +826,11 @@ export function CheckoutClient() {
                   <div style={{ marginBottom: 16, padding: "10px 14px", background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 8, fontSize: 13, color: "#14532D", display: "flex", alignItems: "center", gap: 8 }}>
                     ✅ Commande créée — complétez le paiement ci-dessous
                   </div>
+                  {!stripePromise ? (
+                    <div style={{ padding: "12px 16px", background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8, fontSize: 13, color: "#991B1B" }}>
+                      ⚠️ La clé Stripe n'est pas configurée. Contactez le support.
+                    </div>
+                  ) : (
                   <Elements
                     stripe={stripePromise}
                     options={{
@@ -845,6 +849,7 @@ export function CheckoutClient() {
                   >
                     <StripePaymentForm orderId={checkoutOrderId} total={Math.round(total * 100)} />
                   </Elements>
+                  )}
                 </FormCard>
               </div>
             )}

@@ -23,12 +23,17 @@ RUN npm ci --ignore-scripts
 
 COPY . .
 
-# Inline-replace BUILD_ID so Next.js output is deterministic
+# Public env vars must be baked in at build time (NEXT_PUBLIC_* are inlined by webpack)
+ARG NEXT_PUBLIC_STRIPE_PUBLIC_KEY
+ARG NEXT_PUBLIC_APP_URL
+
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Dummy values for build-time static generation — real values injected at runtime
 ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
 ENV BETTER_AUTH_SECRET=build-time-placeholder-do-not-use
+ENV NEXT_PUBLIC_STRIPE_PUBLIC_KEY=$NEXT_PUBLIC_STRIPE_PUBLIC_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 
 # next.config.ts must have output: 'standalone'
 RUN npm run build
