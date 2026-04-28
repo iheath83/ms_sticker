@@ -10,5 +10,5 @@ coverage
 *.tsbuildinfo
 .DS_Store
 docs
-scripts
+!scripts/migrate-prod.cjs
 src/lib/emails/compiled
