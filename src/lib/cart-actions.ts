@@ -11,7 +11,7 @@ import { z } from "zod";
 import type { Cart, CartItem, CartItemFile, AddToCartResult } from "@/lib/cart-types";
 
 // Re-export types for backward compatibility (consumers should import from cart-types directly)
-export type { Cart, CartItem, CartItemFile, AddToCartResult, AddToCartInput } from "@/lib/cart-types";
+export type { Cart, CartItem, CartItemFile, AddToCartResult } from "@/lib/cart-types";
 
 type Result<T = void> = { ok: true; data: T } | { ok: false; error: string };
 
