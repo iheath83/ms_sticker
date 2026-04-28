@@ -11,9 +11,16 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  const products = await getActiveProductsWithVariants();
-  return products.map((p) => ({ slug: p.slug }));
+  try {
+    const products = await getActiveProductsWithVariants();
+    return products.map((p) => ({ slug: p.slug }));
+  } catch {
+    // DB not available at build time — pages rendered on demand at runtime
+    return [];
+  }
 }
+
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;

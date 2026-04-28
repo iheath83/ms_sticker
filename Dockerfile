@@ -26,6 +26,9 @@ COPY . .
 # Inline-replace BUILD_ID so Next.js output is deterministic
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Dummy values for build-time static generation — real values injected at runtime
+ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+ENV BETTER_AUTH_SECRET=build-time-placeholder-do-not-use
 
 # next.config.ts must have output: 'standalone'
 RUN npm run build
