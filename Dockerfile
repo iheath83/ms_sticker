@@ -58,6 +58,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/src/db/migrations ./src/db/migrat
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
+# postgres package is needed by the migration script (not bundled in standalone)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/postgres ./node_modules/postgres
+
 USER nextjs
 
 EXPOSE 3000
