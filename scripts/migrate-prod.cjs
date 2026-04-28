@@ -1,20 +1,36 @@
 /**
- * Minimal CJS migration runner for production Docker container.
- * Called by the `migrate` service in docker-compose.prod.yml.
- * Uses drizzle-kit programmatic API via child_process.
+ * Production migration runner — uses drizzle-orm's migrate() API directly.
+ * Does NOT require drizzle-kit (devDependency) to be installed.
  */
 
-const { execSync } = require("child_process");
+const path = require("path");
 
-console.log("▶ [migrate] Starting Drizzle migrations …");
-
-try {
-  execSync("npx drizzle-kit migrate", {
-    stdio: "inherit",
-    env: { ...process.env, NODE_ENV: "production" },
-  });
-  console.log("✅ [migrate] Migrations complete.");
-} catch (err) {
-  console.error("❌ [migrate] Migration failed:", err.message);
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  console.error("❌ [migrate] DATABASE_URL is not set");
   process.exit(1);
 }
+
+async function main() {
+  console.log("▶ [migrate] Starting Drizzle migrations …");
+
+  // Dynamic imports — drizzle-orm and postgres are production dependencies
+  const { drizzle } = await import("drizzle-orm/postgres-js");
+  const { migrate } = await import("drizzle-orm/migrator");
+  const { default: postgres } = await import("postgres");
+
+  const client = postgres(databaseUrl, { max: 1 });
+  const db = drizzle(client);
+
+  await migrate(db, {
+    migrationsFolder: path.join(__dirname, "src/db/migrations"),
+  });
+
+  console.log("✅ [migrate] Migrations complete.");
+  await client.end();
+}
+
+main().catch((err) => {
+  console.error("❌ [migrate] Migration failed:", err.message ?? err);
+  process.exit(1);
+});
