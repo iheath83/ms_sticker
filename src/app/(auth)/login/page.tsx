@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { AuthCard } from "@/components/auth/auth-card";
 import { LoginForm } from "@/components/auth/login-form";
@@ -12,7 +13,9 @@ export default function LoginPage() {
       title="Connexion"
       subtitle="Accédez à votre espace client pour suivre vos commandes."
     >
-      <LoginForm />
+      <Suspense>
+        <LoginForm />
+      </Suspense>
     </AuthCard>
   );
 }
