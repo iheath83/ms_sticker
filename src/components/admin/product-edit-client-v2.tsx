@@ -620,7 +620,7 @@ function VariantsTab({
     onVariantsChange(reordered);
 
     startTransition(async () => {
-      await reorderVariants(reordered.map((v) => ({ id: v.id, sortOrder: v.sortOrder })));
+      await reorderVariants(productId, reordered.map((v) => v.id));
     });
   }
 
