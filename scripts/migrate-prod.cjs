@@ -56,9 +56,13 @@ async function main() {
       .filter(Boolean);
 
     console.log(`  ▶  Applying ${file} (${statements.length} statement(s)) …`);
-    for (const stmt of statements) {
-      await sql.unsafe(stmt);
-    }
+    // Wrap in a transaction with FK triggers disabled (needed for type changes on FK columns)
+    await sql.begin(async (tx) => {
+      await tx`SET LOCAL session_replication_role = replica`;
+      for (const stmt of statements) {
+        await tx.unsafe(stmt);
+      }
+    });
 
     await sql`
       INSERT INTO "__drizzle_migrations" (hash, created_at)
