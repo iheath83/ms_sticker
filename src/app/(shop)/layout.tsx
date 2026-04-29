@@ -7,6 +7,7 @@ import { CartProvider } from "@/components/shop/cart-context";
 import { CookieBanner } from "@/components/shop/cookie-banner";
 import { getActiveProducts } from "@/lib/products";
 import { getSiteSettings } from "@/lib/settings-actions";
+import { getNavTree } from "@/lib/nav-actions";
 
 const BYPASS_COOKIE = "ms_admin_bypass";
 
@@ -22,14 +23,15 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
     }
   }
 
-  const [products, settings] = await Promise.all([
+  const [products, settings, navTree] = await Promise.all([
     getActiveProducts().catch(() => []),
     getSiteSettings(),
+    getNavTree(),
   ]);
 
   return (
     <CartProvider>
-      <Header products={products} logoUrl={settings.logoUrl} />
+      <Header products={products} logoUrl={settings.logoUrl} navTree={navTree} />
       {children}
       <Footer logoUrl={settings.logoUrl} />
       <CartDrawer />

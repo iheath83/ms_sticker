@@ -522,6 +522,30 @@ export type ProductOptionValue = typeof productOptionValues.$inferSelect;
 
 // ─── site_settings ─────────────────────────────────────────────────────────────
 
+// ─── nav_items ─────────────────────────────────────────────────────────────────
+
+export const navItems = pgTable(
+  "nav_items",
+  {
+    id:           uuid("id").primaryKey().defaultRandom(),
+    parentId:     uuid("parent_id").references((): AnyPgColumn => navItems.id, { onDelete: "cascade" }),
+    label:        varchar("label", { length: 100 }).notNull(),
+    href:         varchar("href", { length: 500 }).notNull().default("#"),
+    icon:         varchar("icon", { length: 20 }),
+    description:  varchar("description", { length: 255 }),
+    badge:        varchar("badge", { length: 50 }),
+    openInNewTab: boolean("open_in_new_tab").notNull().default(false),
+    active:       boolean("active").notNull().default(true),
+    sortOrder:    integer("sort_order").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("nav_items_parent_sort_idx").on(t.parentId, t.sortOrder)],
+);
+
+export type NavItem = typeof navItems.$inferSelect;
+
+// ─── site_settings ─────────────────────────────────────────────────────────────
+
 export const siteSettings = pgTable("site_settings", {
   id:                    integer("id").primaryKey().default(1),
   logoUrl:               text("logo_url"),
