@@ -73,5 +73,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # dumb-init handles PID 1 signals properly (graceful shutdown)
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/start.sh ./scripts/start.sh
+
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "server.js"]
+CMD ["sh", "scripts/start.sh"]
