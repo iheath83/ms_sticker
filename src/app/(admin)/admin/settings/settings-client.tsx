@@ -1,0 +1,199 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { updateSiteSettings } from "@/lib/settings-actions";
+import type { SiteSettings } from "@/db/schema";
+
+const inputStyle: React.CSSProperties = {
+  padding: "9px 12px",
+  borderRadius: 6,
+  border: "1px solid #D1D5DB",
+  fontSize: 13,
+  color: "#0A0E27",
+  background: "#fff",
+  fontFamily: "inherit",
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+const sectionStyle: React.CSSProperties = {
+  background: "#fff",
+  border: "1px solid #E5E7EB",
+  borderRadius: 12,
+  padding: "24px",
+  marginBottom: 20,
+};
+
+export function SettingsClient({ settings }: { settings: SiteSettings }) {
+  const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(settings.maintenanceEnabled);
+  const [title,   setTitle]   = useState(settings.maintenanceTitle);
+  const [message, setMessage] = useState(settings.maintenanceMessage);
+  const [email,   setEmail]   = useState(settings.maintenanceEmail);
+  const [phone,   setPhone]   = useState(settings.maintenancePhone);
+
+  function handleSave() {
+    startTransition(async () => {
+      await updateSiteSettings({
+        maintenanceEnabled,
+        maintenanceTitle:   title,
+        maintenanceMessage: message,
+        maintenanceEmail:   email,
+        maintenancePhone:   phone,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    });
+  }
+
+  return (
+    <div style={{ padding: "32px 40px", maxWidth: 720 }}>
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontFamily: "var(--font-archivo), system-ui, sans-serif", fontSize: 24, fontWeight: 900, color: "#0A0E27", margin: "0 0 6px" }}>
+          Paramètres du site
+        </h1>
+        <p style={{ fontSize: 13, color: "#6B7280", margin: 0 }}>
+          Gérez le mode maintenance et les informations de contact.
+        </p>
+      </div>
+
+      {/* Maintenance toggle */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: maintenanceEnabled ? 24 : 0 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#0A0E27", marginBottom: 4 }}>
+              Mode maintenance
+            </div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>
+              Affiche la page "Coming Soon" aux visiteurs. Vous conservez l&apos;accès au site.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMaintenanceEnabled((v) => !v)}
+            style={{
+              width: 52,
+              height: 28,
+              borderRadius: 999,
+              border: "none",
+              background: maintenanceEnabled ? "#DC2626" : "#D1D5DB",
+              cursor: "pointer",
+              position: "relative",
+              transition: "background 0.2s",
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: 4,
+                left: maintenanceEnabled ? 28 : 4,
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                background: "#fff",
+                transition: "left 0.2s",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              }}
+            />
+          </button>
+        </div>
+
+        {maintenanceEnabled && (
+          <div
+            style={{
+              background: "#FEF2F2",
+              border: "1px solid #FECACA",
+              borderRadius: 8,
+              padding: "10px 14px",
+              fontSize: 12,
+              color: "#991B1B",
+              fontWeight: 600,
+            }}
+          >
+            ⚠️ Le mode maintenance est <strong>actif</strong> — les visiteurs voient la page Coming Soon.
+          </div>
+        )}
+      </div>
+
+      {/* Page content */}
+      <div style={sectionStyle}>
+        <h2 style={{ fontFamily: "var(--font-archivo)", fontSize: 14, fontWeight: 800, color: "#0A0E27", margin: "0 0 20px" }}>
+          Contenu de la page
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label style={labelStyle}>Titre</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} style={inputStyle} placeholder="Bientôt disponible" />
+          </div>
+          <div>
+            <label style={labelStyle}>Message</label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={3}
+              style={{ ...inputStyle, resize: "vertical" }}
+              placeholder="Notre site est en cours de mise à jour…"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Contact info */}
+      <div style={sectionStyle}>
+        <h2 style={{ fontFamily: "var(--font-archivo)", fontSize: 14, fontWeight: 800, color: "#0A0E27", margin: "0 0 20px" }}>
+          Coordonnées de contact
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div>
+            <label style={labelStyle}>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} placeholder="hello@msadhesif.fr" />
+          </div>
+          <div>
+            <label style={labelStyle}>Téléphone (optionnel)</label>
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} placeholder="+33 6 00 00 00 00" />
+          </div>
+        </div>
+      </div>
+
+      {/* Save */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isPending}
+          style={{
+            padding: "12px 28px",
+            background: "#0B3D91",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: isPending ? "not-allowed" : "pointer",
+            opacity: isPending ? 0.7 : 1,
+          }}
+        >
+          {isPending ? "Enregistrement…" : "Enregistrer"}
+        </button>
+        {saved && (
+          <span style={{ fontSize: 13, color: "#16A34A", fontWeight: 600 }}>
+            ✓ Enregistré
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 700,
+  color: "#6B7280",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  marginBottom: 6,
+};

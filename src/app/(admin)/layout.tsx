@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin/products", label: "Produits", icon: "🏷️" },
   { href: "/admin/options", label: "Options produit", icon: "⚙️" },
   { href: "/admin/emails", label: "Emails", icon: "📧" },
+  { href: "/admin/settings", label: "Paramètres", icon: "🛠️" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,17 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const role = (session?.user as { role?: string } | undefined)?.role;
 
   if (!session || role !== "admin") redirect("/");
+
+  // Set bypass cookie so admin can see the shop even in maintenance mode
+  const cookieStore = await cookies();
+  if (!cookieStore.get("ms_admin_bypass")) {
+    cookieStore.set("ms_admin_bypass", "1", {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
 
   return (
     <div

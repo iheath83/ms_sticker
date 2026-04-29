@@ -519,4 +519,18 @@ export const productOptionValues = pgTable(
 );
 
 export type ProductOptionValue = typeof productOptionValues.$inferSelect;
+
+// ─── site_settings ─────────────────────────────────────────────────────────────
+
+export const siteSettings = pgTable("site_settings", {
+  id:                    integer("id").primaryKey().default(1),
+  maintenanceEnabled:    boolean("maintenance_enabled").notNull().default(false),
+  maintenanceTitle:      varchar("maintenance_title", { length: 255 }).notNull().default("Bientôt disponible"),
+  maintenanceMessage:    text("maintenance_message").notNull().default("Notre site est en cours de mise à jour. Revenez très vite !"),
+  maintenanceEmail:      varchar("maintenance_email", { length: 255 }).notNull().default("hello@msadhesif.fr"),
+  maintenancePhone:      varchar("maintenance_phone", { length: 50 }).notNull().default(""),
+  updatedAt:             timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SiteSettings = typeof siteSettings.$inferSelect;
 export type NewProductOptionValue = typeof productOptionValues.$inferInsert;
