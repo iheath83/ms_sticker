@@ -192,7 +192,7 @@ export async function createProduct(input: NewProductInput): Promise<Result<{ id
     await requireAdmin();
     const data = newProductSchema.parse(input);
 
-    const slug = data.name
+    const baseSlug = data.name
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -200,14 +200,40 @@ export async function createProduct(input: NewProductInput): Promise<Result<{ id
       .replace(/^-|-$/g, "")
       .slice(0, 90);
 
+    // Ensure slug uniqueness by appending a counter if needed
+    let slug = baseSlug;
+    let slugTry = 0;
+    while (true) {
+      const existing = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(eq(products.slug, slug))
+        .limit(1);
+      if (existing.length === 0) break;
+      slugTry++;
+      slug = `${baseSlug}-${slugTry}`;
+    }
+
+    // Validate categoryId exists (avoid FK violation)
+    const resolvedCategoryId = data.categoryId ?? null;
+    if (resolvedCategoryId) {
+      const catExists = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.id, resolvedCategoryId))
+        .limit(1);
+      if (catExists.length === 0) {
+        return { ok: false, error: `Catégorie introuvable (${resolvedCategoryId})` };
+      }
+    }
+
     const [product] = await db
       .insert(products)
       .values({
         name: data.name,
         slug,
-        categoryId: data.categoryId ?? null,
+        categoryId: resolvedCategoryId,
         requiresCustomization: data.requiresCustomization,
-        // Legacy required fields with sensible defaults
         basePriceCents: data.basePriceCents,
         material: data.material,
         images: [],
@@ -236,7 +262,10 @@ export async function createProduct(input: NewProductInput): Promise<Result<{ id
     revalidatePath("/admin/products");
     return { ok: true, data: { id: product!.id } };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Erreur" };
+    console.error("[createProduct] error:", err);
+    const msg = err instanceof Error ? err.message : "Erreur";
+    const detail = (err as Record<string, unknown>)?.detail as string | undefined;
+    return { ok: false, error: detail ? `${msg} — ${detail}` : msg };
   }
 }
 
