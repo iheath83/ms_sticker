@@ -29,6 +29,9 @@ export interface Cart {
   items: CartItem[];
   subtotalCents: number;
   taxAmountCents: number;
+  shippingCents: number;
+  discountCents: number;
+  discountCode: string | null;
   totalCents: number;
   itemCount: number;
 }

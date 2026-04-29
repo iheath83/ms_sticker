@@ -10,6 +10,9 @@ import { sendTemplatedEmail } from "@/lib/mail";
 import { z } from "zod";
 import { clearDraftOrder } from "@/lib/cart-actions";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { calculateDiscounts } from "@/lib/discounts/discount-engine";
+import { recordDiscountUsages } from "@/lib/discount-actions";
+import type { AppliedDiscountSnapshot } from "@/lib/discounts/discount-types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -159,12 +162,36 @@ export async function submitOrder(
     vatReverseCharge = vatResult.reverseCharge;
   }
 
-  // Recalculate totals with the actual VAT rate
-  const taxAmountCents = Math.ceil(order.subtotalCents * vatRate);
-  const shippingVat = Math.ceil((shipping.deliveryMethod === "express" ? 990 : order.subtotalCents >= 5000 ? 0 : 490) * vatRate);
+  // Recalculate discounts server-side (never trust client totals)
   const shippingCents = shipping.deliveryMethod === "express" ? 990 : order.subtotalCents >= 5000 ? 0 : 490;
-  const shippingTotalCents = shippingCents + shippingVat;
-  const totalCents = order.subtotalCents + taxAmountCents + shippingTotalCents;
+  const discountResult = await calculateDiscounts({
+    cart: {
+      orderId,
+      subtotalCents: order.subtotalCents,
+      itemCount: items.length,
+      shippingCents,
+    },
+    customerId: userId,
+    manualCodes: order.discountCode ? [order.discountCode] : [],
+  });
+
+  const orderDiscountCents   = discountResult.orderDiscountCents;
+  const shippingDiscountCents = discountResult.shippingDiscountCents;
+  const subtotalAfterDiscount = Math.max(0, order.subtotalCents - orderDiscountCents);
+  const effectiveShippingCents = Math.max(0, shippingCents - shippingDiscountCents);
+
+  // Recalculate totals with the actual VAT rate
+  const taxAmountCents = Math.ceil(subtotalAfterDiscount * vatRate);
+  const shippingVat = Math.ceil(effectiveShippingCents * vatRate);
+  const shippingTotalCents = effectiveShippingCents + shippingVat;
+  const totalDiscountCents = orderDiscountCents + shippingDiscountCents;
+  const totalCents = subtotalAfterDiscount + taxAmountCents + shippingTotalCents;
+
+  const appliedDiscounts: AppliedDiscountSnapshot[] = discountResult.appliedDiscounts.map((d) => {
+    const snap: AppliedDiscountSnapshot = { discountId: d.discountId, title: d.title, type: d.type, amountCents: d.amountCents };
+    if (d.code) snap.code = d.code;
+    return snap;
+  });
 
   // 7. Persist addresses and update order
   let shippingAddressId: string | undefined;
@@ -223,6 +250,8 @@ export async function submitOrder(
       guestEmail: userId ? null : shipping.email,
       shippingCents: shippingTotalCents,
       taxAmountCents,
+      discountCents: totalDiscountCents,
+      appliedDiscounts: appliedDiscounts,
       totalCents,
       vatRate: String(vatRate),
       vatReverseCharge,
@@ -250,7 +279,14 @@ export async function submitOrder(
   // 10. Clear the draft order cookie
   await clearDraftOrder();
 
-  // 11. Send emails (non-blocking — don't fail the order if email fails)
+  // 11. Record discount usages (non-blocking)
+  if (appliedDiscounts.length > 0) {
+    recordDiscountUsages(orderId, userId).catch((err) =>
+      console.error("[order] discount usage recording failed", err),
+    );
+  }
+
+  // 12. Send emails (non-blocking — don't fail the order if email fails)
   const orderNumber = formatOrderNumber(orderId);
   const appUrl = process.env["APP_URL"] ?? "http://localhost:3000";
   const customerName = `${shipping.firstName} ${shipping.lastName}`;

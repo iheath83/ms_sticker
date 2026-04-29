@@ -93,14 +93,19 @@ async function getOrCreateDraftOrder(userId?: string): Promise<string> {
 // ─── Recompute order totals ───────────────────────────────────────────────────
 
 async function recomputeOrderTotals(orderId: string): Promise<void> {
-  const items = await db
-    .select({ lineTotalCents: orderItems.lineTotalCents })
-    .from(orderItems)
-    .where(eq(orderItems.orderId, orderId));
+  const [currentOrder, items] = await Promise.all([
+    db.select({ discountCents: orders.discountCents, shippingCents: orders.shippingCents })
+      .from(orders).where(eq(orders.id, orderId)).limit(1),
+    db.select({ lineTotalCents: orderItems.lineTotalCents })
+      .from(orderItems).where(eq(orderItems.orderId, orderId)),
+  ]);
 
   const subtotal = items.reduce((acc, i) => acc + i.lineTotalCents, 0);
-  const vat = Math.ceil(subtotal * 0.20);
-  const total = subtotal + vat;
+  const discountCents = currentOrder[0]?.discountCents ?? 0;
+  const subtotalAfterDiscount = Math.max(0, subtotal - discountCents);
+  const vat = Math.ceil(subtotalAfterDiscount * 0.20);
+  const shipping = currentOrder[0]?.shippingCents ?? 0;
+  const total = subtotalAfterDiscount + vat + shipping;
 
   await db
     .update(orders)
@@ -191,7 +196,7 @@ export async function getCart(): Promise<Cart> {
   const orderId = await getDraftOrderId();
 
   if (!orderId) {
-    return { orderId: "", items: [], subtotalCents: 0, taxAmountCents: 0, totalCents: 0, itemCount: 0 };
+    return { orderId: "", items: [], subtotalCents: 0, taxAmountCents: 0, shippingCents: 0, discountCents: 0, discountCode: null, totalCents: 0, itemCount: 0 };
   }
 
   const order = await db
@@ -201,7 +206,7 @@ export async function getCart(): Promise<Cart> {
     .limit(1);
 
   if (!order[0]) {
-    return { orderId: "", items: [], subtotalCents: 0, taxAmountCents: 0, totalCents: 0, itemCount: 0 };
+    return { orderId: "", items: [], subtotalCents: 0, taxAmountCents: 0, shippingCents: 0, discountCents: 0, discountCode: null, totalCents: 0, itemCount: 0 };
   }
 
   const items = await db
@@ -258,9 +263,12 @@ export async function getCart(): Promise<Cart> {
   return {
     orderId,
     items: cartItems,
-    subtotalCents: order[0].subtotalCents,
+    subtotalCents:  order[0].subtotalCents,
     taxAmountCents: order[0].taxAmountCents,
-    totalCents: order[0].totalCents,
+    shippingCents:  order[0].shippingCents,
+    discountCents:  order[0].discountCents,
+    discountCode:   order[0].discountCode ?? null,
+    totalCents:     order[0].totalCents,
     itemCount: cartItems.reduce((acc, i) => acc + i.quantity, 0),
   };
 }

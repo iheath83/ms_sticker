@@ -12,6 +12,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { AppliedDiscountSnapshot } from "@/lib/discounts/discount-types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { EmailBlock } from "@/lib/email-blocks";
 import type { PricingTier, CustomPreset } from "@/lib/pricing";
@@ -306,6 +307,10 @@ export const orders = pgTable(
     // Shipping tracking
     trackingNumber: varchar("tracking_number", { length: 100 }),
     trackingCarrier: varchar("tracking_carrier", { length: 50 }),
+    // Discounts
+    discountCents: integer("discount_cents").notNull().default(0),
+    discountCode: varchar("discount_code", { length: 100 }),
+    appliedDiscounts: jsonb("applied_discounts").$type<AppliedDiscountSnapshot[]>().default([]),
     // Notes
     notes: text("notes"),
     internalNotes: text("internal_notes"),
@@ -476,6 +481,63 @@ export const emailTemplates = pgTable("email_templates", {
 });
 
 export type EmailTemplateRow = typeof emailTemplates.$inferSelect;
+
+// ─── discounts ────────────────────────────────────────────────────────────────
+
+import type { DiscountConditions, DiscountCombinationRules } from "@/lib/discounts/discount-types";
+
+export const discounts = pgTable(
+  "discounts",
+  {
+    id:                     uuid("id").primaryKey().defaultRandom(),
+    title:                  varchar("title", { length: 255 }).notNull(),
+    internalName:           varchar("internal_name", { length: 255 }),
+    code:                   varchar("code", { length: 100 }).unique(),
+    method:                 varchar("method", { length: 20 }).notNull(), // 'CODE' | 'AUTOMATIC'
+    type:                   varchar("type", { length: 30 }).notNull(),   // 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FREE_SHIPPING'
+    target:                 varchar("target", { length: 20 }).notNull().default("ORDER"), // 'ORDER' | 'SHIPPING'
+    value:                  integer("value"),   // % as integer for PERCENTAGE, cents for FIXED_AMOUNT
+    status:                 varchar("status", { length: 30 }).notNull().default("ACTIVE"),
+    startsAt:               timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
+    endsAt:                 timestamp("ends_at", { withTimezone: true }),
+    priority:               integer("priority").notNull().default(0),
+    usageCount:             integer("usage_count").notNull().default(0),
+    globalUsageLimit:       integer("global_usage_limit"),
+    usageLimitPerCustomer:  integer("usage_limit_per_customer"),
+    conditions:             jsonb("conditions").notNull().$type<DiscountConditions>().default({} as DiscountConditions),
+    combinationRules:       jsonb("combination_rules").notNull().$type<DiscountCombinationRules>().default({ combinableWithOrderDiscounts: false, combinableWithOtherCodes: false, combinableWithShippingDiscounts: true, combinableWithAutomaticDiscounts: true }),
+    ...timestamps,
+  },
+  (t) => [
+    index("discounts_code_idx").on(t.code),
+    index("discounts_method_status_idx").on(t.method, t.status),
+  ],
+);
+
+export type Discount = typeof discounts.$inferSelect;
+export type NewDiscount = typeof discounts.$inferInsert;
+
+// ─── discount_usages ──────────────────────────────────────────────────────────
+
+export const discountUsages = pgTable(
+  "discount_usages",
+  {
+    id:             uuid("id").primaryKey().defaultRandom(),
+    discountId:     uuid("discount_id").notNull().references(() => discounts.id, { onDelete: "cascade" }),
+    customerId:     text("customer_id").references(() => users.id, { onDelete: "set null" }),
+    orderId:        uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    code:           varchar("code", { length: 100 }),
+    discountCents:  integer("discount_cents").notNull(),
+    usedAt:         timestamp("used_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("discount_usages_discount_id_idx").on(t.discountId),
+    index("discount_usages_customer_id_idx").on(t.customerId),
+    index("discount_usages_order_id_idx").on(t.orderId),
+  ],
+);
+
+export type DiscountUsage = typeof discountUsages.$inferSelect;
 
 // ─── Type exports ─────────────────────────────────────────────────────────────
 

@@ -179,6 +179,112 @@ function FileThumb({ fileKey, orderId }: { fileKey: string; orderId: string }) {
   );
 }
 
+function DiscountInput({ cart, onRefresh }: { cart: import("@/lib/cart-types").Cart; onRefresh: () => Promise<void> }) {
+  const [code, setCode] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  async function handleApply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/cart/discounts/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      if (res.ok) {
+        setStatus("ok");
+        setCode("");
+        await onRefresh();
+      } else {
+        const data = await res.json() as { error?: string };
+        setErrorMsg(data.error ?? "Code invalide");
+        setStatus("error");
+      }
+    } catch {
+      setErrorMsg("Erreur réseau");
+      setStatus("error");
+    }
+  }
+
+  async function handleRemove() {
+    setStatus("loading");
+    await fetch("/api/cart/discounts/remove", { method: "DELETE" });
+    setStatus("idle");
+    setErrorMsg("");
+    await onRefresh();
+  }
+
+  if (cart.discountCode) {
+    return (
+      <div style={{ marginBottom: 12, padding: "10px 12px", background: "#ECFDF5", border: "1px solid #6EE7B7", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#065F46", fontFamily: "var(--font-archivo), monospace" }}>
+            Code : {cart.discountCode}
+          </div>
+          <div style={{ fontSize: 11, color: "#047857" }}>
+            − {(cart.discountCents / 100).toFixed(2)} €
+          </div>
+        </div>
+        <button
+          onClick={() => void handleRemove()}
+          disabled={status === "loading"}
+          style={{ background: "transparent", border: "none", fontSize: 12, color: "#6B7280", cursor: "pointer", padding: "2px 6px" }}
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={(e) => void handleApply(e)} style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Code promo"
+          style={{
+            flex: 1,
+            padding: "8px 10px",
+            border: `1px solid ${status === "error" ? "var(--red)" : "var(--grey-200)"}`,
+            borderRadius: 6,
+            fontSize: 12,
+            fontFamily: "var(--font-archivo), monospace",
+            background: "var(--white)",
+            outline: "none",
+          }}
+        />
+        <button
+          type="submit"
+          disabled={status === "loading" || !code.trim()}
+          style={{
+            padding: "8px 14px",
+            background: "var(--ink)",
+            color: "var(--white)",
+            border: "none",
+            borderRadius: 6,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "var(--font-archivo), monospace",
+            opacity: status === "loading" ? 0.6 : 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {status === "loading" ? "…" : "Appliquer"}
+        </button>
+      </div>
+      {status === "error" && (
+        <div style={{ fontSize: 11, color: "var(--red)", marginTop: 4 }}>{errorMsg}</div>
+      )}
+    </form>
+  );
+}
+
 export function CartDrawer() {
   const { cart, cartOpen, setCartOpen, updateQty, removeItem, isPending, refreshCart } = useCart();
   const totalEuros = cart.totalCents / 100;
@@ -389,6 +495,9 @@ export function CartDrawer() {
           <div
             style={{ borderTop: "2px solid var(--ink)", padding: 20, background: "var(--white)" }}
           >
+            {/* Promo code input */}
+            <DiscountInput cart={cart} onRefresh={refreshCart} />
+
             <div
               style={{
                 display: "flex",
@@ -401,6 +510,14 @@ export function CartDrawer() {
               <span>Sous-total HT</span>
               <span>{subtotalEuros.toFixed(2)} €</span>
             </div>
+
+            {/* Discount line */}
+            {cart.discountCents > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 6, color: "#059669", fontWeight: 600 }}>
+                <span>Réduction</span>
+                <span>− {(cart.discountCents / 100).toFixed(2)} €</span>
+              </div>
+            )}
             <div
               style={{
                 display: "flex",

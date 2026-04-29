@@ -410,10 +410,12 @@ export function CheckoutClient() {
   }, [session]);
 
   const subTotal = cart.subtotalCents / 100;
-  const shippingBase = form.delivery === "express" ? 9.9 : subTotal >= 50 ? 0 : 4.9;
+  const discountEuros = (cart.discountCents ?? 0) / 100;
+  const subTotalAfterDiscount = Math.max(0, subTotal - discountEuros);
+  const shippingBase = form.delivery === "express" ? 9.9 : subTotalAfterDiscount >= 50 ? 0 : 4.9;
   const shippingWithVat = shippingBase * (1 + effectiveVatRate);
-  const vatAmount = subTotal * effectiveVatRate;
-  const total = subTotal + vatAmount + shippingWithVat;
+  const vatAmount = subTotalAfterDiscount * effectiveVatRate;
+  const total = subTotalAfterDiscount + vatAmount + shippingWithVat;
 
   function upd<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({
@@ -878,6 +880,12 @@ export function CheckoutClient() {
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span>Sous-total HT</span><span>{subTotal.toFixed(2)} €</span>
                   </div>
+                  {discountEuros > 0 && (
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#059669", fontWeight: 700 }}>
+                      <span>Réduction{cart.discountCode ? ` (${cart.discountCode})` : ""}</span>
+                      <span>− {discountEuros.toFixed(2)} €</span>
+                    </div>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span>Livraison</span>
                     <span style={{ color: shippingBase === 0 ? "var(--red)" : "inherit", fontWeight: shippingBase === 0 ? 700 : 400 }}>

@@ -28,6 +28,9 @@ const EMPTY_CART: Cart = {
   items: [],
   subtotalCents: 0,
   taxAmountCents: 0,
+  shippingCents: 0,
+  discountCents: 0,
+  discountCode: null,
   totalCents: 0,
   itemCount: 0,
 };
