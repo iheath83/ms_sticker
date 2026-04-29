@@ -11,9 +11,10 @@ import type { Product } from "@/db/schema";
 
 interface HeaderProps {
   products?: Product[];
+  logoUrl?: string | null;
 }
 
-export function Header({ products = [] }: HeaderProps) {
+export function Header({ products = [], logoUrl }: HeaderProps) {
   const [productsOpen, setProductsOpen] = useState(false);
   const { cart, setCartOpen } = useCart();
   const { data: session } = useSession();
@@ -42,7 +43,7 @@ export function Header({ products = [] }: HeaderProps) {
           }}
         >
           <Link href="/" style={{ textDecoration: "none" }}>
-            <Logo />
+            <Logo imageUrl={logoUrl} />
           </Link>
 
           <nav style={{ display: "flex", gap: 28, fontSize: 13, fontWeight: 500, letterSpacing: "0.02em" }}>

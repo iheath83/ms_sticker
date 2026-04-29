@@ -64,6 +64,13 @@
       "when": 1777485002462,
       "tag": "0008_broken_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777485813341,
+      "tag": "0009_easy_wendigo",
+      "breakpoints": true
     }
   ]
 }

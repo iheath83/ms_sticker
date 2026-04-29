@@ -1,7 +1,7 @@
 import { Logo } from "./logo";
 import { ArrowIcon } from "./icons";
 
-export function Footer() {
+export function Footer({ logoUrl }: { logoUrl?: string | null } = {}) {
   return (
     <footer
       style={{
@@ -21,7 +21,7 @@ export function Footer() {
         >
           {/* Brand */}
           <div>
-            <Logo inverted />
+            <Logo inverted imageUrl={logoUrl} />
             <p
               style={{
                 fontSize: 13,

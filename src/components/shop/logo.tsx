@@ -1,9 +1,28 @@
 interface LogoProps {
   size?: number;
   inverted?: boolean;
+  imageUrl?: string | null;
 }
 
-export function Logo({ size = 36, inverted = false }: LogoProps) {
+export function Logo({ size = 36, inverted = false, imageUrl }: LogoProps) {
+  if (imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt="Logo"
+        style={{
+          height: size * 1.2,
+          width: "auto",
+          maxWidth: 180,
+          objectFit: "contain",
+          display: "block",
+          filter: inverted ? "brightness(0) invert(1)" : undefined,
+        }}
+      />
+    );
+  }
+
   return (
     <div
       style={{

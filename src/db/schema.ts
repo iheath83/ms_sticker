@@ -524,6 +524,7 @@ export type ProductOptionValue = typeof productOptionValues.$inferSelect;
 
 export const siteSettings = pgTable("site_settings", {
   id:                    integer("id").primaryKey().default(1),
+  logoUrl:               text("logo_url"),
   maintenanceEnabled:    boolean("maintenance_enabled").notNull().default(false),
   maintenanceTitle:      varchar("maintenance_title", { length: 255 }).notNull().default("Bientôt disponible"),
   maintenanceMessage:    text("maintenance_message").notNull().default("Notre site est en cours de mise à jour. Revenez très vite !"),

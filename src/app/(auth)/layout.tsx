@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { Logo } from "@/components/shop/logo";
+import { getSiteSettings } from "@/lib/settings-actions";
 
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
+  const settings = await getSiteSettings();
+
   return (
     <div
       style={{
@@ -15,7 +18,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       }}
     >
       <Link href="/" style={{ textDecoration: "none", marginBottom: 40 }}>
-        <Logo />
+        <Logo imageUrl={settings.logoUrl} />
       </Link>
       {children}
       <p

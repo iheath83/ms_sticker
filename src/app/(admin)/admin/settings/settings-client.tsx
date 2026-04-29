@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateSiteSettings } from "@/lib/settings-actions";
+import { AdminImageUpload } from "@/components/admin/admin-image-upload";
 import type { SiteSettings } from "@/db/schema";
 
 const inputStyle: React.CSSProperties = {
@@ -28,6 +29,7 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
+  const [logoUrl, setLogoUrl] = useState<string | null>(settings.logoUrl ?? null);
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(settings.maintenanceEnabled);
   const [title,   setTitle]   = useState(settings.maintenanceTitle);
   const [message, setMessage] = useState(settings.maintenanceMessage);
@@ -37,6 +39,7 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
   function handleSave() {
     startTransition(async () => {
       await updateSiteSettings({
+        logoUrl,
         maintenanceEnabled,
         maintenanceTitle:   title,
         maintenanceMessage: message,
@@ -57,6 +60,26 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
         <p style={{ fontSize: 13, color: "#6B7280", margin: 0 }}>
           Gérez le mode maintenance et les informations de contact.
         </p>
+      </div>
+
+      {/* Logo */}
+      <div style={sectionStyle}>
+        <h2 style={{ fontFamily: "var(--font-archivo)", fontSize: 14, fontWeight: 800, color: "#0A0E27", margin: "0 0 20px" }}>
+          Logo du site
+        </h2>
+        <AdminImageUpload
+          label="Image du logo"
+          hint="PNG ou SVG transparent recommandé"
+          value={logoUrl}
+          onChange={setLogoUrl}
+          folder="logo"
+          entityId="site"
+        />
+        {logoUrl && (
+          <div style={{ marginTop: 16, padding: "12px 16px", background: "#F0F4FF", borderRadius: 8, fontSize: 12, color: "#374151" }}>
+            Aperçu : <img src={logoUrl} alt="Logo" style={{ height: 40, verticalAlign: "middle", marginLeft: 8 }} />
+          </div>
+        )}
       </div>
 
       {/* Maintenance toggle */}

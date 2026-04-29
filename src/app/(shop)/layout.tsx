@@ -22,13 +22,16 @@ export default async function ShopLayout({ children }: { children: React.ReactNo
     }
   }
 
-  const products = await getActiveProducts().catch(() => []);
+  const [products, settings] = await Promise.all([
+    getActiveProducts().catch(() => []),
+    getSiteSettings(),
+  ]);
 
   return (
     <CartProvider>
-      <Header products={products} />
+      <Header products={products} logoUrl={settings.logoUrl} />
       {children}
-      <Footer />
+      <Footer logoUrl={settings.logoUrl} />
       <CartDrawer />
       <CookieBanner />
     </CartProvider>

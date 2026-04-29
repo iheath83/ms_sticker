@@ -21,6 +21,7 @@ async function ensureSettingsRow() {
 }
 
 export async function updateSiteSettings(data: {
+  logoUrl?: string | null;
   maintenanceEnabled: boolean;
   maintenanceTitle: string;
   maintenanceMessage: string;
@@ -56,6 +57,7 @@ export async function setAdminBypassCookie() {
 
 const SETTINGS_DEFAULTS = {
   id: 1,
+  logoUrl: null as string | null,
   maintenanceEnabled: false,
   maintenanceTitle: "Bientôt disponible",
   maintenanceMessage: "Notre site est en cours de mise à jour. Revenez très vite !",
