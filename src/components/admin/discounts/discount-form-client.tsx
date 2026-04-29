@@ -152,18 +152,15 @@ export function DiscountFormClient({ existing }: { existing?: Discount | null })
     const ids = existingElig?.customerIds;
     if (!ids || ids.length === 0) return;
     void (async () => {
-      const results: CustomerOption[] = [];
-      for (const id of ids) {
-        try {
-          const res = await fetch(`/api/admin/customers?q=${encodeURIComponent(id)}`);
-          const data = await res.json() as CustomerOption[];
-          const found = data.find((c) => c.id === id);
-          results.push(found ?? { id, name: null, email: id });
-        } catch {
-          results.push({ id, name: null, email: id });
-        }
+      try {
+        const res = await fetch(`/api/admin/customers?ids=${ids.map(encodeURIComponent).join(",")}`);
+        const data = await res.json() as CustomerOption[];
+        // Preserve order and fall back to ID if not found
+        const results = ids.map((id) => data.find((c) => c.id === id) ?? { id, name: null, email: id });
+        setSelectedCustomers(results);
+      } catch {
+        setSelectedCustomers(ids.map((id) => ({ id, name: null, email: id })));
       }
-      setSelectedCustomers(results);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
