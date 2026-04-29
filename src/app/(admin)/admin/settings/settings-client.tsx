@@ -31,10 +31,11 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
 
   const [logoUrl, setLogoUrl] = useState<string | null>(settings.logoUrl ?? null);
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(settings.maintenanceEnabled);
-  const [title,   setTitle]   = useState(settings.maintenanceTitle);
-  const [message, setMessage] = useState(settings.maintenanceMessage);
-  const [email,   setEmail]   = useState(settings.maintenanceEmail);
-  const [phone,   setPhone]   = useState(settings.maintenancePhone);
+  const [title,        setTitle]        = useState(settings.maintenanceTitle);
+  const [message,      setMessage]      = useState(settings.maintenanceMessage);
+  const [email,        setEmail]        = useState(settings.maintenanceEmail);
+  const [phone,        setPhone]        = useState(settings.maintenancePhone);
+  const [contactEmail, setContactEmail] = useState(settings.contactEmail);
 
   function handleSave() {
     startTransition(async () => {
@@ -45,6 +46,7 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
         maintenanceMessage: message,
         maintenanceEmail:   email,
         maintenancePhone:   phone,
+        contactEmail,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -178,6 +180,26 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
             <label style={labelStyle}>Téléphone (optionnel)</label>
             <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle} placeholder="+33 6 00 00 00 00" />
           </div>
+        </div>
+      </div>
+
+      {/* Contact form email */}
+      <div style={sectionStyle}>
+        <h2 style={{ fontFamily: "var(--font-archivo)", fontSize: 14, fontWeight: 800, color: "#0A0E27", margin: "0 0 8px" }}>
+          Formulaire de contact
+        </h2>
+        <p style={{ fontSize: 12, color: "#6B7280", margin: "0 0 16px" }}>
+          Adresse email qui reçoit les messages envoyés depuis le formulaire de contact du site.
+        </p>
+        <div>
+          <label style={labelStyle}>Email de réception</label>
+          <input
+            type="email"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            style={inputStyle}
+            placeholder="hello@msadhesif.fr"
+          />
         </div>
       </div>
 

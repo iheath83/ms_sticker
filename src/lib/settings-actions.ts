@@ -27,6 +27,7 @@ export async function updateSiteSettings(data: {
   maintenanceMessage: string;
   maintenanceEmail: string;
   maintenancePhone: string;
+  contactEmail: string;
 }) {
   await requireAdmin();
   await ensureSettingsRow();
@@ -63,6 +64,7 @@ const SETTINGS_DEFAULTS = {
   maintenanceMessage: "Notre site est en cours de mise à jour. Revenez très vite !",
   maintenanceEmail: "hello@msadhesif.fr",
   maintenancePhone: "",
+  contactEmail: "hello@msadhesif.fr",
   updatedAt: new Date(),
 };
 

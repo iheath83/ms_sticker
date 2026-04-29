@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { sendEmail } from "@/lib/mail";
+import { getSiteSettings } from "@/lib/settings-actions";
 import { z } from "zod";
 
 const schema = z.object({
@@ -20,7 +21,8 @@ export async function POST(request: NextRequest) {
   }
 
   const { name, email, message } = parsed.data;
-  const adminEmail = process.env["BREVO_ADMIN_EMAIL"] ?? "hello@msadhesif.fr";
+  const settings = await getSiteSettings();
+  const adminEmail = settings.contactEmail || process.env["BREVO_ADMIN_EMAIL"] || "hello@msadhesif.fr";
 
   try {
     await sendEmail({
