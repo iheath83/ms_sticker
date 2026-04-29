@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { HeroSection } from "@/components/shop/home/hero-section";
 import { CategoriesSection } from "@/components/shop/home/categories-section";
 import { FeatureStrip } from "@/components/shop/home/feature-strip";

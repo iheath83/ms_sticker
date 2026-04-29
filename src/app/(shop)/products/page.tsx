@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getActiveProductsWithVariants, getActiveCategories } from "@/lib/products";
 import { ProductCard } from "@/components/shop/product-card";
 import type { Metadata } from "next";
