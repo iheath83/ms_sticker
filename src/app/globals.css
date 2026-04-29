@@ -91,9 +91,13 @@ a {
   text-decoration: none;
 }
 
-button, input, select, textarea {
-  font-family: inherit;
-  cursor: pointer;
+@layer base {
+  button, input, select, textarea {
+    font-family: inherit;
+  }
+  button {
+    cursor: pointer;
+  }
 }
 
 /* ---- Ticker animation ---- */
