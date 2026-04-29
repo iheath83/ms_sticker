@@ -77,6 +77,14 @@ export async function updatePage(id: string, data: {
   revalidatePath("/" + (slugRow?.slug ?? ""));
 }
 
+export async function getPagesForNavPicker(): Promise<{ slug: string; title: string }[]> {
+  try {
+    return db.select({ slug: pages.slug, title: pages.title }).from(pages).orderBy(pages.title);
+  } catch {
+    return [];
+  }
+}
+
 export async function deletePage(id: string): Promise<void> {
   await requireAdmin();
   await db.delete(pages).where(eq(pages.id, id));

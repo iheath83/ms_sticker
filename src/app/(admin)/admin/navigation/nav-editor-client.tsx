@@ -12,9 +12,12 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+type LinkType = "custom" | "page";
+
 type EditForm = {
   id?: string;
   parentId?: string | null;
+  linkType: LinkType;
   label: string;
   href: string;
   icon: string;
@@ -25,7 +28,7 @@ type EditForm = {
 };
 
 const emptyForm = (): EditForm => ({
-  label: "", href: "/", icon: "", description: "",
+  linkType: "custom", label: "", href: "/", icon: "", description: "",
   badge: "", openInNewTab: false, active: true,
 });
 
@@ -94,9 +97,15 @@ const label = (extra?: React.CSSProperties): React.CSSProperties => ({
 
 // ── Form panel ────────────────────────────────────────────────────────────────
 
+const LINK_TYPES: { value: LinkType; label: string; icon: string; desc: string }[] = [
+  { value: "custom", label: "Lien libre",   icon: "🔗", desc: "Saisie manuelle de l'URL" },
+  { value: "page",   label: "Page du site", icon: "📄", desc: "Choisir une page CMS" },
+];
+
 function FormPanel({
   form,
   parentOptions,
+  cmsPages,
   onChange,
   onSave,
   onCancel,
@@ -104,6 +113,7 @@ function FormPanel({
 }: {
   form: EditForm;
   parentOptions: { id: string; label: string }[];
+  cmsPages: { slug: string; title: string }[];
   onChange: (f: Partial<EditForm>) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -118,17 +128,84 @@ function FormPanel({
         <button style={btn("ghost", { fontSize: 11 })} onClick={onCancel}>Annuler</button>
       </div>
 
+      {/* Link type selector */}
+      <div style={{ marginBottom: 20 }}>
+        <span style={label()}>Type de lien</span>
+        <div style={{ display: "flex", gap: 8 }}>
+          {LINK_TYPES.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => onChange({ linkType: t.value, href: t.value === "page" ? "/" : form.href })}
+              style={{
+                flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+                padding: "10px 12px", borderRadius: 8, cursor: "pointer",
+                border: `2px solid ${form.linkType === t.value ? INK : GREY100}`,
+                background: form.linkType === t.value ? GREY50 : WHITE,
+                boxShadow: form.linkType === t.value ? `2px 2px 0 0 ${INK}` : "none",
+                fontFamily: FONT,
+              }}
+            >
+              <span style={{ fontSize: 20 }}>{t.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: INK }}>{t.label}</span>
+              <span style={{ fontSize: 10, color: GREY400 }}>{t.desc}</span>
+            </button>
+          ))}
+          {/* Article — coming soon */}
+          <button
+            disabled
+            style={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+              padding: "10px 12px", borderRadius: 8, cursor: "not-allowed",
+              border: `2px solid ${GREY100}`, background: GREY50, opacity: 0.5, fontFamily: FONT,
+            }}
+          >
+            <span style={{ fontSize: 20 }}>📰</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: GREY400 }}>Article</span>
+            <span style={{ fontSize: 10, color: GREY400 }}>Bientôt</span>
+          </button>
+        </div>
+      </div>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {/* Libellé */}
         <div>
           <span style={label()}>Libellé *</span>
           <input style={input()} value={form.label} onChange={(e) => onChange({ label: e.target.value })} placeholder="Ex : Produits" />
         </div>
-        {/* Lien */}
-        <div>
-          <span style={label()}>URL *</span>
-          <input style={input()} value={form.href} onChange={(e) => onChange({ href: e.target.value })} placeholder="Ex : /products" />
-        </div>
+
+        {/* URL — depends on link type */}
+        {form.linkType === "page" ? (
+          <div>
+            <span style={label()}>Page *</span>
+            <select
+              style={input()}
+              value={form.href}
+              onChange={(e) => {
+                const selected = cmsPages.find((p) => `/${p.slug}` === e.target.value);
+                onChange({
+                  href: e.target.value,
+                  label: form.label || (selected?.title ?? ""),
+                });
+              }}
+            >
+              <option value="/">— Choisir une page —</option>
+              {cmsPages.map((p) => (
+                <option key={p.slug} value={`/${p.slug}`}>{p.title} (/{p.slug})</option>
+              ))}
+            </select>
+            {cmsPages.length === 0 && (
+              <div style={{ fontFamily: FONT, fontSize: 10, color: GREY400, marginTop: 4 }}>
+                Aucune page CMS créée. Créez des pages dans "Pages" d'abord.
+              </div>
+            )}
+          </div>
+        ) : (
+          <div>
+            <span style={label()}>URL *</span>
+            <input style={input()} value={form.href} onChange={(e) => onChange({ href: e.target.value })} placeholder="Ex : /products ou https://..." />
+          </div>
+        )}
+
         {/* Icône */}
         <div>
           <span style={label()}>Icône (emoji)</span>
@@ -377,7 +454,7 @@ function NavItemRow({
 
 // ── Main client component ─────────────────────────────────────────────────────
 
-export function NavEditorClient({ initialTree }: { initialTree: NavItemWithChildren[] }) {
+export function NavEditorClient({ initialTree, cmsPages }: { initialTree: NavItemWithChildren[]; cmsPages: { slug: string; title: string }[] }) {
   const [tree, setTree] = useState<NavItemWithChildren[]>(initialTree);
   const [form, setForm] = useState<EditForm | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -398,9 +475,11 @@ export function NavEditorClient({ initialTree }: { initialTree: NavItemWithChild
     setForm({ ...emptyForm(), parentId: parentId ?? null });
 
   const openEdit = (item: { id: string; label: string; href: string; icon?: string | null; description?: string | null; badge?: string | null; openInNewTab: boolean; active: boolean; parentId?: string | null }) => {
+    const isPageLink = cmsPages.some((p) => `/${p.slug}` === item.href);
     setForm({
       id: item.id,
       parentId: item.parentId ?? null,
+      linkType: isPageLink ? "page" : "custom",
       label: item.label,
       href: item.href,
       icon: item.icon ?? "",
@@ -526,6 +605,7 @@ export function NavEditorClient({ initialTree }: { initialTree: NavItemWithChild
         <FormPanel
           form={form}
           parentOptions={parentOptions}
+          cmsPages={cmsPages}
           onChange={(f) => setForm((prev) => prev ? { ...prev, ...f } : null)}
           onSave={handleSave}
           onCancel={() => setForm(null)}
