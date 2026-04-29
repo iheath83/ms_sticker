@@ -21,6 +21,91 @@ const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+function PromoCodeInput({ cart, onRefresh }: { cart: import("@/lib/cart-types").Cart; onRefresh: () => Promise<void> }) {
+  const [code, setCode] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  async function handleApply(e: React.FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/cart/discounts/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      if (res.ok) {
+        setStatus("ok");
+        setCode("");
+        await onRefresh();
+      } else {
+        const data = await res.json() as { error?: string };
+        setErrorMsg(data.error ?? "Code invalide");
+        setStatus("error");
+      }
+    } catch {
+      setErrorMsg("Erreur réseau");
+      setStatus("error");
+    }
+  }
+
+  async function handleRemove() {
+    setStatus("loading");
+    await fetch("/api/cart/discounts/remove", { method: "DELETE" });
+    setStatus("idle");
+    setErrorMsg("");
+    await onRefresh();
+  }
+
+  if (cart.discountCode) {
+    return (
+      <div style={{ marginBottom: 12, padding: "8px 12px", background: "#ECFDF5", border: "1px solid #6EE7B7", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 12 }}>
+        <div>
+          <span style={{ fontWeight: 700, color: "#065F46" }}>Code : {cart.discountCode}</span>
+          <span style={{ color: "#047857", marginLeft: 8 }}>− {(cart.discountCents / 100).toFixed(2)} €</span>
+        </div>
+        <button onClick={() => void handleRemove()} disabled={status === "loading"} style={{ background: "transparent", border: "none", fontSize: 12, color: "#6B7280", cursor: "pointer", padding: "2px 6px" }}>✕</button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={(e) => void handleApply(e)} style={{ marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          placeholder="Code promo"
+          style={{
+            flex: 1, padding: "8px 10px",
+            border: `1px solid ${status === "error" ? "var(--red)" : "var(--grey-200)"}`,
+            borderRadius: 6, fontSize: 12,
+            fontFamily: "var(--font-archivo), monospace",
+            background: "var(--white)", outline: "none",
+          }}
+        />
+        <button
+          type="submit"
+          disabled={status === "loading" || !code.trim()}
+          style={{
+            padding: "8px 14px", background: "var(--ink)", color: "var(--white)",
+            border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700,
+            cursor: status === "loading" || !code.trim() ? "not-allowed" : "pointer",
+            fontFamily: "var(--font-archivo), monospace",
+            opacity: status === "loading" || !code.trim() ? 0.6 : 1, whiteSpace: "nowrap",
+          }}
+        >
+          {status === "loading" ? "…" : "Appliquer"}
+        </button>
+      </div>
+      {status === "error" && <div style={{ fontSize: 11, color: "var(--red)", marginTop: 4 }}>{errorMsg}</div>}
+    </form>
+  );
+}
+
 function InputField({
   label, value, onChange, error, placeholder, span = 1, type = "text", readOnly = false,
 }: {
@@ -876,7 +961,12 @@ export function CheckoutClient() {
                   </div>
                 ))}
 
-                <div style={{ borderTop: "1px dashed var(--grey-200)", paddingTop: 14, fontSize: 13, color: "var(--grey-600)" }}>
+                {/* Promo code */}
+                <div style={{ borderTop: "1px dashed var(--grey-200)", paddingTop: 14 }}>
+                  <PromoCodeInput cart={cart} onRefresh={refreshCart} />
+                </div>
+
+                <div style={{ fontSize: 13, color: "var(--grey-600)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                     <span>Sous-total HT</span><span>{subTotal.toFixed(2)} €</span>
                   </div>
