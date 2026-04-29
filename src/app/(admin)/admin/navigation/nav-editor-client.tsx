@@ -471,6 +471,7 @@ export function NavEditorClient({ initialTree }: { initialTree: NavItemWithChild
       if (dir === "up" && sibIdx === 0) return;
       if (dir === "down" && sibIdx === siblings.length - 1) return;
       const swap = siblings[dir === "up" ? sibIdx - 1 : sibIdx + 1];
+      if (!swap) return;
       await reorderNavItems([
         { id: item.id, sortOrder: swap.sortOrder },
         { id: swap.id, sortOrder: item.sortOrder },
