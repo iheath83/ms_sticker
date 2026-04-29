@@ -428,7 +428,7 @@ export function NavEditorClient({ initialTree }: { initialTree: NavItemWithChild
         });
       } else {
         await createNavItem({
-          parentId: form.parentId,
+          parentId: form.parentId ?? null,
           label: form.label,
           href: form.href,
           icon: form.icon || undefined,
