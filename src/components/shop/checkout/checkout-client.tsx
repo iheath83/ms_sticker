@@ -437,7 +437,7 @@ interface FormErrors {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CheckoutClient() {
-  const { cart, updateQty, removeItem, isPending, refreshCart } = useCart();
+  const { cart, shopSettings, updateQty, removeItem, isPending, refreshCart } = useCart();
   const { data: session, isPending: sessionLoading } = useSession();
   const isLoggedIn = !!session?.user;
 
@@ -497,7 +497,10 @@ export function CheckoutClient() {
   const subTotal = cart.subtotalCents / 100;
   const discountEuros = (cart.discountCents ?? 0) / 100;
   const subTotalAfterDiscount = Math.max(0, subTotal - discountEuros);
-  const shippingBase = form.delivery === "express" ? 9.9 : subTotalAfterDiscount >= 50 ? 0 : 4.9;
+  const freeThreshold = shopSettings.freeShippingThresholdCents / 100;
+  const stdShipping = shopSettings.standardShippingCents / 100;
+  const exprShipping = shopSettings.expressShippingCents / 100;
+  const shippingBase = form.delivery === "express" ? exprShipping : subTotalAfterDiscount >= freeThreshold ? 0 : stdShipping;
   const shippingWithVat = shippingBase * (1 + effectiveVatRate);
   const vatAmount = subTotalAfterDiscount * effectiveVatRate;
   const total = subTotalAfterDiscount + vatAmount + shippingWithVat;
@@ -687,12 +690,12 @@ export function CheckoutClient() {
                             <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--ink)", borderRadius: 6 }}>
                               <button
                                 style={{ background: "transparent", border: "none", width: 28, height: 28, cursor: "pointer", fontSize: 14, fontWeight: 700 }}
-                                onClick={() => void updateQty(item.id, Math.max(1, item.quantity - 25))} disabled={isPending}
+                                onClick={() => void updateQty(item.id, Math.max(1, item.quantity - shopSettings.quantityStep))} disabled={isPending}
                               >−</button>
                               <span style={{ padding: "0 10px", fontSize: 12, fontWeight: 600 }}>{item.quantity}</span>
                               <button
                                 style={{ background: "transparent", border: "none", width: 28, height: 28, cursor: "pointer", fontSize: 14, fontWeight: 700 }}
-                                onClick={() => void updateQty(item.id, item.quantity + 25)} disabled={isPending}
+                                onClick={() => void updateQty(item.id, item.quantity + shopSettings.quantityStep)} disabled={isPending}
                               >+</button>
                             </div>
                             <div style={{ fontSize: 14, fontWeight: 700 }}>{(item.lineTotalCents / 100).toFixed(2)} €</div>
@@ -845,8 +848,8 @@ export function CheckoutClient() {
                   <div style={{ marginTop: 24 }}>
                     <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--grey-600)", marginBottom: 8, display: "block" }}>Mode de livraison</label>
                     <div style={{ display: "grid", gap: 10 }}>
-                      <DeliveryOption active={form.delivery === "standard"} onClick={() => upd("delivery", "standard")} icon={<TruckIcon />} title="Colissimo standard" sub="2-3 jours ouvrés · suivi" price={subTotal >= 50 ? "OFFERT" : "4,90 €"} />
-                      <DeliveryOption active={form.delivery === "express"} onClick={() => upd("delivery", "express")} icon={<SparklesIcon />} title="Chronopost Express" sub="Demain avant 13h" price="9,90 €" />
+                      <DeliveryOption active={form.delivery === "standard"} onClick={() => upd("delivery", "standard")} icon={<TruckIcon />} title="Colissimo standard" sub="2-3 jours ouvrés · suivi" price={subTotalAfterDiscount >= freeThreshold ? "OFFERT" : `${stdShipping.toFixed(2).replace(".", ",")} €`} />
+                      <DeliveryOption active={form.delivery === "express"} onClick={() => upd("delivery", "express")} icon={<SparklesIcon />} title="Chronopost Express" sub="Demain avant 13h" price={`${exprShipping.toFixed(2).replace(".", ",")} €`} />
                     </div>
                   </div>
                 </FormCard>

@@ -10,6 +10,7 @@ import { sendTemplatedEmail } from "@/lib/mail";
 import { z } from "zod";
 import { clearDraftOrder } from "@/lib/cart-actions";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getSiteSettingsQuery } from "@/lib/settings-queries";
 import { calculateDiscounts } from "@/lib/discounts/discount-engine";
 import { recordDiscountUsages } from "@/lib/discount-actions";
 import type { AppliedDiscountSnapshot } from "@/lib/discounts/discount-types";
@@ -163,7 +164,12 @@ export async function submitOrder(
   }
 
   // Recalculate discounts server-side (never trust client totals)
-  const shippingCents = shipping.deliveryMethod === "express" ? 990 : order.subtotalCents >= 5000 ? 0 : 490;
+  const shopSettings = await getSiteSettingsQuery();
+  const shippingCents = shipping.deliveryMethod === "express"
+    ? shopSettings.expressShippingCents
+    : order.subtotalCents >= shopSettings.freeShippingThresholdCents
+      ? 0
+      : shopSettings.standardShippingCents;
   const discountResult = await calculateDiscounts({
     cart: {
       orderId,

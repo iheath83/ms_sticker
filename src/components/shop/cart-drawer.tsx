@@ -286,10 +286,12 @@ function DiscountInput({ cart, onRefresh }: { cart: import("@/lib/cart-types").C
 }
 
 export function CartDrawer() {
-  const { cart, cartOpen, setCartOpen, updateQty, removeItem, isPending, refreshCart } = useCart();
+  const { cart, shopSettings, cartOpen, setCartOpen, updateQty, removeItem, isPending, refreshCart } = useCart();
   const totalEuros = cart.totalCents / 100;
   const subtotalEuros = cart.subtotalCents / 100;
-  const shipping = subtotalEuros >= 50 ? 0 : 4.9;
+  const freeThreshold = shopSettings.freeShippingThresholdCents / 100;
+  const stdShipping = shopSettings.standardShippingCents / 100;
+  const shipping = subtotalEuros >= freeThreshold ? 0 : stdShipping;
 
   return (
     <>
@@ -441,7 +443,7 @@ export function CartDrawer() {
                     >
                       <button
                         style={qtyBtnStyle}
-                        onClick={() => updateQty(item.id, Math.max(1, item.quantity - 25))}
+                        onClick={() => updateQty(item.id, Math.max(1, item.quantity - shopSettings.quantityStep))}
                         disabled={isPending}
                       >
                         −
@@ -451,7 +453,7 @@ export function CartDrawer() {
                       </span>
                       <button
                         style={qtyBtnStyle}
-                        onClick={() => updateQty(item.id, item.quantity + 25)}
+                        onClick={() => updateQty(item.id, item.quantity + shopSettings.quantityStep)}
                         disabled={isPending}
                       >
                         +

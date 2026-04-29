@@ -28,6 +28,10 @@ export async function updateSiteSettings(data: {
   maintenanceEmail: string;
   maintenancePhone: string;
   contactEmail: string;
+  standardShippingCents: number;
+  expressShippingCents: number;
+  freeShippingThresholdCents: number;
+  quantityStep: number;
 }) {
   await requireAdmin();
   await ensureSettingsRow();
@@ -65,6 +69,10 @@ const SETTINGS_DEFAULTS = {
   maintenanceEmail: "hello@msadhesif.fr",
   maintenancePhone: "",
   contactEmail: "hello@msadhesif.fr",
+  standardShippingCents: 490,
+  expressShippingCents: 990,
+  freeShippingThresholdCents: 5000,
+  quantityStep: 25,
   updatedAt: new Date(),
 };
 

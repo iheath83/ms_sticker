@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { siteSettings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const SETTINGS_DEFAULTS = {
+export const SETTINGS_DEFAULTS = {
   id: 1,
   logoUrl: null as string | null,
   maintenanceEnabled: false,
@@ -11,6 +11,10 @@ const SETTINGS_DEFAULTS = {
   maintenanceEmail: "hello@msadhesif.fr",
   maintenancePhone: "",
   contactEmail: "hello@msadhesif.fr",
+  standardShippingCents: 490,
+  expressShippingCents: 990,
+  freeShippingThresholdCents: 5000,
+  quantityStep: 25,
   updatedAt: new Date(),
 };
 

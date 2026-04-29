@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { discounts, discountUsages, orders, orderItems } from "@/db/schema";
 import { eq, and, desc, sum } from "drizzle-orm";
+import { getSiteSettingsQuery } from "@/lib/settings-queries";
 import { headers, cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -128,7 +129,8 @@ export async function applyDiscountCode(code: string): Promise<
   if (!order) return { ok: false, error: "Panier introuvable." };
 
   const customerId = await getCurrentUserId();
-  const shippingCents = 490; // default before checkout
+  const shopSettings = await getSiteSettingsQuery();
+  const shippingCents = shopSettings.standardShippingCents;
 
   // Compute the real total quantity from order items
   const [qtyRow] = await db

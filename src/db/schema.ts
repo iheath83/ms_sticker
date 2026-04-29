@@ -630,8 +630,12 @@ export const siteSettings = pgTable("site_settings", {
   maintenanceMessage:    text("maintenance_message").notNull().default("Notre site est en cours de mise à jour. Revenez très vite !"),
   maintenanceEmail:      varchar("maintenance_email", { length: 255 }).notNull().default("hello@msadhesif.fr"),
   maintenancePhone:      varchar("maintenance_phone", { length: 50 }).notNull().default(""),
-  contactEmail:          varchar("contact_email", { length: 255 }).notNull().default("hello@msadhesif.fr"),
-  updatedAt:             timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  contactEmail:                  varchar("contact_email", { length: 255 }).notNull().default("hello@msadhesif.fr"),
+  standardShippingCents:         integer("standard_shipping_cents").notNull().default(490),
+  expressShippingCents:          integer("express_shipping_cents").notNull().default(990),
+  freeShippingThresholdCents:    integer("free_shipping_threshold_cents").notNull().default(5000),
+  quantityStep:                  integer("quantity_step").notNull().default(25),
+  updatedAt:                     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type SiteSettings = typeof siteSettings.$inferSelect;

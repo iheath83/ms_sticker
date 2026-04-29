@@ -36,6 +36,10 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
   const [email,        setEmail]        = useState(settings.maintenanceEmail);
   const [phone,        setPhone]        = useState(settings.maintenancePhone);
   const [contactEmail, setContactEmail] = useState(settings.contactEmail);
+  const [stdShipping,  setStdShipping]  = useState(String((settings.standardShippingCents ?? 490) / 100));
+  const [exprShipping, setExprShipping] = useState(String((settings.expressShippingCents ?? 990) / 100));
+  const [freeThreshold, setFreeThreshold] = useState(String((settings.freeShippingThresholdCents ?? 5000) / 100));
+  const [qtyStep, setQtyStep] = useState(String(settings.quantityStep ?? 25));
 
   function handleSave() {
     startTransition(async () => {
@@ -47,6 +51,10 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
         maintenanceEmail:   email,
         maintenancePhone:   phone,
         contactEmail,
+        standardShippingCents:      Math.round(parseFloat(stdShipping) * 100) || 490,
+        expressShippingCents:       Math.round(parseFloat(exprShipping) * 100) || 990,
+        freeShippingThresholdCents: Math.round(parseFloat(freeThreshold) * 100) || 5000,
+        quantityStep:               parseInt(qtyStep, 10) || 25,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -200,6 +208,34 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
             style={inputStyle}
             placeholder="hello@msadhesif.fr"
           />
+        </div>
+      </div>
+
+      {/* Livraison */}
+      <div style={sectionStyle}>
+        <h2 style={{ fontFamily: "var(--font-archivo)", fontSize: 14, fontWeight: 800, color: "#0A0E27", margin: "0 0 8px" }}>
+          Livraison
+        </h2>
+        <p style={{ fontSize: 12, color: "#6B7280", margin: "0 0 16px" }}>
+          Tarifs de livraison et seuil de gratuité (en €).
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div>
+            <label style={labelStyle}>Livraison standard (€)</label>
+            <input type="number" step="0.01" min="0" value={stdShipping} onChange={(e) => setStdShipping(e.target.value)} style={inputStyle} placeholder="4.90" />
+          </div>
+          <div>
+            <label style={labelStyle}>Livraison express (€)</label>
+            <input type="number" step="0.01" min="0" value={exprShipping} onChange={(e) => setExprShipping(e.target.value)} style={inputStyle} placeholder="9.90" />
+          </div>
+          <div>
+            <label style={labelStyle}>Seuil livraison gratuite (€)</label>
+            <input type="number" step="1" min="0" value={freeThreshold} onChange={(e) => setFreeThreshold(e.target.value)} style={inputStyle} placeholder="50" />
+          </div>
+          <div>
+            <label style={labelStyle}>Pas de quantité (ex : 25)</label>
+            <input type="number" step="1" min="1" value={qtyStep} onChange={(e) => setQtyStep(e.target.value)} style={inputStyle} placeholder="25" />
+          </div>
         </div>
       </div>
 
