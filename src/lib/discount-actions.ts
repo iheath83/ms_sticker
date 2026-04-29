@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { discounts, discountUsages, orders } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { discounts, discountUsages, orders, orderItems } from "@/db/schema";
+import { eq, and, desc, sum } from "drizzle-orm";
 import { headers, cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -130,11 +130,18 @@ export async function applyDiscountCode(code: string): Promise<
   const customerId = await getCurrentUserId();
   const shippingCents = 490; // default before checkout
 
+  // Compute the real total quantity from order items
+  const [qtyRow] = await db
+    .select({ total: sum(orderItems.quantity) })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, orderId));
+  const itemCount = Number(qtyRow?.total ?? 0);
+
   const result = await calculateDiscounts({
     cart: {
       orderId,
       subtotalCents: order.subtotalCents,
-      itemCount: 0,
+      itemCount,
       shippingCents,
     },
     customerId,
