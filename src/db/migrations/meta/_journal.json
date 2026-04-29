@@ -78,6 +78,13 @@
       "when": 1777487089065,
       "tag": "0010_wild_catseye",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1777487944458,
+      "tag": "0011_icy_hercules",
+      "breakpoints": true
     }
   ]
 }

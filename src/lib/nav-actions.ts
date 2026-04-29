@@ -125,9 +125,9 @@ export async function seedDefaultNav() {
   const roots = [
     { label: "Accueil",   href: "/",        sortOrder: 0 },
     { label: "Produits",  href: "/products", sortOrder: 1 },
-    { label: "Devis pro", href: "/devis",   sortOrder: 2 },
+    { label: "Devis pro", href: "/devis-pro", sortOrder: 2 },
     { label: "Nuancier",  href: "/nuancier", sortOrder: 3 },
-    { label: "FAQ",       href: "/faq",     sortOrder: 4 },
+    { label: "FAQ",       href: "/faq",      sortOrder: 4 },
   ];
 
   const inserted = await db.insert(navItems).values(roots).returning({ id: navItems.id, label: navItems.label });

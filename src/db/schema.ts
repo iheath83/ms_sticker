@@ -544,6 +544,21 @@ export const navItems = pgTable(
 
 export type NavItem = typeof navItems.$inferSelect;
 
+// ─── pages (CMS) ───────────────────────────────────────────────────────────────
+
+export const pages = pgTable("pages", {
+  id:              uuid("id").primaryKey().defaultRandom(),
+  slug:            varchar("slug", { length: 100 }).notNull().unique(),
+  title:           varchar("title", { length: 255 }).notNull(),
+  metaTitle:       varchar("meta_title", { length: 255 }),
+  metaDescription: text("meta_description"),
+  sections:        jsonb("sections").notNull().default([]),
+  published:       boolean("published").notNull().default(true),
+  ...timestamps,
+});
+
+export type Page = typeof pages.$inferSelect;
+
 // ─── site_settings ─────────────────────────────────────────────────────────────
 
 export const siteSettings = pgTable("site_settings", {
