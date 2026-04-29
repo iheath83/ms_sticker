@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { headers, cookies } from "next/headers";
+import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
+import { AdminBypassCookieSetter } from "@/components/admin/admin-bypass-cookie-setter";
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: "⬛" },
@@ -19,17 +20,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const role = (session?.user as { role?: string } | undefined)?.role;
 
   if (!session || role !== "admin") redirect("/");
-
-  // Set bypass cookie so admin can see the shop even in maintenance mode
-  const cookieStore = await cookies();
-  if (!cookieStore.get("ms_admin_bypass")) {
-    cookieStore.set("ms_admin_bypass", "1", {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30,
-    });
-  }
 
   return (
     <div
@@ -129,6 +119,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
       {/* Main */}
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0, height: "100vh", overflow: "auto" }}>
+        <AdminBypassCookieSetter />
         {children}
       </div>
     </div>

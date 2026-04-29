@@ -41,6 +41,20 @@ export async function updateSiteSettings(data: {
   return { ok: true };
 }
 
+export async function setAdminBypassCookie() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (role !== "admin") return;
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  cookieStore.set("ms_admin_bypass", "1", {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+}
+
 export async function getSiteSettings() {
   await ensureSettingsRow();
   const row = await db.select().from(siteSettings).where(eq(siteSettings.id, 1)).limit(1).then((r) => r[0]);
