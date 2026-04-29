@@ -465,6 +465,7 @@ export function NavEditorClient({ initialTree }: { initialTree: NavItemWithChild
       const idx = allItems.findIndex((a) => a.id === id);
       if (idx < 0) return;
       const item = allItems[idx];
+      if (!item) return;
       const siblings = allItems.filter((a) => a.parentId === item.parentId);
       const sibIdx = siblings.findIndex((s) => s.id === id);
       if (dir === "up" && sibIdx === 0) return;
