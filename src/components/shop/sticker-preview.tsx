@@ -118,7 +118,7 @@ export function StickerPreview({
         y="50%"
         textAnchor="middle"
         dominantBaseline="central"
-        fontFamily="var(--font-archivo), Archivo, sans-serif"
+        fontFamily="var(--font-archivo), Poppins, sans-serif"
         fontWeight="900"
         fontSize={small ? dim * 0.35 : dim * 0.3}
         fill={isHolo ? "#0A0E27" : "#fff"}

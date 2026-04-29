@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Archivo, JetBrains_Mono } from "next/font/google";
+import { Poppins, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const archivo = Archivo({
+const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-archivo",
@@ -35,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={`${archivo.variable} ${jetbrainsMono.variable}`}>
+    <html lang="fr" className={`${poppins.variable} ${jetbrainsMono.variable}`}>
       <body
         style={{
           fontFamily: "var(--font-mono), ui-monospace, 'SF Mono', Menlo, monospace",
