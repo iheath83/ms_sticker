@@ -16,15 +16,13 @@ export default async function PagesListPage() {
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "#4B5563" }}>Créez et éditez vos pages avec l'éditeur visuel</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          {allPages.length === 0 && (
-            <form action={async () => { "use server"; await seedDefaultPages(); }}>
-              <button
-                style={{ fontFamily: "var(--font-archivo)", fontSize: 12, fontWeight: 700, background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", cursor: "pointer" }}
-              >
-                ⚡ Initialiser Devis Pro + FAQ
-              </button>
-            </form>
-          )}
+          <form action={async () => { "use server"; await seedDefaultPages(); }}>
+            <button
+              style={{ fontFamily: "var(--font-archivo)", fontSize: 12, fontWeight: 700, background: "#2563EB", color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", cursor: "pointer" }}
+            >
+              ⚡ Créer pages manquantes
+            </button>
+          </form>
           <Link
             href="/admin/pages/new"
             style={{ fontFamily: "var(--font-archivo)", fontSize: 12, fontWeight: 700, background: "#0A0E27", color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", textDecoration: "none" }}
