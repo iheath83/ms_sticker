@@ -8,7 +8,7 @@ import { streamObject } from "@/lib/storage";
 import { Readable } from "stream";
 
 // Prefixes that are public catalog assets (no auth / order check required)
-const PUBLIC_PREFIXES = ["categories/", "products/"];
+const PUBLIC_PREFIXES = ["categories/", "products/", "logo/"];
 
 function isPublicAsset(key: string): boolean {
   return PUBLIC_PREFIXES.some((p) => key.startsWith(p));
