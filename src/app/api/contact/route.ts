@@ -6,7 +6,8 @@ import { z } from "zod";
 const schema = z.object({
   name:    z.string().min(1).max(100),
   email:   z.string().email(),
-  message: z.string().min(10).max(2000),
+  phone:   z.string().max(50).optional(),
+  message: z.string().min(1).max(2000),
 });
 
 export async function POST(request: NextRequest) {
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Données invalides" }, { status: 400 });
   }
 
-  const { name, email, message } = parsed.data;
+  const { name, email, phone, message } = parsed.data;
   const settings = await getSiteSettingsQuery();
   const adminEmail = settings.contactEmail || process.env["BREVO_ADMIN_EMAIL"] || "hello@msadhesif.fr";
 
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
         <h2>Nouveau message de contact</h2>
         <p><strong>Nom :</strong> ${name}</p>
         <p><strong>Email :</strong> <a href="mailto:${email}">${email}</a></p>
+        ${phone ? `<p><strong>Téléphone :</strong> ${phone}</p>` : ""}
         <hr/>
         <p>${message.replace(/\n/g, "<br/>")}</p>
       `,
