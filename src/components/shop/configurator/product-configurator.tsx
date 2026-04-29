@@ -239,6 +239,7 @@ export function ProductConfigurator({
   }
 
   async function handleAdd() {
+    if (!getProductId()) return;
     setAddLoading(true);
     setUploadStatus("idle");
     const [widthMm, heightMm] = getDimensions();

@@ -20,13 +20,6 @@ const MATERIAL_UI: Record<
 
 const FALLBACK_UI = MATERIAL_UI["vinyl"]!;
 
-// Static fallback when no DB products are provided
-const STATIC_BESTSELLERS = [
-  { name: "Die Cut", desc: "Le classique, découpe forme précise", price: "22", ...FALLBACK_UI, material: "vinyl" as StickerMaterial },
-  { name: "Holographique", desc: "Reflets arc-en-ciel, effet premium", price: "38", ...MATERIAL_UI["holographic"]!, material: "holographic" as StickerMaterial },
-  { name: "Rond classique", desc: "Cercles parfaits en 4 diamètres", price: "18", ...MATERIAL_UI["transparent"]!, material: "vinyl" as StickerMaterial },
-];
-
 interface BestsellerCard {
   id: string;
   name: string;
@@ -61,9 +54,11 @@ function productToCard(p: Product, index: number): BestsellerCard {
 }
 
 export function BestSellersSection({ products }: { products?: Product[] }) {
-  const cards: BestsellerCard[] = products && products.length > 0
+  const cards: BestsellerCard[] = (products && products.length > 0)
     ? products.slice(0, 3).map((p, i) => productToCard(p, i))
-    : STATIC_BESTSELLERS.map((s, i) => ({ ...s, id: String(i) }));
+    : [];
+
+  if (cards.length === 0) return null;
 
   return (
     <section style={{ padding: "80px 0" }}>
@@ -218,7 +213,7 @@ export function BestSellersSection({ products }: { products?: Product[] }) {
                     </div>
                   </div>
                   <Link
-                    href="/custom-stickers"
+                    href={b.slug ? `/products/${b.slug}` : "/products"}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",
