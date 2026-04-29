@@ -1,7 +1,7 @@
 interface LogoProps {
   size?: number;
   inverted?: boolean;
-  imageUrl?: string | null;
+  imageUrl?: string | null | undefined;
 }
 
 export function Logo({ size = 36, inverted = false, imageUrl }: LogoProps) {
