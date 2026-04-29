@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { AdminBypassCookieSetter } from "@/components/admin/admin-bypass-cookie-setter";
 
+export const dynamic = "force-dynamic";
+
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: "⬛" },
   { href: "/admin/orders", label: "Commandes", icon: "📦" },

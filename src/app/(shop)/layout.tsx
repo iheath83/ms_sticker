@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+
+export const dynamic = "force-dynamic";
 import { Header } from "@/components/shop/header";
 import { Footer } from "@/components/shop/footer";
 import { CartDrawer } from "@/components/shop/cart-drawer";
