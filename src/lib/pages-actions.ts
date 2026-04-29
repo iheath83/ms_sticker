@@ -206,6 +206,41 @@ export async function seedDefaultPages(): Promise<{ ok: boolean; message?: strin
     });
   }
 
+  if (!existingSlugs.has("contact")) {
+    toCreate.push({
+      slug: "contact",
+      title: "Contact",
+      sections: [
+        {
+          id: "hero-contact",
+          type: "hero",
+          title: "Contactez-nous",
+          subtitle: "Une question, un projet, un devis ? Notre équipe vous répond sous 24h.",
+          ctaLabel: "",
+          ctaHref: "",
+          bgColor: "ink",
+        },
+        {
+          id: "features-contact",
+          type: "features",
+          title: "Comment nous joindre",
+          columns: 3,
+          items: [
+            { id: "c1", icon: "📧", title: "Email", description: "hello@msadhesif.fr\nRéponse sous 24h ouvrées" },
+            { id: "c2", icon: "📞", title: "Téléphone", description: "+33 1 00 00 00 00\nLun – Ven, 9h – 18h" },
+            { id: "c3", icon: "📍", title: "Adresse", description: "Paris, France\nLivraison partout en Europe" },
+          ],
+        },
+        {
+          id: "form-contact",
+          type: "contact_form",
+          title: "Envoyez-nous un message",
+          subtitle: "Remplissez le formulaire ci-dessous et nous reviendrons vers vous rapidement.",
+        },
+      ],
+    });
+  }
+
   if (toCreate.length === 0) return { ok: false, message: "Pages déjà créées" };
 
   for (const p of toCreate) {
