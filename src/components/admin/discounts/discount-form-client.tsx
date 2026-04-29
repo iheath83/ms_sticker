@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createDiscount, updateDiscount } from "@/lib/discount-actions";
 import type { Discount } from "@/db/schema";
-import type { DiscountFormInput, DiscountConditions, DiscountCombinationRules } from "@/lib/discounts/discount-types";
+import type { DiscountFormInput, DiscountConditions, DiscountCombinationRules, DiscountEligibility, CustomerEligibility } from "@/lib/discounts/discount-types";
 
 const inputStyle: React.CSSProperties = {
   padding: "9px 12px", borderRadius: 6, border: "1px solid #D1D5DB",
@@ -23,8 +23,96 @@ const sectionStyle: React.CSSProperties = {
 function toDatetimeLocal(d: Date | null | undefined): string {
   if (!d) return "";
   const dt = new Date(d);
-  dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
+  dt.setMinutes(dt.getTimezoneOffset() === 0 ? 0 : dt.getMinutes() - dt.getTimezoneOffset());
   return dt.toISOString().slice(0, 16);
+}
+
+interface CustomerOption { id: string; name: string | null; email: string; }
+
+function CustomerPicker({
+  selectedIds,
+  onAdd,
+  onRemove,
+  selectedCustomers,
+}: {
+  selectedIds: string[];
+  selectedCustomers: CustomerOption[];
+  onAdd: (c: CustomerOption) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<CustomerOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const search = useCallback((q: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/admin/customers?q=${encodeURIComponent(q)}`);
+        const data = await res.json() as CustomerOption[];
+        setResults(data.filter((c) => !selectedIds.includes(c.id)));
+      } catch { setResults([]); }
+      finally { setLoading(false); }
+    }, 300);
+  }, [selectedIds]);
+
+  useEffect(() => { search(query); }, [query, search]);
+
+  return (
+    <div>
+      {/* Selected customers */}
+      {selectedCustomers.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {selectedCustomers.map((c) => (
+            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 999, fontSize: 12 }}>
+              <span style={{ fontWeight: 600, color: "#1E40AF" }}>{c.name ?? c.email}</span>
+              <span style={{ color: "#93C5FD", fontSize: 11 }}>{c.name ? c.email : ""}</span>
+              <button
+                type="button"
+                onClick={() => onRemove(c.id)}
+                style={{ background: "transparent", border: "none", cursor: "pointer", color: "#93C5FD", padding: "0 2px", lineHeight: 1, fontSize: 14 }}
+              >×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Search input */}
+      <div style={{ position: "relative" }}>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Rechercher par nom ou email…"
+          style={{ ...inputStyle, paddingRight: 32 }}
+        />
+        {loading && (
+          <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>…</span>
+        )}
+      </div>
+
+      {/* Results dropdown */}
+      {results.length > 0 && (
+        <div style={{ border: "1px solid #E5E7EB", borderRadius: 6, marginTop: 4, background: "#fff", boxShadow: "0 4px 12px rgba(0,0,0,0.08)", maxHeight: 200, overflowY: "auto" }}>
+          {results.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => { onAdd(c); setQuery(""); setResults([]); }}
+              style={{ display: "flex", flexDirection: "column", width: "100%", padding: "10px 14px", border: "none", background: "transparent", cursor: "pointer", textAlign: "left", borderBottom: "1px solid #F3F4F6" }}
+            >
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#0A0E27" }}>{c.name ?? c.email}</span>
+              {c.name && <span style={{ fontSize: 11, color: "#9CA3AF" }}>{c.email}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {!loading && query.length >= 2 && results.length === 0 && (
+        <div style={{ marginTop: 4, fontSize: 12, color: "#9CA3AF" }}>Aucun client trouvé.</div>
+      )}
+    </div>
+  );
 }
 
 export function DiscountFormClient({ existing }: { existing?: Discount | null }) {
@@ -55,6 +143,31 @@ export function DiscountFormClient({ existing }: { existing?: Discount | null })
   const [combineShip,   setCombineShip]   = useState((existing?.combinationRules as DiscountCombinationRules)?.combinableWithShippingDiscounts ?? true);
   const [combineAuto,   setCombineAuto]   = useState((existing?.combinationRules as DiscountCombinationRules)?.combinableWithAutomaticDiscounts ?? true);
 
+  const existingElig = existing?.eligibility as DiscountEligibility | undefined;
+  const [customerEligibility, setCustomerEligibility] = useState<CustomerEligibility>(existingElig?.customerEligibility ?? "ALL");
+  const [selectedCustomers,   setSelectedCustomers]   = useState<CustomerOption[]>([]);
+
+  // Load customer details for existing SPECIFIC_CUSTOMERS discount
+  useEffect(() => {
+    const ids = existingElig?.customerIds;
+    if (!ids || ids.length === 0) return;
+    void (async () => {
+      const results: CustomerOption[] = [];
+      for (const id of ids) {
+        try {
+          const res = await fetch(`/api/admin/customers?q=${encodeURIComponent(id)}`);
+          const data = await res.json() as CustomerOption[];
+          const found = data.find((c) => c.id === id);
+          results.push(found ?? { id, name: null, email: id });
+        } catch {
+          results.push({ id, name: null, email: id });
+        }
+      }
+      setSelectedCustomers(results);
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function buildInput(): DiscountFormInput {
     const conditions: DiscountConditions = {};
     if (minSubtotal) conditions.minimumSubtotal = Math.round(parseFloat(minSubtotal) * 100);
@@ -67,6 +180,11 @@ export function DiscountFormClient({ existing }: { existing?: Discount | null })
       combinableWithAutomaticDiscounts: combineAuto,
     };
 
+    const eligibility: DiscountEligibility = { customerEligibility };
+    if (customerEligibility === "SPECIFIC_CUSTOMERS") {
+      eligibility.customerIds = selectedCustomers.map((c) => c.id);
+    }
+
     const base: DiscountFormInput = {
       title,
       method,
@@ -76,6 +194,7 @@ export function DiscountFormClient({ existing }: { existing?: Discount | null })
       startsAt,
       priority: 0,
       conditions,
+      eligibility,
       combinationRules,
     };
     if (internalName) base.internalName = internalName;
@@ -228,6 +347,50 @@ export function DiscountFormClient({ existing }: { existing?: Discount | null })
             <input type="number" min="0" step="1" value={perCustomer} onChange={(e) => setPerCustomer(e.target.value)} style={inputStyle} placeholder="Illimité" />
           </div>
         </div>
+      </div>
+
+      {/* Éligibilité clients */}
+      <div style={sectionStyle}>
+        <h2 style={{ fontFamily: "var(--font-archivo)", fontSize: 14, fontWeight: 800, color: "#0A0E27", margin: "0 0 20px" }}>Clients éligibles</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: customerEligibility === "SPECIFIC_CUSTOMERS" ? 20 : 0 }}>
+          {(["ALL", "LOGGED_IN", "SPECIFIC_CUSTOMERS"] as CustomerEligibility[]).map((opt) => {
+            const labels: Record<CustomerEligibility, string> = {
+              ALL:                "Tous les clients (connectés ou non)",
+              LOGGED_IN:          "Clients connectés uniquement",
+              SPECIFIC_CUSTOMERS: "Clients spécifiques",
+            };
+            return (
+              <label key={opt} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontSize: 13 }}>
+                <input
+                  type="radio"
+                  name="customerEligibility"
+                  value={opt}
+                  checked={customerEligibility === opt}
+                  onChange={() => setCustomerEligibility(opt)}
+                  style={{ width: 16, height: 16 }}
+                />
+                <span style={{ fontWeight: customerEligibility === opt ? 700 : 400 }}>{labels[opt]}</span>
+              </label>
+            );
+          })}
+        </div>
+
+        {customerEligibility === "SPECIFIC_CUSTOMERS" && (
+          <div style={{ marginTop: 16 }}>
+            <label style={labelStyle}>Rechercher et ajouter des clients</label>
+            <CustomerPicker
+              selectedIds={selectedCustomers.map((c) => c.id)}
+              selectedCustomers={selectedCustomers}
+              onAdd={(c) => setSelectedCustomers((prev) => [...prev, c])}
+              onRemove={(id) => setSelectedCustomers((prev) => prev.filter((c) => c.id !== id))}
+            />
+            {selectedCustomers.length === 0 && (
+              <div style={{ marginTop: 8, fontSize: 12, color: "#EF4444" }}>
+                Ajoutez au moins un client ou choisissez une autre option d&apos;éligibilité.
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Règles de cumul */}

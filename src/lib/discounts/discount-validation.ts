@@ -56,6 +56,20 @@ export async function validateDiscount(
     }
   }
 
+  // Customer eligibility
+  const elig = discount.eligibility;
+  if (elig.customerEligibility === "LOGGED_IN" && !customerId) {
+    return reject("CUSTOMER_NOT_ELIGIBLE", "Vous devez être connecté pour utiliser ce code promo.");
+  }
+  if (elig.customerEligibility === "SPECIFIC_CUSTOMERS") {
+    if (!customerId) {
+      return reject("CUSTOMER_NOT_ELIGIBLE", "Vous devez être connecté pour utiliser ce code promo.");
+    }
+    if (!elig.customerIds?.includes(customerId)) {
+      return reject("CUSTOMER_NOT_ELIGIBLE", "Ce code promo n'est pas disponible pour votre compte.");
+    }
+  }
+
   // Minimum subtotal
   const cond = discount.conditions;
   if (cond.minimumSubtotal != null && cart.subtotalCents < cond.minimumSubtotal) {

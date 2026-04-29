@@ -7,7 +7,7 @@ import { headers, cookies } from "next/headers";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { calculateDiscounts } from "@/lib/discounts/discount-engine";
-import type { DiscountFormInput, AppliedDiscountSnapshot } from "@/lib/discounts/discount-types";
+import type { DiscountFormInput, AppliedDiscountSnapshot, DiscountEligibility } from "@/lib/discounts/discount-types";
 
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 
@@ -58,6 +58,7 @@ export async function createDiscount(input: DiscountFormInput) {
       globalUsageLimit:      input.globalUsageLimit ?? null,
       usageLimitPerCustomer: input.usageLimitPerCustomer ?? null,
       conditions:            input.conditions,
+      eligibility:           input.eligibility,
       combinationRules:      input.combinationRules,
     })
     .returning();
@@ -89,7 +90,8 @@ export async function updateDiscount(id: string, input: Partial<DiscountFormInpu
       ...(input.priority !== undefined       && { priority: input.priority }),
       ...(input.globalUsageLimit !== undefined && { globalUsageLimit: input.globalUsageLimit ?? null }),
       ...(input.usageLimitPerCustomer !== undefined && { usageLimitPerCustomer: input.usageLimitPerCustomer ?? null }),
-      ...(input.conditions !== undefined     && { conditions: input.conditions }),
+      ...(input.conditions !== undefined      && { conditions: input.conditions }),
+      ...(input.eligibility !== undefined     && { eligibility: input.eligibility }),
       ...(input.combinationRules !== undefined && { combinationRules: input.combinationRules }),
       updatedAt: new Date(),
     })

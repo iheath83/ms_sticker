@@ -31,6 +31,13 @@ export interface DiscountConditions {
   minimumQuantity?: number;    // item count
 }
 
+export type CustomerEligibility = "ALL" | "LOGGED_IN" | "SPECIFIC_CUSTOMERS";
+
+export interface DiscountEligibility {
+  customerEligibility: CustomerEligibility;
+  customerIds?: string[];      // only when customerEligibility === "SPECIFIC_CUSTOMERS"
+}
+
 export interface DiscountCombinationRules {
   combinableWithOrderDiscounts: boolean;
   combinableWithOtherCodes: boolean;
@@ -57,6 +64,7 @@ export interface DiscountRow {
   globalUsageLimit: number | null;
   usageLimitPerCustomer: number | null;
   conditions: DiscountConditions;
+  eligibility: DiscountEligibility;
   combinationRules: DiscountCombinationRules;
   createdAt: Date;
   updatedAt: Date;
@@ -130,5 +138,6 @@ export interface DiscountFormInput {
   globalUsageLimit?: number;
   usageLimitPerCustomer?: number;
   conditions: DiscountConditions;
+  eligibility: DiscountEligibility;
   combinationRules: DiscountCombinationRules;
 }

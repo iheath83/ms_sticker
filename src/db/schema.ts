@@ -484,7 +484,7 @@ export type EmailTemplateRow = typeof emailTemplates.$inferSelect;
 
 // ─── discounts ────────────────────────────────────────────────────────────────
 
-import type { DiscountConditions, DiscountCombinationRules } from "@/lib/discounts/discount-types";
+import type { DiscountConditions, DiscountCombinationRules, DiscountEligibility } from "@/lib/discounts/discount-types";
 
 export const discounts = pgTable(
   "discounts",
@@ -505,6 +505,7 @@ export const discounts = pgTable(
     globalUsageLimit:       integer("global_usage_limit"),
     usageLimitPerCustomer:  integer("usage_limit_per_customer"),
     conditions:             jsonb("conditions").notNull().$type<DiscountConditions>().default({} as DiscountConditions),
+    eligibility:            jsonb("eligibility").notNull().$type<DiscountEligibility>().default({ customerEligibility: "ALL" }),
     combinationRules:       jsonb("combination_rules").notNull().$type<DiscountCombinationRules>().default({ combinableWithOrderDiscounts: false, combinableWithOtherCodes: false, combinableWithShippingDiscounts: true, combinableWithAutomaticDiscounts: true }),
     ...timestamps,
   },
