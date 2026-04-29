@@ -12,10 +12,10 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { AppliedDiscountSnapshot } from "@/lib/discounts/discount-types";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { EmailBlock } from "@/lib/email-blocks";
 import type { PricingTier, CustomPreset } from "@/lib/pricing";
+import type { AppliedDiscountSnapshot, DiscountConditions, DiscountCombinationRules, DiscountEligibility } from "@/lib/discounts/discount-types";
 
 // ─── Timestamps helper ───────────────────────────────────────────────────────
 
@@ -483,8 +483,6 @@ export const emailTemplates = pgTable("email_templates", {
 export type EmailTemplateRow = typeof emailTemplates.$inferSelect;
 
 // ─── discounts ────────────────────────────────────────────────────────────────
-
-import type { DiscountConditions, DiscountCombinationRules, DiscountEligibility } from "@/lib/discounts/discount-types";
 
 export const discounts = pgTable(
   "discounts",
