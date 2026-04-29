@@ -38,7 +38,7 @@ export default function RootLayout({
     <html lang="fr" className={`${poppins.variable} ${jetbrainsMono.variable}`}>
       <body
         style={{
-          fontFamily: "var(--font-mono), ui-monospace, 'SF Mono', Menlo, monospace",
+          fontFamily: "var(--font-archivo), system-ui, sans-serif",
         }}
       >
         {children}
