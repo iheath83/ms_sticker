@@ -166,7 +166,7 @@ export default async function AdminOrdersPage({
                     <td style={{ padding: "14px 16px" }}>
                       <span
                         style={{
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontSize: 12,
                           color: "#6B7280",
                         }}
@@ -193,7 +193,7 @@ export default async function AdminOrdersPage({
                           fontWeight: 700,
                           fontSize: 14,
                           color: "#0A0E27",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                         }}
                       >
                         {euros(order.totalCents)}

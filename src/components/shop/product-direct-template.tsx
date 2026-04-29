@@ -299,7 +299,7 @@ export function ProductDirectTemplate({ product, variants }: Props) {
                 >
                   −
                 </button>
-                <div style={{ padding: "10px 16px", minWidth: 56, textAlign: "center", fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 16 }}>
+                <div style={{ padding: "10px 16px", minWidth: 56, textAlign: "center", fontFamily: "var(--font-archivo)", fontWeight: 700, fontSize: 16 }}>
                   {quantity}
                 </div>
                 <button
@@ -323,7 +323,7 @@ export function ProductDirectTemplate({ product, variants }: Props) {
                 border: "none",
                 background: added ? "#22C55E" : "var(--ink)",
                 color: "#fff",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 fontSize: 14,
                 fontWeight: 700,
                 cursor: isPending ? "not-allowed" : "pointer",

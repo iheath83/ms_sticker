@@ -132,7 +132,7 @@ export function StickerPreview({
           x="50%"
           y={dim * 0.72}
           textAnchor="middle"
-          fontFamily="var(--font-mono), JetBrains Mono, monospace"
+          fontFamily="var(--font-archivo), JetBrains Mono, monospace"
           fontWeight="700"
           fontSize={dim * 0.07}
           fill={isHolo ? "#0A0E27" : "#fff"}

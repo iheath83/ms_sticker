@@ -128,7 +128,7 @@ export function Header({ products = [] }: HeaderProps) {
                         style={{
                           fontSize: 10,
                           color: "var(--grey-400)",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                         }}
                       >
                         {Math.round(p.basePriceCents / 100)} €
@@ -192,7 +192,7 @@ export function Header({ products = [] }: HeaderProps) {
                   borderRadius: 4,
                   padding: "1px 6px",
                   fontSize: 10,
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-archivo), monospace",
                 }}
               >
                 ⌘K
@@ -214,7 +214,7 @@ export function Header({ products = [] }: HeaderProps) {
                   fontWeight: 500,
                   textDecoration: "none",
                   color: "var(--ink)",
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-archivo), monospace",
                 }}
               >
                 <span
@@ -246,7 +246,7 @@ export function Header({ products = [] }: HeaderProps) {
                   fontWeight: 500,
                   textDecoration: "none",
                   color: "var(--ink)",
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-archivo), monospace",
                 }}
               >
                 Connexion
@@ -267,7 +267,7 @@ export function Header({ products = [] }: HeaderProps) {
                 borderRadius: "var(--r)",
                 fontSize: 13,
                 fontWeight: 500,
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 cursor: "pointer",
               }}
             >

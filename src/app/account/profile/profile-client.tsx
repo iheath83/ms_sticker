@@ -126,7 +126,7 @@ export default function ProfileClient({ user }: Props) {
               padding: "12px 20px", background: "transparent", border: "none",
               borderBottom: section === key ? "2px solid var(--red)" : "2px solid transparent",
               marginBottom: -2, cursor: "pointer",
-              fontSize: 13, fontWeight: 700, fontFamily: "var(--font-mono), monospace",
+              fontSize: 13, fontWeight: 700, fontFamily: "var(--font-archivo), monospace",
               color: section === key ? "var(--red)" : "var(--grey-600)",
               display: "flex", alignItems: "center", gap: 6,
             }}
@@ -176,7 +176,7 @@ export default function ProfileClient({ user }: Props) {
               border: "2px solid var(--ink)",
               borderRadius: 8, fontSize: 14, fontWeight: 700,
               cursor: savingInfo || !name.trim() || name === user.name ? "not-allowed" : "pointer",
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-archivo), monospace",
             }}
           >
             {savingInfo ? "Enregistrement…" : "Enregistrer"}
@@ -190,7 +190,7 @@ export default function ProfileClient({ user }: Props) {
                 padding: "10px 20px", background: "transparent",
                 border: "1.5px solid var(--grey-200)", borderRadius: 8,
                 fontSize: 13, fontWeight: 700, color: "var(--grey-600)",
-                cursor: "pointer", fontFamily: "var(--font-mono), monospace",
+                cursor: "pointer", fontFamily: "var(--font-archivo), monospace",
               }}
             >
               Se déconnecter →
@@ -235,7 +235,7 @@ export default function ProfileClient({ user }: Props) {
               border: "2px solid var(--ink)",
               borderRadius: 8, fontSize: 14, fontWeight: 700,
               cursor: savingPwd ? "not-allowed" : "pointer",
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-archivo), monospace",
             }}
           >
             {savingPwd ? "Modification…" : "Modifier le mot de passe"}
@@ -326,7 +326,7 @@ function Field({
         style={{
           width: "100%", padding: "12px 14px",
           border: `1.5px solid ${readOnly ? "var(--grey-100)" : "var(--grey-200)"}`,
-          borderRadius: 8, fontFamily: "var(--font-mono), monospace", fontSize: 13,
+          borderRadius: 8, fontFamily: "var(--font-archivo), monospace", fontSize: 13,
           background: readOnly ? "var(--grey-50)" : "var(--white)",
           color: readOnly ? "var(--grey-500)" : "var(--ink)",
           outline: "none", boxSizing: "border-box",

@@ -59,7 +59,7 @@ export function Footer() {
                 fontSize: 11,
                 letterSpacing: "0.15em",
                 textTransform: "uppercase",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 color: "var(--white)",
                 marginBottom: 16,
               }}
@@ -86,7 +86,7 @@ export function Footer() {
                 fontSize: 11,
                 letterSpacing: "0.15em",
                 textTransform: "uppercase",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 color: "var(--white)",
                 marginBottom: 16,
               }}
@@ -111,7 +111,7 @@ export function Footer() {
                 fontSize: 11,
                 letterSpacing: "0.15em",
                 textTransform: "uppercase",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 color: "var(--white)",
                 marginBottom: 16,
               }}
@@ -136,7 +136,7 @@ export function Footer() {
                 fontSize: 11,
                 letterSpacing: "0.15em",
                 textTransform: "uppercase",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 color: "var(--white)",
                 marginBottom: 16,
               }}
@@ -154,7 +154,7 @@ export function Footer() {
                   flex: 1,
                   padding: 10,
                   fontSize: 12,
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-archivo), monospace",
                   background: "transparent",
                   color: "var(--white)",
                   border: "1px solid var(--grey-600)",

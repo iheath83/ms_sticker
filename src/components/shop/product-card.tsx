@@ -141,7 +141,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
                   padding: "2px 8px",
                   fontSize: 9,
                   fontWeight: 600,
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-archivo), monospace",
                   textTransform: "uppercase",
                   letterSpacing: "0.05em",
                 }}
@@ -224,7 +224,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
                 color: "var(--white)",
                 border: "2px solid var(--ink)",
                 borderRadius: "var(--r)",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 fontWeight: 600,
                 fontSize: 12,
               }}

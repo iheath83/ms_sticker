@@ -79,7 +79,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 textDecoration: "none",
                 fontSize: 13,
                 fontWeight: 600,
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), system-ui, sans-serif",
                 marginBottom: 2,
                 transition: "background 0.15s, color 0.15s",
               }}

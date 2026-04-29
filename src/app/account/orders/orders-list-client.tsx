@@ -195,7 +195,7 @@ export default function OrdersListClient({ orders }: Props) {
                           padding: "7px 14px", background: "transparent",
                           border: "1.5px solid #E5E7EB", borderRadius: 8,
                           fontSize: 12, fontWeight: 700, color: "#374151",
-                          textDecoration: "none", fontFamily: "var(--font-mono), monospace",
+                          textDecoration: "none", fontFamily: "var(--font-archivo), monospace",
                           whiteSpace: "nowrap",
                         }}
                       >
@@ -211,7 +211,7 @@ export default function OrdersListClient({ orders }: Props) {
                           border: "1.5px solid var(--ink)",
                           borderRadius: 8, fontSize: 12, fontWeight: 700,
                           cursor: isReordering ? "not-allowed" : "pointer",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           whiteSpace: "nowrap",
                         }}
                       >

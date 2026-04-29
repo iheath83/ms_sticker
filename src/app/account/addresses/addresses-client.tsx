@@ -102,7 +102,7 @@ export default function AddressesClient({ initialAddresses }: Props) {
             padding: "12px 20px", background: showForm ? "var(--grey-200)" : "#DC2626",
             color: showForm ? "var(--ink)" : "#fff", border: "2px solid var(--ink)",
             borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer",
-            fontFamily: "var(--font-mono), monospace",
+            fontFamily: "var(--font-archivo), monospace",
           }}
         >
           {showForm ? "Annuler" : "+ Ajouter une adresse"}
@@ -145,7 +145,7 @@ export default function AddressesClient({ initialAddresses }: Props) {
                   style={{
                     width: "100%", padding: "12px 14px",
                     border: "1.5px solid var(--grey-200)", borderRadius: 8,
-                    fontFamily: "var(--font-mono), monospace", fontSize: 13,
+                    fontFamily: "var(--font-archivo), monospace", fontSize: 13,
                     background: "#fff", outline: "none", boxSizing: "border-box",
                   }}
                 />
@@ -161,7 +161,7 @@ export default function AddressesClient({ initialAddresses }: Props) {
                 padding: "14px 28px", background: saving ? "var(--grey-400)" : "#DC2626",
                 color: "#fff", border: "2px solid var(--ink)", borderRadius: 8,
                 fontWeight: 700, fontSize: 14, cursor: saving ? "not-allowed" : "pointer",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
               }}
             >
               {saving ? "Enregistrement…" : "Enregistrer"}
@@ -223,7 +223,7 @@ export default function AddressesClient({ initialAddresses }: Props) {
                     style={{
                       padding: "7px 12px", background: "transparent", border: "1px solid var(--grey-200)",
                       borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                      color: "var(--grey-600)", fontFamily: "var(--font-mono), monospace", whiteSpace: "nowrap",
+                      color: "var(--grey-600)", fontFamily: "var(--font-archivo), monospace", whiteSpace: "nowrap",
                     }}
                   >
                     {settingDefaultId === addr.id ? "…" : "Définir par défaut"}
@@ -235,7 +235,7 @@ export default function AddressesClient({ initialAddresses }: Props) {
                   style={{
                     padding: "7px 12px", background: "transparent", border: "1px solid #FCA5A5",
                     borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                    color: "#991B1B", fontFamily: "var(--font-mono), monospace",
+                    color: "#991B1B", fontFamily: "var(--font-archivo), monospace",
                   }}
                 >
                   {deletingId === addr.id ? "…" : "Supprimer"}

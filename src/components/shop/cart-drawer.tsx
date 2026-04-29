@@ -104,7 +104,7 @@ function CartItemFileZone({
             color: "#16A34A",
             cursor: "pointer",
             flexShrink: 0,
-            fontFamily: "var(--font-mono), monospace",
+            fontFamily: "var(--font-archivo), monospace",
             whiteSpace: "nowrap",
           }}
         >
@@ -137,7 +137,7 @@ function CartItemFileZone({
           cursor: "pointer",
           fontSize: 11,
           color: "var(--grey-600)",
-          fontFamily: "var(--font-mono), monospace",
+          fontFamily: "var(--font-archivo), monospace",
         }}
       >
         <span style={{ fontSize: 14 }}>{status === "uploading" ? "⏳" : status === "done" ? "✅" : "⬆️"}</span>
@@ -272,7 +272,7 @@ export function CartDrawer() {
                   color: "var(--white)",
                   border: "2px solid var(--ink)",
                   borderRadius: "var(--r)",
-                  fontFamily: "var(--font-mono), monospace",
+                  fontFamily: "var(--font-archivo), monospace",
                   fontWeight: 600,
                   fontSize: 13,
                   textDecoration: "none",
@@ -443,7 +443,7 @@ export function CartDrawer() {
                 color: "var(--white)",
                 border: "2px solid var(--ink)",
                 borderRadius: "var(--r)",
-                fontFamily: "var(--font-mono), monospace",
+                fontFamily: "var(--font-archivo), monospace",
                 fontWeight: 600,
                 fontSize: 14,
                 textDecoration: "none",

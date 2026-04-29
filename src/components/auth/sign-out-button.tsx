@@ -23,7 +23,7 @@ export function SignOutButton() {
         fontSize: 13,
         color: "var(--grey-600)",
         cursor: "pointer",
-        fontFamily: "var(--font-mono), monospace",
+        fontFamily: "var(--font-archivo), monospace",
       }}
     >
       Se déconnecter

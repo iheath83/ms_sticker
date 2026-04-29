@@ -49,7 +49,7 @@ function OptionCard({
         borderRadius: "var(--r)",
         cursor: "pointer",
         textAlign: "left",
-        fontFamily: "var(--font-mono), monospace",
+        fontFamily: "var(--font-archivo), monospace",
         boxShadow: active ? "inset 0 0 0 1px var(--red)" : "none",
         transition: "all 0.1s",
         width: "100%",
@@ -752,7 +752,7 @@ export function ProductConfigurator({
                           border: "1.5px solid var(--ink)",
                           borderRadius: 999,
                           cursor: "pointer",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           textTransform: "capitalize",
                         }}
                       >
@@ -789,7 +789,7 @@ export function ProductConfigurator({
                           background: isActive ? "#FEF2F2" : "var(--white)",
                           borderRadius: "var(--r)",
                           cursor: "pointer",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontSize: 13,
                           fontWeight: 600,
                           textAlign: "left",
@@ -814,7 +814,7 @@ export function ProductConfigurator({
                         background: config.size === s ? "#FEF2F2" : "var(--white)",
                         borderRadius: "var(--r)",
                         cursor: "pointer",
-                        fontFamily: "var(--font-mono), monospace",
+                        fontFamily: "var(--font-archivo), monospace",
                         fontSize: 13,
                         fontWeight: 600,
                         textAlign: "left",
@@ -876,7 +876,7 @@ export function ProductConfigurator({
                           padding: "6px 10px",
                           border: "1.5px solid var(--grey-200)",
                           borderRadius: "var(--r)",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontSize: 13,
                         }}
                       />
@@ -894,7 +894,7 @@ export function ProductConfigurator({
                           padding: "6px 10px",
                           border: "1.5px solid var(--grey-200)",
                           borderRadius: "var(--r)",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontSize: 13,
                         }}
                       />
@@ -924,7 +924,7 @@ export function ProductConfigurator({
                           background: config.qty === qty ? "#FEF2F2" : "var(--white)",
                           borderRadius: "var(--r)",
                           cursor: "pointer",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontSize: 13,
                           display: "flex",
                           alignItems: "center",
@@ -1016,7 +1016,7 @@ export function ProductConfigurator({
                           color: "var(--red)",
                           textDecoration: "underline",
                           cursor: "pointer",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                         }}
                       >
                         Changer le fichier
@@ -1048,7 +1048,7 @@ export function ProductConfigurator({
                           border: "2px solid var(--ink)",
                           borderRadius: "var(--r)",
                           background: "var(--white)",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontWeight: 600,
                           fontSize: 12,
                           cursor: "pointer",
@@ -1114,7 +1114,7 @@ export function ProductConfigurator({
                   <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.12em", color: "var(--ink)" }}>
                     ◆ TARIFS DÉGRESSIFS
                   </span>
-                  <span style={{ fontSize: 10, color: "var(--grey-600)", fontFamily: "var(--font-mono), monospace" }}>
+                  <span style={{ fontSize: 10, color: "var(--grey-600)", fontFamily: "var(--font-archivo), monospace" }}>
                     {config.size === "custom" ? "sur-mesure" : config.size.replace("x", "×") + " cm"}
                   </span>
                 </div>
@@ -1149,7 +1149,7 @@ export function ProductConfigurator({
                     >
                       <span
                         style={{
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontSize: 13,
                           fontWeight: 800,
                           color: isActive ? "var(--red)" : "var(--ink)",
@@ -1166,7 +1166,7 @@ export function ProductConfigurator({
                           <span style={{ color: "var(--grey-400)", fontSize: 10 }}>tarif normal</span>
                         )}
                       </span>
-                      <span style={{ textAlign: "right", fontFamily: "var(--font-mono), monospace", fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
+                      <span style={{ textAlign: "right", fontFamily: "var(--font-archivo), monospace", fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
                         {(out.unitPriceCents / 100).toFixed(2)} €<span style={{ fontSize: 10, fontWeight: 400, color: "var(--grey-600)" }}>/u</span>
                       </span>
                     </div>
@@ -1313,7 +1313,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           background: "transparent",
           border: "none",
           color: "inherit",
-          fontFamily: "var(--font-mono), monospace",
+          fontFamily: "var(--font-archivo), monospace",
           fontSize: 14,
           fontWeight: 600,
           display: "flex",

@@ -32,7 +32,7 @@ export default async function InvoicesPage() {
         style={{
           fontSize: 22,
           fontWeight: 900,
-          fontFamily: "var(--font-mono), monospace",
+          fontFamily: "var(--font-archivo), monospace",
           letterSpacing: "-0.03em",
           color: "var(--ink)",
           marginBottom: 8,
@@ -81,7 +81,7 @@ export default async function InvoicesPage() {
                     style={{
                       fontSize: 11,
                       fontWeight: 800,
-                      fontFamily: "var(--font-mono), monospace",
+                      fontFamily: "var(--font-archivo), monospace",
                       letterSpacing: "0.08em",
                       color: "var(--red)",
                     }}
@@ -96,7 +96,7 @@ export default async function InvoicesPage() {
                       borderRadius: 99,
                       background: "var(--grey-100)",
                       color: "var(--grey-600)",
-                      fontFamily: "var(--font-mono), monospace",
+                      fontFamily: "var(--font-archivo), monospace",
                     }}
                   >
                     {STATUS_LABEL[inv.status] ?? inv.status}
@@ -127,7 +127,7 @@ export default async function InvoicesPage() {
                       borderRadius: 6,
                       fontSize: 13,
                       fontWeight: 700,
-                      fontFamily: "var(--font-mono), monospace",
+                      fontFamily: "var(--font-archivo), monospace",
                       textDecoration: "none",
                       letterSpacing: "0.04em",
                     }}

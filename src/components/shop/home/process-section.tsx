@@ -97,7 +97,7 @@ export function ProcessSection() {
               color: "var(--ink)",
               border: "2px solid var(--ink)",
               borderRadius: "var(--r)",
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-archivo), monospace",
               fontWeight: 600,
               fontSize: 14,
               textDecoration: "none",

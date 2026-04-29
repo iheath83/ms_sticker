@@ -96,7 +96,7 @@ export default async function AdminDashboardPage() {
                     fontSize: 28,
                     fontWeight: 900,
                     color: n > 0 ? color : "#D1D5DB",
-                    fontFamily: "var(--font-mono), monospace",
+                    fontFamily: "var(--font-archivo), monospace",
                     lineHeight: 1,
                   }}
                 >
@@ -192,7 +192,7 @@ export default async function AdminDashboardPage() {
                     <div>
                       <div
                         style={{
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                           fontSize: 11,
                           color: "#6B7280",
                           marginBottom: 2,
@@ -213,7 +213,7 @@ export default async function AdminDashboardPage() {
                           fontWeight: 800,
                           fontSize: 16,
                           color: "#0A0E27",
-                          fontFamily: "var(--font-mono), monospace",
+                          fontFamily: "var(--font-archivo), monospace",
                         }}
                       >
                         {euros(o.totalCents)}

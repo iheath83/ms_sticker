@@ -46,7 +46,7 @@ export default function AccountNav({ user }: Props) {
                     display: "flex", alignItems: "center", gap: 6,
                     padding: "18px 18px",
                     fontSize: 13, fontWeight: 700,
-                    fontFamily: "var(--font-mono), monospace",
+                    fontFamily: "var(--font-archivo), monospace",
                     color: active ? "var(--red)" : "var(--grey-600)",
                     textDecoration: "none",
                     borderBottom: active ? "2px solid var(--red)" : "2px solid transparent",
@@ -63,7 +63,7 @@ export default function AccountNav({ user }: Props) {
         </div>
 
         {/* Right: email */}
-        <div style={{ fontSize: 12, color: "var(--grey-400)", fontFamily: "var(--font-mono), monospace", paddingRight: 4 }}>
+        <div style={{ fontSize: 12, color: "var(--grey-400)", fontFamily: "var(--font-archivo), monospace", paddingRight: 4 }}>
           {user.email}
         </div>
       </div>

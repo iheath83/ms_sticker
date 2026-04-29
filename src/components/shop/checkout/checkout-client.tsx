@@ -39,7 +39,7 @@ function InputField({
         style={{
           width: "100%", padding: "12px 14px",
           border: `1.5px solid ${error ? "var(--red)" : readOnly ? "var(--grey-100)" : "var(--grey-200)"}`,
-          borderRadius: "var(--r)", fontFamily: "var(--font-mono), monospace", fontSize: 13,
+          borderRadius: "var(--r)", fontFamily: "var(--font-archivo), monospace", fontSize: 13,
           background: readOnly ? "var(--grey-50)" : "var(--white)", outline: "none",
           color: readOnly ? "var(--grey-600)" : "var(--ink)", cursor: readOnly ? "default" : "text",
         }}
@@ -95,7 +95,7 @@ function AddressSelector({
         style={{
           width: "100%", padding: "12px 14px",
           border: "1.5px solid var(--grey-200)", borderRadius: "var(--r)",
-          background: "var(--white)", fontFamily: "var(--font-mono), monospace",
+          background: "var(--white)", fontFamily: "var(--font-archivo), monospace",
           fontSize: 13, textAlign: "left", cursor: "pointer", display: "flex",
           justifyContent: "space-between", alignItems: "center", color: current ? "var(--ink)" : "var(--grey-400)",
         }}
@@ -118,7 +118,7 @@ function AddressSelector({
               style={{
                 width: "100%", padding: "12px 16px", border: "none", borderBottom: "1px solid var(--grey-100)",
                 background: addr.id === selected ? "#FEF2F2" : "var(--white)", cursor: "pointer",
-                textAlign: "left", fontFamily: "var(--font-mono), monospace",
+                textAlign: "left", fontFamily: "var(--font-archivo), monospace",
                 display: "flex", flexDirection: "column", gap: 2,
               }}
             >
@@ -142,7 +142,7 @@ function AddressSelector({
             style={{
               width: "100%", padding: "10px 16px", border: "none", background: "var(--grey-50)",
               cursor: "pointer", textAlign: "center", fontSize: 12, color: "var(--grey-600)",
-              fontFamily: "var(--font-mono), monospace",
+              fontFamily: "var(--font-archivo), monospace",
             }}
           >
             + Saisir une nouvelle adresse
@@ -160,7 +160,7 @@ function DeliveryOption({ active, onClick, icon, title, sub, price }: {
     <button onClick={onClick} style={{
       padding: 16, border: `1.5px solid ${active ? "var(--red)" : "var(--grey-200)"}`,
       background: active ? "#FEF2F2" : "var(--white)", borderRadius: "var(--r)", cursor: "pointer",
-      fontFamily: "var(--font-mono), monospace", display: "flex", alignItems: "center", gap: 14,
+      fontFamily: "var(--font-archivo), monospace", display: "flex", alignItems: "center", gap: 14,
       textAlign: "left", width: "100%",
     }}>
       <div style={{ width: 36, height: 36, background: active ? "var(--red)" : "var(--grey-100)", color: active ? "var(--white)" : "var(--ink)", borderRadius: 8, display: "grid", placeItems: "center", flexShrink: 0 }}>
@@ -225,7 +225,7 @@ function CartItemFileZoneCheckout({
     <label style={{
       display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", marginTop: 8,
       background: "var(--grey-50)", border: `1px dashed ${status === "error" ? "var(--red)" : "var(--grey-200)"}`,
-      borderRadius: 8, cursor: "pointer", fontSize: 11, color: "var(--grey-600)", fontFamily: "var(--font-mono), monospace",
+      borderRadius: 8, cursor: "pointer", fontSize: 11, color: "var(--grey-600)", fontFamily: "var(--font-archivo), monospace",
     }}>
       <span>{status === "uploading" ? "⏳" : status === "done" ? "✅" : "⬆️"}</span>
       <span style={{ fontWeight: 600 }}>{status === "uploading" ? "Envoi…" : status === "error" ? "Erreur, réessayer" : "Ajouter mon design"}</span>
@@ -280,7 +280,7 @@ function StripePaymentForm({ orderId, total }: { orderId: string; total: number 
           width: "100%", padding: "18px 28px",
           background: paying ? "var(--grey-400)" : "var(--red)",
           color: "var(--white)", border: "2px solid var(--ink)", borderRadius: "var(--r)",
-          fontFamily: "var(--font-mono), monospace", fontWeight: 600, fontSize: 14,
+          fontFamily: "var(--font-archivo), monospace", fontWeight: 600, fontSize: 14,
           cursor: paying ? "not-allowed" : "pointer",
         }}
       >
@@ -315,7 +315,7 @@ function AuthWall({ onContinueAsGuest }: { onContinueAsGuest: () => void }) {
         </Link>
       </div>
       <div style={{ marginTop: 16, textAlign: "center" }}>
-        <button onClick={onContinueAsGuest} style={{ background: "transparent", border: "none", fontSize: 13, color: "var(--grey-600)", cursor: "pointer", textDecoration: "underline", fontFamily: "var(--font-mono), monospace", padding: "8px 0" }}>
+        <button onClick={onContinueAsGuest} style={{ background: "transparent", border: "none", fontSize: 13, color: "var(--grey-600)", cursor: "pointer", textDecoration: "underline", fontFamily: "var(--font-archivo), monospace", padding: "8px 0" }}>
           Continuer sans compte →
         </button>
       </div>
@@ -521,7 +521,7 @@ export function CheckoutClient() {
         <div style={{ textAlign: "center", maxWidth: 400 }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🛒</div>
           <h2 style={{ fontSize: 28, marginBottom: 12, fontFamily: "var(--font-archivo), system-ui, sans-serif", fontWeight: 800 }}>Panier vide</h2>
-          <Link href="/custom-stickers" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "18px 28px", background: "var(--red)", color: "var(--white)", border: "2px solid var(--ink)", borderRadius: "var(--r)", fontFamily: "var(--font-mono), monospace", fontWeight: 600, fontSize: 14, textDecoration: "none" }}>
+          <Link href="/custom-stickers" style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "18px 28px", background: "var(--red)", color: "var(--white)", border: "2px solid var(--ink)", borderRadius: "var(--r)", fontFamily: "var(--font-archivo), monospace", fontWeight: 600, fontSize: 14, textDecoration: "none" }}>
             Configurer un sticker
           </Link>
         </div>
@@ -628,7 +628,7 @@ export function CheckoutClient() {
                 <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px dashed var(--grey-200)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Link
                     href="/custom-stickers"
-                    style={{ fontSize: 13, color: "var(--blue)", textDecoration: "underline", fontFamily: "var(--font-mono), monospace", display: "flex", alignItems: "center", gap: 6 }}
+                    style={{ fontSize: 13, color: "var(--blue)", textDecoration: "underline", fontFamily: "var(--font-archivo), monospace", display: "flex", alignItems: "center", gap: 6 }}
                   >
                     ← Continuer mes achats
                   </Link>
@@ -721,7 +721,7 @@ export function CheckoutClient() {
                                 value={form.vatNumber}
                                 onChange={(e) => { upd("vatNumber", e.target.value.toUpperCase()); setVatResult(null); }}
                                 placeholder="FR12345678901"
-                                style={{ flex: 1, padding: "12px 14px", border: `1.5px solid ${vatResult ? (vatResult.valid ? "#86EFAC" : "#FCA5A5") : "var(--grey-200)"}`, borderRadius: 8, fontSize: 13, fontFamily: "var(--font-mono), monospace", outline: "none" }}
+                                style={{ flex: 1, padding: "12px 14px", border: `1.5px solid ${vatResult ? (vatResult.valid ? "#86EFAC" : "#FCA5A5") : "var(--grey-200)"}`, borderRadius: 8, fontSize: 13, fontFamily: "var(--font-archivo), monospace", outline: "none" }}
                               />
                               <button
                                 type="button"
@@ -809,7 +809,7 @@ export function CheckoutClient() {
                     width: "100%", padding: "18px 28px",
                     background: processing ? "var(--grey-400)" : "var(--red)",
                     color: "var(--white)", border: "2px solid var(--ink)", borderRadius: "var(--r)",
-                    fontFamily: "var(--font-mono), monospace", fontWeight: 600, fontSize: 14,
+                    fontFamily: "var(--font-archivo), monospace", fontWeight: 600, fontSize: 14,
                     cursor: processing ? "not-allowed" : "pointer",
                   }}
                 >

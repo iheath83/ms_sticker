@@ -17,7 +17,7 @@ export function Ticker() {
       style={{
         background: "var(--ink)",
         color: "var(--white)",
-        fontFamily: "var(--font-mono), ui-monospace, monospace",
+        fontFamily: "var(--font-archivo), ui-monospace, monospace",
         fontSize: 11,
         letterSpacing: "0.1em",
         textTransform: "uppercase",

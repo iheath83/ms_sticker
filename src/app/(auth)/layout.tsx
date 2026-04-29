@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           marginTop: 32,
           fontSize: 11,
           color: "var(--grey-400)",
-          fontFamily: "var(--font-mono), monospace",
+          fontFamily: "var(--font-archivo), system-ui, sans-serif",
           letterSpacing: "0.05em",
         }}
       >

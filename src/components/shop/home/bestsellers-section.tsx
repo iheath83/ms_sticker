@@ -228,7 +228,7 @@ export function BestSellersSection({ products }: { products?: Product[] }) {
                       color: "var(--white)",
                       border: "2px solid var(--ink)",
                       borderRadius: "var(--r)",
-                      fontFamily: "var(--font-mono), monospace",
+                      fontFamily: "var(--font-archivo), monospace",
                       fontWeight: 600,
                       fontSize: 13,
                       textDecoration: "none",

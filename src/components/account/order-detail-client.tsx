@@ -248,7 +248,7 @@ export default function OrderDetailClient({ detail }: Props) {
               border: "1.5px solid var(--ink)",
               borderRadius: 8, fontSize: 12, fontWeight: 700,
               cursor: reordering ? "not-allowed" : "pointer",
-              fontFamily: "var(--font-mono), monospace", whiteSpace: "nowrap",
+              fontFamily: "var(--font-archivo), monospace", whiteSpace: "nowrap",
             }}
           >
             {reordering ? "⏳ Chargement…" : "↺ Recommander"}
@@ -527,7 +527,7 @@ export default function OrderDetailClient({ detail }: Props) {
                             padding: "3px 10px", fontSize: 10, fontWeight: 700,
                             background: "transparent", border: "1px solid #16A34A",
                             borderRadius: 6, color: "#16A34A", textDecoration: "none",
-                            fontFamily: "var(--font-mono), monospace", whiteSpace: "nowrap",
+                            fontFamily: "var(--font-archivo), monospace", whiteSpace: "nowrap",
                             flexShrink: 0,
                           }}
                         >

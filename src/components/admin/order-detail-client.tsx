@@ -671,7 +671,7 @@ export function OrderDetailClient({ detail }: Props) {
         </div>
 
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#0A0E27", fontFamily: "var(--font-mono), monospace" }}>
+          <div style={{ fontSize: 28, fontWeight: 900, color: "#0A0E27", fontFamily: "var(--font-archivo), monospace" }}>
             {euros(detail.order.totalCents)}
           </div>
           <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>
