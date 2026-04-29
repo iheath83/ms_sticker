@@ -60,11 +60,11 @@ export async function createNavItem(data: {
   parentId?: string | null;
   label: string;
   href: string;
-  icon?: string;
-  description?: string;
-  badge?: string;
-  openInNewTab?: boolean;
-  sortOrder?: number;
+  icon?: string | undefined;
+  description?: string | undefined;
+  badge?: string | undefined;
+  openInNewTab?: boolean | undefined;
+  sortOrder?: number | undefined;
 }) {
   await requireAdmin();
   await db.insert(navItems).values({
@@ -82,14 +82,14 @@ export async function createNavItem(data: {
 }
 
 export async function updateNavItem(id: string, data: {
-  label?: string;
-  href?: string;
-  icon?: string | null;
-  description?: string | null;
-  badge?: string | null;
-  openInNewTab?: boolean;
-  active?: boolean;
-  sortOrder?: number;
+  label?: string | undefined;
+  href?: string | undefined;
+  icon?: string | null | undefined;
+  description?: string | null | undefined;
+  badge?: string | null | undefined;
+  openInNewTab?: boolean | undefined;
+  active?: boolean | undefined;
+  sortOrder?: number | undefined;
 }) {
   await requireAdmin();
   await db.update(navItems).set({ ...data, updatedAt: new Date() }).where(eq(navItems.id, id));
