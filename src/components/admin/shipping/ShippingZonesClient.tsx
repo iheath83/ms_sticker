@@ -7,6 +7,24 @@ import {
 } from "@/components/admin/admin-ui";
 import { postalCodeMatchesRules } from "@/lib/shipping/postal-codes";
 import type { PostalCodeRule } from "@/lib/shipping/types";
+import { CountryPicker, COUNTRIES } from "./CountryPicker";
+import { PostalCodeSearch } from "./PostalCodeSearch";
+
+function CountryFlags({ codes }: { codes: string[] }) {
+  if (codes.length === 0) return <span style={{ color: T.textSecondary }}>—</span>;
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+      {codes.map((code) => {
+        const c = COUNTRIES.find((x) => x.code === code);
+        return (
+          <span key={code} title={c?.name ?? code} style={{ fontSize: 18 }}>
+            {c?.flag ?? code}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 interface ZoneRow {
   id: string;
@@ -22,7 +40,7 @@ interface ZoneRow {
 interface ZoneFormState {
   name: string;
   description: string;
-  countries: string;
+  countries: string[]; // ISO codes
   regions: string;
   cities: string;
   isActive: boolean;
@@ -30,7 +48,7 @@ interface ZoneFormState {
 }
 
 const emptyForm: ZoneFormState = {
-  name: "", description: "", countries: "FR", regions: "", cities: "",
+  name: "", description: "", countries: ["FR"], regions: "", cities: "",
   isActive: true, postalRulesText: "",
 };
 
@@ -80,7 +98,7 @@ export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
     setForm({
       name: z.name,
       description: z.description ?? "",
-      countries: z.countries.join(", "),
+      countries: z.countries,
       regions: z.regions.join(", "),
       cities: z.cities.join(", "),
       isActive: z.isActive,
@@ -101,7 +119,7 @@ export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
     return {
       name: form.name,
       description: form.description || undefined,
-      countries: form.countries.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean),
+      countries: form.countries,
       regions: form.regions.split(",").map((s) => s.trim()).filter(Boolean),
       cities: form.cities.split(",").map((s) => s.trim()).filter(Boolean),
       isActive: form.isActive,
@@ -176,23 +194,25 @@ export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <InputRow label="Nom de la zone" value={form.name} onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
-              <InputRow label="Pays (codes ISO séparés par virgules)" value={form.countries} onChange={(v) => setForm((f) => ({ ...f, countries: v }))} placeholder="FR, BE, CH" />
               <div style={{ gridColumn: "1 / -1" }}>
                 <InputRow label="Description" value={form.description} onChange={(v) => setForm((f) => ({ ...f, description: v }))} />
               </div>
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <LabelRow>Codes postaux (une règle par ligne)</LabelRow>
-              <div style={{ fontSize: 11, color: T.textSecondary, marginBottom: 6 }}>
-                Formats : <code>75001</code> (exact), <code>75*</code> (préfixe), <code>75000-75999</code> (plage), <code>!20*</code> (exclusion)
-              </div>
-              <textarea
+              <LabelRow>Pays couverts</LabelRow>
+              <CountryPicker
+                selected={form.countries}
+                onChange={(codes) => setForm((f) => ({ ...f, countries: codes }))}
+              />
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <LabelRow>Codes postaux</LabelRow>
+              <PostalCodeSearch
                 value={form.postalRulesText}
-                onChange={(e) => setForm((f) => ({ ...f, postalRulesText: e.target.value }))}
-                rows={5}
-                placeholder={"06*\n83*\n!201*\n!202*"}
-                style={{ width: "100%", padding: "9px 12px", border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, fontFamily: "monospace", resize: "vertical", boxSizing: "border-box" }}
+                onChange={(v) => setForm((f) => ({ ...f, postalRulesText: v }))}
+                countries={form.countries}
               />
             </div>
 
@@ -248,7 +268,9 @@ export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
                       {z.name}
                       {z.description && <div style={{ fontSize: 11, color: T.textSecondary, fontWeight: 400 }}>{z.description}</div>}
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: 12 }}>{z.countries.join(", ") || "—"}</td>
+                    <td style={{ padding: "12px 16px", fontSize: 12 }}>
+                      <CountryFlags codes={z.countries} />
+                    </td>
                     <td style={{ padding: "12px 16px", fontSize: 12, color: T.textSecondary }}>
                       {z.postalRules.length > 0 ? `${z.postalRules.length} règle${z.postalRules.length > 1 ? "s" : ""}` : "—"}
                     </td>
