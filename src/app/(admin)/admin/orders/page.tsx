@@ -1,29 +1,39 @@
 import Link from "next/link";
 import { getAdminOrders } from "@/lib/admin-actions";
+import {
+  AdminTopbar,
+  AdminPage,
+  AdminTableWrapper,
+  AdminTableHead,
+  AdminEmptyState,
+  StatusBadge,
+  T,
+} from "@/components/admin/admin-ui";
+import type { BadgeVariant } from "@/components/admin/admin-ui";
 
-const STATUS_LABELS: Record<string, string> = {
-  all: "Toutes",
-  paid: "Payés — BAT à faire",
-  proof_sent: "BAT envoyé",
-  proof_revision_requested: "Révision",
-  approved: "BAT validé",
-  in_production: "Production",
-  shipped: "Expédié",
-  delivered: "Livré",
-  proof_pending: "Attente paiement",
-  cancelled: "Annulé",
-};
+const STATUS_TABS: Array<{ key: string; label: string }> = [
+  { key: "all",                     label: "Toutes" },
+  { key: "paid",                    label: "BAT à faire" },
+  { key: "proof_sent",              label: "BAT envoyé" },
+  { key: "proof_revision_requested",label: "Révision" },
+  { key: "approved",                label: "BAT validé" },
+  { key: "in_production",           label: "Production" },
+  { key: "shipped",                 label: "Expédié" },
+  { key: "delivered",               label: "Livré" },
+  { key: "proof_pending",           label: "Attente paiement" },
+  { key: "cancelled",               label: "Annulé" },
+];
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  proof_pending:            { bg: "#FEF3C7", text: "#92400E" },
-  proof_sent:               { bg: "#DBEAFE", text: "#1E40AF" },
-  proof_revision_requested: { bg: "#FEE2E2", text: "#991B1B" },
-  approved:                 { bg: "#D1FAE5", text: "#065F46" },
-  paid:                     { bg: "#EDE9FE", text: "#5B21B6" },
-  in_production:            { bg: "#FCE7F3", text: "#9D174D" },
-  shipped:                  { bg: "#CFFAFE", text: "#164E63" },
-  delivered:                { bg: "#DCFCE7", text: "#14532D" },
-  cancelled:                { bg: "#F3F4F6", text: "#6B7280" },
+const STATUS_META: Record<string, { label: string; variant: BadgeVariant }> = {
+  proof_pending:            { label: "Attente paiement",  variant: "warning" },
+  paid:                     { label: "BAT à préparer",    variant: "purple"  },
+  proof_sent:               { label: "BAT envoyé",        variant: "info"    },
+  proof_revision_requested: { label: "Révision demandée", variant: "danger"  },
+  approved:                 { label: "BAT validé",        variant: "success" },
+  in_production:            { label: "En production",     variant: "pink"    },
+  shipped:                  { label: "Expédié",           variant: "info"    },
+  delivered:                { label: "Livré",             variant: "success" },
+  cancelled:                { label: "Annulé",            variant: "neutral" },
 };
 
 function euros(cents: number) {
@@ -50,206 +60,119 @@ export default async function AdminOrdersPage({
   const orders = await getAdminOrders(currentStatus);
 
   return (
-    <main style={{ padding: "32px 40px" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1
+    <>
+      <AdminTopbar title="Commandes" subtitle={`${orders.length} résultat${orders.length > 1 ? "s" : ""}`} />
+
+      <AdminPage>
+        {/* Tabs */}
+        <div
           style={{
-            fontFamily: "var(--font-archivo), system-ui, sans-serif",
-            fontSize: 28,
-            fontWeight: 900,
-            color: "#0A0E27",
-            letterSpacing: "-0.02em",
-            margin: 0,
+            display: "flex",
+            gap: 2,
+            flexWrap: "wrap",
+            marginBottom: 20,
+            background: T.surface,
+            padding: "4px",
+            borderRadius: T.radius,
+            border: `1.5px solid ${T.border}`,
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           }}
         >
-          Commandes
-        </h1>
-      </div>
+          {STATUS_TABS.map(({ key, label }) => {
+            const active = currentStatus === key;
+            return (
+              <Link
+                key={key}
+                href={`/admin/orders${key === "all" ? "" : `?status=${key}`}`}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                  textDecoration: "none",
+                  background: active ? T.brand : "transparent",
+                  color: active ? "#fff" : T.textSecondary,
+                  transition: "background 0.15s, color 0.15s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
-      {/* Filters */}
-      <div
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-          marginBottom: 24,
-          background: "#fff",
-          padding: "12px 16px",
-          borderRadius: 10,
-          border: "1px solid #E5E7EB",
-        }}
-      >
-        {Object.entries(STATUS_LABELS).map(([status, label]) => {
-          const active = currentStatus === status;
-          return (
-            <Link
-              key={status}
-              href={`/admin/orders${status === "all" ? "" : `?status=${status}`}`}
-              style={{
-                padding: "6px 14px",
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 700,
-                textDecoration: "none",
-                background: active ? "#0A0E27" : "#F3F4F6",
-                color: active ? "#fff" : "#374151",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                transition: "background 0.15s",
-              }}
-            >
-              {label}
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Table */}
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid #E5E7EB",
-          borderRadius: 12,
-          overflow: "hidden",
-        }}
-      >
-        {orders.length === 0 ? (
-          <div
-            style={{
-              padding: "48px 24px",
-              textAlign: "center",
-              color: "#9CA3AF",
-              fontSize: 14,
-            }}
-          >
-            Aucune commande trouvée
-          </div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-                {["#ID", "Client", "Articles", "Total", "Statut", "Date", ""].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 16px",
-                      textAlign: "left",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "#6B7280",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order, i) => {
-                const sc = STATUS_COLORS[order.status] ?? { bg: "#F3F4F6", text: "#6B7280" };
-                const customer =
-                  order.customerName ??
-                  order.customerEmail ??
-                  order.guestEmail ??
-                  "Invité";
-                return (
-                  <tr
-                    key={order.id}
-                    style={{
-                      borderBottom:
-                        i < orders.length - 1 ? "1px solid #F3F4F6" : "none",
-                    }}
-                  >
-                    <td style={{ padding: "14px 16px" }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-archivo), monospace",
-                          fontSize: 12,
-                          color: "#6B7280",
-                        }}
-                      >
-                        #{order.id.slice(0, 8).toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#0A0E27" }}>
-                        {customer}
-                      </div>
-                      {order.guestEmail && !order.customerEmail && (
-                        <div style={{ fontSize: 11, color: "#9CA3AF" }}>
-                          {order.guestEmail} (invité)
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "14px 16px", color: "#374151", fontSize: 13 }}>
-                      {order.itemCount} article{order.itemCount > 1 ? "s" : ""}
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          fontSize: 14,
-                          color: "#0A0E27",
-                          fontFamily: "var(--font-archivo), monospace",
-                        }}
-                      >
-                        {euros(order.totalCents)}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: 20,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: sc.bg,
-                          color: sc.text,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.04em",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {STATUS_LABELS[order.status] ?? order.status}
-                      </span>
-                    </td>
-                    <td
+        {/* Table */}
+        <AdminTableWrapper>
+          {orders.length === 0 ? (
+            <AdminEmptyState icon="📦" title="Aucune commande" subtitle="Aucune commande ne correspond à ce filtre." />
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <AdminTableHead cols={["#Référence", "Client", "Articles", "Total", "Statut", "Date", ""]} />
+              <tbody>
+                {orders.map((order, i) => {
+                  const meta = STATUS_META[order.status];
+                  const customer = order.customerName ?? order.customerEmail ?? order.guestEmail ?? "Invité";
+                  return (
+                    <tr
+                      key={order.id}
                       style={{
-                        padding: "14px 16px",
-                        fontSize: 12,
-                        color: "#9CA3AF",
-                        whiteSpace: "nowrap",
+                        borderBottom: i < orders.length - 1 ? `1px solid ${T.borderSubtle}` : "none",
                       }}
+                      className="admin-table-row"
                     >
-                      {formatDate(order.createdAt)}
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        style={{
-                          display: "inline-block",
-                          padding: "6px 14px",
-                          borderRadius: 6,
-                          background: "#0A0E27",
-                          color: "#fff",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          textDecoration: "none",
-                        }}
-                      >
-                        Détail →
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </main>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{ fontFamily: "monospace", fontSize: 12, color: T.textSecondary, fontWeight: 600 }}>
+                          #{order.id.slice(0, 8).toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: T.textPrimary }}>{customer}</div>
+                        {order.guestEmail && !order.customerEmail && (
+                          <div style={{ fontSize: 11, color: T.textSecondary }}>Invité</div>
+                        )}
+                      </td>
+                      <td style={{ padding: "14px 16px", color: T.textSecondary, fontSize: 13 }}>
+                        {order.itemCount} article{order.itemCount > 1 ? "s" : ""}
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: T.textPrimary, fontFamily: "monospace" }}>
+                          {euros(order.totalCents)}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        {meta && <StatusBadge label={meta.label} variant={meta.variant} />}
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: 12, color: T.textSecondary, whiteSpace: "nowrap" }}>
+                        {formatDate(order.createdAt)}
+                      </td>
+                      <td style={{ padding: "14px 16px" }}>
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "6px 12px",
+                            borderRadius: T.radiusSm,
+                            background: T.brand,
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            textDecoration: "none",
+                          }}
+                        >
+                          Détail →
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </AdminTableWrapper>
+      </AdminPage>
+    </>
   );
 }

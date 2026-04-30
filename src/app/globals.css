@@ -138,3 +138,19 @@ a {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
 }
+
+/* ---- Admin nav ---- */
+.admin-nav-link:hover {
+  background: #F1F2F3 !important;
+  color: #202223 !important;
+}
+.admin-table-row:hover td {
+  background: #F9FAFB;
+}
+.admin-nav-link-active,
+.admin-nav-link[aria-current="page"] {
+  background: #E8EAF6 !important;
+  color: #0A0E27 !important;
+  font-weight: 700 !important;
+  box-shadow: inset 3px 0 0 #0A0E27;
+}

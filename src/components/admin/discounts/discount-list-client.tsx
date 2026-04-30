@@ -4,24 +4,37 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { deleteDiscount, updateDiscount } from "@/lib/discount-actions";
 import type { Discount } from "@/db/schema";
+import {
+  AdminTopbar,
+  AdminPage,
+  AdminTableWrapper,
+  AdminTableHead,
+  AdminEmptyState,
+  StatusBadge,
+  PrimaryBtn,
+  SecondaryBtn,
+  DangerBtn,
+  T,
+} from "@/components/admin/admin-ui";
+import type { BadgeVariant } from "@/components/admin/admin-ui";
 
-const STATUS_COLOR: Record<string, { bg: string; text: string }> = {
-  ACTIVE:              { bg: "#D1FAE5", text: "#065F46" },
-  SCHEDULED:           { bg: "#DBEAFE", text: "#1E40AF" },
-  EXPIRED:             { bg: "#F3F4F6", text: "#6B7280" },
-  DISABLED:            { bg: "#FEE2E2", text: "#991B1B" },
-  DRAFT:               { bg: "#FEF3C7", text: "#92400E" },
-  USAGE_LIMIT_REACHED: { bg: "#FEF3C7", text: "#92400E" },
+const STATUS_VARIANT: Record<string, BadgeVariant> = {
+  ACTIVE:              "success",
+  SCHEDULED:           "info",
+  EXPIRED:             "neutral",
+  DISABLED:            "danger",
+  DRAFT:               "warning",
+  USAGE_LIMIT_REACHED: "warning",
 };
 
-function StatusBadge({ status }: { status: string }) {
-  const colors = STATUS_COLOR[status] ?? { bg: "#F3F4F6", text: "#6B7280" };
-  return (
-    <span style={{ padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: colors.bg, color: colors.text }}>
-      {status}
-    </span>
-  );
-}
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE:              "Actif",
+  SCHEDULED:           "Planifié",
+  EXPIRED:             "Expiré",
+  DISABLED:            "Désactivé",
+  DRAFT:               "Brouillon",
+  USAGE_LIMIT_REACHED: "Limite atteinte",
+};
 
 function formatDate(d: Date | null) {
   if (!d) return "—";
@@ -44,106 +57,121 @@ export function DiscountListClient({ initialDiscounts }: { initialDiscounts: Dis
     const newStatus = d.status === "ACTIVE" ? "DISABLED" : "ACTIVE";
     startTransition(async () => {
       await updateDiscount(d.id, { status: newStatus as "ACTIVE" | "DISABLED" });
-      setDiscounts((prev) => prev.map((x) => x.id === d.id ? { ...x, status: newStatus } : x));
+      setDiscounts((prev) => prev.map((x) => (x.id === d.id ? { ...x, status: newStatus } : x)));
     });
   }
 
   return (
-    <div style={{ padding: "32px 40px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-archivo), system-ui, sans-serif", fontSize: 24, fontWeight: 900, color: "#0A0E27", margin: "0 0 4px" }}>
-            Réductions
-          </h1>
-          <p style={{ fontSize: 13, color: "#6B7280", margin: 0 }}>
-            {discounts.length} réduction{discounts.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <Link
-          href="/admin/discounts/new"
-          style={{ padding: "10px 20px", background: "#0B3D91", color: "#fff", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none", fontFamily: "var(--font-archivo), monospace" }}
-        >
-          + Créer
-        </Link>
-      </div>
+    <>
+      <AdminTopbar
+        title="Réductions"
+        subtitle={`${discounts.length} réduction${discounts.length !== 1 ? "s" : ""}`}
+      >
+        <PrimaryBtn href="/admin/discounts/new">+ Créer</PrimaryBtn>
+      </AdminTopbar>
 
-      {discounts.length === 0 ? (
-        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "48px 24px", textAlign: "center", color: "#9CA3AF", fontSize: 14 }}>
-          Aucune réduction. Créez votre premier code promo.
-        </div>
-      ) : (
-        <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-                {["Titre", "Code", "Type", "Valeur", "Utilisations", "Validité", "Statut", "Actions"].map((h) => (
-                  <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {h}
-                  </th>
+      <AdminPage>
+        <AdminTableWrapper>
+          {discounts.length === 0 ? (
+            <AdminEmptyState
+              icon="🏷️"
+              title="Aucune réduction"
+              subtitle="Créez votre premier code promo."
+            />
+          ) : (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <AdminTableHead cols={["Titre", "Code", "Type", "Valeur", "Utilisations", "Validité", "Statut", ""]} />
+              <tbody>
+                {discounts.map((d, i) => (
+                  <tr
+                    key={d.id}
+                    style={{ borderBottom: i < discounts.length - 1 ? `1px solid ${T.borderSubtle}` : "none" }}
+                    className="admin-table-row"
+                  >
+                    <td style={{ padding: "13px 16px" }}>
+                      <div style={{ fontWeight: 700, color: T.textPrimary }}>{d.title}</div>
+                      {d.internalName && (
+                        <div style={{ fontSize: 11, color: T.textSecondary, marginTop: 2 }}>{d.internalName}</div>
+                      )}
+                    </td>
+                    <td style={{ padding: "13px 16px" }}>
+                      {d.code ? (
+                        <code
+                          style={{
+                            background: T.bg,
+                            border: `1.5px solid ${T.border}`,
+                            padding: "3px 8px",
+                            borderRadius: 4,
+                            fontSize: 12,
+                            fontFamily: "monospace",
+                            fontWeight: 700,
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {d.code}
+                        </code>
+                      ) : (
+                        <span style={{ color: T.textDisabled, fontStyle: "italic", fontSize: 12 }}>Automatique</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "13px 16px", color: T.textSecondary, fontSize: 12 }}>{d.type}</td>
+                    <td style={{ padding: "13px 16px", fontWeight: 700, color: T.textPrimary }}>
+                      {d.type === "PERCENTAGE" && `${d.value ?? 0} %`}
+                      {d.type === "FIXED_AMOUNT" && `${((d.value ?? 0) / 100).toFixed(2)} €`}
+                      {d.type === "FREE_SHIPPING" && "Livraison offerte"}
+                    </td>
+                    <td style={{ padding: "13px 16px", color: T.textSecondary }}>
+                      <span style={{ fontWeight: 700, color: T.textPrimary }}>{d.usageCount}</span>
+                      {d.globalUsageLimit != null && (
+                        <span style={{ color: T.textSecondary }}> / {d.globalUsageLimit}</span>
+                      )}
+                    </td>
+                    <td style={{ padding: "13px 16px", fontSize: 12, color: T.textSecondary }}>
+                      {formatDate(d.startsAt)}
+                      {d.endsAt && <> → {formatDate(d.endsAt)}</>}
+                    </td>
+                    <td style={{ padding: "13px 16px" }}>
+                      <StatusBadge
+                        label={STATUS_LABELS[d.status] ?? d.status}
+                        variant={STATUS_VARIANT[d.status] ?? "neutral"}
+                      />
+                    </td>
+                    <td style={{ padding: "13px 16px" }}>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <SecondaryBtn
+                          href={`/admin/discounts/${d.id}`}
+                          style={{ padding: "5px 10px", fontSize: 12 }}
+                        >
+                          Modifier
+                        </SecondaryBtn>
+                        <SecondaryBtn
+                          onClick={() => handleToggle(d)}
+                          disabled={isPending}
+                          style={{
+                            padding: "5px 10px",
+                            fontSize: 12,
+                            color: d.status === "ACTIVE" ? T.danger : T.success,
+                            borderColor: d.status === "ACTIVE" ? "#FCA5A5" : "#A7F3D0",
+                          }}
+                        >
+                          {d.status === "ACTIVE" ? "Désactiver" : "Activer"}
+                        </SecondaryBtn>
+                        <DangerBtn
+                          onClick={() => handleDelete(d.id)}
+                          disabled={isPending}
+                          style={{ padding: "5px 10px", fontSize: 12 }}
+                        >
+                          Suppr.
+                        </DangerBtn>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {discounts.map((d, i) => (
-                <tr key={d.id} style={{ borderBottom: i < discounts.length - 1 ? "1px solid #F3F4F6" : "none" }}>
-                  <td style={{ padding: "12px 16px", fontWeight: 600, color: "#0A0E27" }}>
-                    {d.title}
-                    {d.internalName && <div style={{ fontSize: 11, color: "#9CA3AF", fontWeight: 400 }}>{d.internalName}</div>}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    {d.code ? (
-                      <code style={{ background: "#F3F4F6", padding: "2px 8px", borderRadius: 4, fontSize: 12, fontFamily: "monospace" }}>{d.code}</code>
-                    ) : (
-                      <span style={{ color: "#9CA3AF", fontStyle: "italic" }}>Automatique</span>
-                    )}
-                  </td>
-                  <td style={{ padding: "12px 16px", color: "#374151" }}>{d.type}</td>
-                  <td style={{ padding: "12px 16px", fontWeight: 700 }}>
-                    {d.type === "PERCENTAGE" && `${d.value ?? 0} %`}
-                    {d.type === "FIXED_AMOUNT" && `${((d.value ?? 0) / 100).toFixed(2)} €`}
-                    {d.type === "FREE_SHIPPING" && "Livraison offerte"}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    {d.usageCount}
-                    {d.globalUsageLimit != null && ` / ${d.globalUsageLimit}`}
-                  </td>
-                  <td style={{ padding: "12px 16px", fontSize: 12, color: "#6B7280" }}>
-                    {formatDate(d.startsAt)}
-                    {d.endsAt && <> → {formatDate(d.endsAt)}</>}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <StatusBadge status={d.status} />
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <Link
-                        href={`/admin/discounts/${d.id}`}
-                        style={{ padding: "4px 10px", border: "1px solid #D1D5DB", borderRadius: 6, fontSize: 12, color: "#374151", textDecoration: "none" }}
-                      >
-                        Modifier
-                      </Link>
-                      <button
-                        onClick={() => handleToggle(d)}
-                        disabled={isPending}
-                        style={{ padding: "4px 10px", border: "1px solid #D1D5DB", borderRadius: 6, fontSize: 12, background: "transparent", cursor: "pointer", color: d.status === "ACTIVE" ? "#DC2626" : "#059669" }}
-                      >
-                        {d.status === "ACTIVE" ? "Désactiver" : "Activer"}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(d.id)}
-                        disabled={isPending}
-                        style={{ padding: "4px 10px", border: "1px solid #FCA5A5", borderRadius: 6, fontSize: 12, background: "transparent", cursor: "pointer", color: "#DC2626" }}
-                      >
-                        Suppr.
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+              </tbody>
+            </table>
+          )}
+        </AdminTableWrapper>
+      </AdminPage>
+    </>
   );
 }

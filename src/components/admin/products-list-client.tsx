@@ -4,6 +4,15 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deleteProduct, duplicateProduct } from "@/lib/product-catalog-actions";
+import {
+  AdminTableWrapper,
+  AdminTableHead,
+  AdminEmptyState,
+  StatusBadge,
+  SecondaryBtn,
+  DangerBtn,
+  T,
+} from "@/components/admin/admin-ui";
 
 type ProductRow = {
   id: string;
@@ -60,37 +69,76 @@ export function ProductsListClient({
 
   return (
     <div>
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        <input
-          type="text"
-          placeholder="Rechercher un produit…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid #D1D5DB", fontSize: 13, flex: "1 1 200px", outline: "none" }}
-        />
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[{ id: "all", label: "Toutes catégories" }, ...categories.map((c) => ({ id: c.id, label: c.name }))].map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setFilterCat(c.id)}
-              style={{
-                padding: "7px 14px",
-                borderRadius: 20,
-                border: `1px solid ${filterCat === c.id ? "#0A0E27" : "#E5E7EB"}`,
-                background: filterCat === c.id ? "#0A0E27" : "#fff",
-                color: filterCat === c.id ? "#fff" : "#374151",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {c.label}
-            </button>
-          ))}
+      {/* Filter bar */}
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          marginBottom: 16,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        {/* Search */}
+        <div style={{ position: "relative", flex: "1 1 240px" }}>
+          <span
+            style={{
+              position: "absolute",
+              left: 11,
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontSize: 14,
+              color: T.textSecondary,
+            }}
+          >
+            🔍
+          </span>
+          <input
+            type="text"
+            placeholder="Rechercher un produit…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              padding: "8px 12px 8px 32px",
+              borderRadius: T.radius,
+              border: `1.5px solid ${T.border}`,
+              fontSize: 13,
+              width: "100%",
+              background: T.surface,
+              color: T.textPrimary,
+              outline: "none",
+              boxSizing: "border-box",
+            }}
+          />
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+
+        {/* Category chips */}
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          {[{ id: "all", label: "Toutes catégories" }, ...categories.map((c) => ({ id: c.id, label: c.name }))].map(
+            (c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setFilterCat(c.id)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 99,
+                  border: `1.5px solid ${filterCat === c.id ? T.brand : T.border}`,
+                  background: filterCat === c.id ? T.brand : T.surface,
+                  color: filterCat === c.id ? "#fff" : T.textSecondary,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                {c.label}
+              </button>
+            ),
+          )}
+        </div>
+
+        {/* Type chips */}
+        <div style={{ display: "flex", gap: 4 }}>
           {[
             { id: "all", label: "Tous" },
             { id: "custom", label: "Personnalisés" },
@@ -101,11 +149,11 @@ export function ProductsListClient({
               type="button"
               onClick={() => setFilterType(t.id)}
               style={{
-                padding: "7px 14px",
-                borderRadius: 20,
-                border: `1px solid ${filterType === t.id ? "#DC2626" : "#E5E7EB"}`,
-                background: filterType === t.id ? "#DC2626" : "#fff",
-                color: filterType === t.id ? "#fff" : "#374151",
+                padding: "6px 12px",
+                borderRadius: 99,
+                border: `1.5px solid ${filterType === t.id ? "#5B21B6" : T.border}`,
+                background: filterType === t.id ? "#EDE9FE" : T.surface,
+                color: filterType === t.id ? "#5B21B6" : T.textSecondary,
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: "pointer",
@@ -118,100 +166,154 @@ export function ProductsListClient({
       </div>
 
       {/* Table */}
-      <div style={{ background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, overflow: "hidden" }}>
+      <AdminTableWrapper>
         {filtered.length === 0 ? (
-          <div style={{ padding: "48px 32px", textAlign: "center", color: "#6B7280", fontSize: 14 }}>
-            Aucun produit trouvé.
-          </div>
+          <AdminEmptyState
+            icon="🏷️"
+            title="Aucun produit trouvé"
+            subtitle="Modifiez les filtres ou créez un nouveau produit."
+          />
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB" }}>
-                {["", "Nom", "Catégorie", "Type", "Déclinaisons", "Prix", "Statut", ""].map((h) => (
-                  <th key={h} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
+            <AdminTableHead cols={["", "Produit", "Catégorie", "Type", "Déclinaisons", "Prix unitaire HT", "Statut", ""]} />
             <tbody>
               {filtered.map((p, i) => (
-                <tr key={p.id} style={{ borderBottom: i < filtered.length - 1 ? "1px solid #F3F4F6" : "none", opacity: p.active ? 1 : 0.55 }}>
-                  <td style={{ padding: "12px 16px" }}>
+                <tr
+                  key={p.id}
+                  style={{
+                    borderBottom: i < filtered.length - 1 ? `1px solid ${T.borderSubtle}` : "none",
+                    opacity: p.active ? 1 : 0.55,
+                  }}
+                  className="admin-table-row"
+                >
+                  {/* Image */}
+                  <td style={{ padding: "12px 12px 12px 16px", width: 56 }}>
                     {p.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.imageUrl} alt={p.name} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6, border: "1px solid #E5E7EB" }} />
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        style={{
+                          width: 44,
+                          height: 44,
+                          objectFit: "cover",
+                          borderRadius: T.radiusSm,
+                          border: `1.5px solid ${T.border}`,
+                        }}
+                      />
                     ) : (
-                      <div style={{ width: 44, height: 44, background: "#F3F4F6", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🏷️</div>
+                      <div
+                        style={{
+                          width: 44,
+                          height: 44,
+                          background: T.bg,
+                          borderRadius: T.radiusSm,
+                          border: `1.5px solid ${T.border}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 18,
+                        }}
+                      >
+                        🏷️
+                      </div>
                     )}
                   </td>
+
+                  {/* Name */}
                   <td style={{ padding: "12px 16px" }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "#0A0E27" }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "monospace", marginTop: 2 }}>{p.slug}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: T.textPrimary }}>{p.name}</div>
+                    <div style={{ fontSize: 11, color: T.textDisabled, fontFamily: "monospace", marginTop: 2 }}>
+                      {p.slug}
+                    </div>
                   </td>
-                  <td style={{ padding: "12px 16px", fontSize: 12, color: "#6B7280" }}>
-                    {p.categoryName ?? <span style={{ color: "#D1D5DB" }}>—</span>}
+
+                  {/* Category */}
+                  <td style={{ padding: "12px 16px", fontSize: 12, color: T.textSecondary }}>
+                    {p.categoryName ?? <span style={{ color: T.textDisabled }}>—</span>}
                   </td>
+
+                  {/* Type */}
                   <td style={{ padding: "12px 16px" }}>
-                    <span style={{
-                      display: "inline-block",
-                      padding: "3px 10px",
-                      borderRadius: 20,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: p.requiresCustomization ? "#FEE2E2" : "#EFF6FF",
-                      color: p.requiresCustomization ? "#991B1B" : "#1D4ED8",
-                    }}>
-                      {p.requiresCustomization ? "Personnalisé" : "Impression directe"}
+                    <StatusBadge
+                      label={p.requiresCustomization ? "Personnalisé" : "Impression directe"}
+                      variant={p.requiresCustomization ? "danger" : "info"}
+                      dot={false}
+                    />
+                  </td>
+
+                  {/* Variants */}
+                  <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: T.brandLight,
+                        color: T.brand,
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {p.variantCount}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 16px", fontSize: 13, color: "#374151", textAlign: "center" }}>
-                    <span style={{ fontWeight: 700 }}>{p.variantCount}</span>
-                    <span style={{ fontSize: 11, color: "#9CA3AF", marginLeft: 4 }}>variant{p.variantCount > 1 ? "s" : ""}</span>
+
+                  {/* Price */}
+                  <td style={{ padding: "12px 16px", fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: T.textPrimary }}>
+                    {(parseFloat(p.priceMinFormatted.replace(/[^\d,]/g, "").replace(",", ".")) / 50).toFixed(4)} €
+                    {p.priceMinFormatted !== p.priceMaxFormatted && (
+                      <span style={{ color: T.textSecondary }}>
+                        {" – "}
+                        {(parseFloat(p.priceMaxFormatted.replace(/[^\d,]/g, "").replace(",", ".")) / 50).toFixed(4)} €
+                      </span>
+                    )}
                   </td>
-                  <td style={{ padding: "12px 16px", fontSize: 13, color: "#0A0E27", fontFamily: "monospace", fontWeight: 700 }}>
-                    {p.priceMinFormatted}
-                    {p.priceMinFormatted !== p.priceMaxFormatted && ` – ${p.priceMaxFormatted}`}
-                  </td>
+
+                  {/* Status */}
                   <td style={{ padding: "12px 16px" }}>
-                    <span style={{
-                      display: "inline-block",
-                      padding: "3px 10px",
-                      borderRadius: 20,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: p.active ? "#D1FAE5" : "#F3F4F6",
-                      color: p.active ? "#065F46" : "#6B7280",
-                    }}>
-                      {p.active ? "Actif" : "Inactif"}
-                    </span>
+                    <StatusBadge
+                      label={p.active ? "Actif" : "Inactif"}
+                      variant={p.active ? "success" : "neutral"}
+                      dot
+                    />
                   </td>
+
+                  {/* Actions */}
                   <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
                       <Link
                         href={`/admin/products/${p.id}`}
-                        style={{ padding: "6px 12px", borderRadius: 6, background: "#0A0E27", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: T.radiusSm,
+                          background: T.brand,
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}
                       >
                         Éditer
                       </Link>
-                      <button
-                        type="button"
-                        disabled={isPending}
+                      <SecondaryBtn
                         onClick={() => handleDuplicate(p.id)}
-                        style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-                        title="Dupliquer"
+                        disabled={isPending}
+                        style={{ padding: "6px 10px", fontSize: 13 }}
                       >
                         ⧉
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isPending}
+                      </SecondaryBtn>
+                      <DangerBtn
                         onClick={() => handleDelete(p.id, p.name)}
-                        style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #FCA5A5", background: "#FEF2F2", color: "#991B1B", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
-                        title="Supprimer"
+                        disabled={isPending}
+                        style={{ padding: "6px 10px", fontSize: 13 }}
                       >
                         ✕
-                      </button>
+                      </DangerBtn>
                     </div>
                   </td>
                 </tr>
@@ -219,7 +321,7 @@ export function ProductsListClient({
             </tbody>
           </table>
         )}
-      </div>
+      </AdminTableWrapper>
     </div>
   );
 }
