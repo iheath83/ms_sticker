@@ -59,26 +59,44 @@ export default async function ProductPage({ params }: Props) {
 
   const aggregate = await getProductAggregate(product.id);
 
-  const jsonLd = aggregate
-    ? JSON.stringify({
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        name: product.name,
-        aggregateRating: {
-          "@type": "AggregateRating",
-          ratingValue: aggregate.averageRating.toFixed(1),
-          reviewCount: aggregate.reviewCount,
-          bestRating: "5",
-          worstRating: "1",
-        },
-      })
-    : null;
+  const appUrl = (process.env.APP_URL ?? "https://msadhesif.fr").replace(/\/$/, "");
+  const productSchema: Record<string, unknown> = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.name,
+    url: `${appUrl}/products/${product.slug}`,
+    sku: product.sku ?? product.slug,
+    brand: { "@type": "Brand", name: product.brand ?? "MS Adhésif" },
+    ...(product.gtin ? { gtin: product.gtin } : {}),
+    ...(product.mpn ? { mpn: product.mpn } : {}),
+    ...(product.imageUrl ? { image: product.imageUrl } : {}),
+    ...(product.description
+      ? {
+          description: product.description
+            .split("\n")
+            .find((l) => l.trim() && !l.startsWith("#"))
+            ?.trim(),
+        }
+      : {}),
+    ...(aggregate
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: aggregate.averageRating.toFixed(1),
+            reviewCount: aggregate.reviewCount,
+            bestRating: "5",
+            worstRating: "1",
+          },
+        }
+      : {}),
+  };
+  const jsonLd = JSON.stringify(productSchema);
 
   // ── Non-customizable products get a simpler template ──────────────────────
   if (!product.requiresCustomization) {
     return (
       <>
-        {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
         <ProductDirectTemplate product={product} variants={product.variants} />
         {product.reviewsEnabled && (
           <div className="max-w-4xl mx-auto px-4 pb-16">
@@ -169,7 +187,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
-      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
       <ProductConfigurator
         products={filteredProducts.length > 0 ? filteredProducts : allActiveProducts}
         defaultMaterial={defaultMaterial}

@@ -49,6 +49,11 @@ type ProductData = {
   requiresCustomization: boolean;
   active: boolean;
   sortOrder: number;
+  sku: string | null | undefined;
+  gtin: string | null | undefined;
+  mpn: string | null | undefined;
+  brand: string | undefined;
+  reviewsEnabled?: boolean;
 };
 
 const ALL_SIZES = ["2x2", "3x3", "4x4", "5x5", "7x7", "custom"] as const;
@@ -237,6 +242,10 @@ function GeneralTab({
   const [requiresCustomization, setRequiresCustomization] = useState(product.requiresCustomization);
   const [active, setActive] = useState(product.active);
   const [sortOrder, setSortOrder] = useState(String(product.sortOrder));
+  const [sku, setSku] = useState(product.sku ?? "");
+  const [gtin, setGtin] = useState(product.gtin ?? "");
+  const [mpn, setMpn] = useState(product.mpn ?? "");
+  const [brand, setBrand] = useState(product.brand ?? "MS Adhésif");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -256,6 +265,10 @@ function GeneralTab({
         requiresCustomization,
         active,
         sortOrder: parseInt(sortOrder) || 0,
+        sku: sku.trim() || null,
+        gtin: gtin.trim() || null,
+        mpn: mpn.trim() || null,
+        brand: brand.trim() || "MS Adhésif",
       });
       if (res.ok) {
         setSuccess(true);
@@ -306,6 +319,31 @@ function GeneralTab({
             </div>
           </div>
         </div>
+      </section>
+
+      <section style={sectionStyle}>
+        <SectionTitle>Identifiants produit (Google / SEO)</SectionTitle>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div>
+            <FieldLabel>SKU</FieldLabel>
+            <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Ex : STICKER-VINYLE-01 (défaut : slug)" style={{ ...inputStyle, fontFamily: "monospace" }} />
+          </div>
+          <div>
+            <FieldLabel>Marque (brand)</FieldLabel>
+            <input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="MS Adhésif" style={inputStyle} />
+          </div>
+          <div>
+            <FieldLabel>GTIN (EAN / code-barres)</FieldLabel>
+            <input value={gtin} onChange={(e) => setGtin(e.target.value)} placeholder="Ex : 3760000000000" style={{ ...inputStyle, fontFamily: "monospace" }} />
+          </div>
+          <div>
+            <FieldLabel>MPN (réf. fabricant)</FieldLabel>
+            <input value={mpn} onChange={(e) => setMpn(e.target.value)} placeholder="Ex : MSADH-001" style={{ ...inputStyle, fontFamily: "monospace" }} />
+          </div>
+        </div>
+        <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 8 }}>
+          Ces champs alimentent le flux Google Merchant Center et le balisage JSON-LD Schema.org. Le GTIN est obligatoire pour les rich results Google Shopping.
+        </p>
       </section>
 
       <section style={sectionStyle}>

@@ -222,6 +222,10 @@ export const products = pgTable(
     imageUrl: text("image_url"), // main product photo / hero image
     minQty: integer("min_qty").notNull().default(1),
     options: jsonb("options").default({}), // { holographic, glitter, uvLaminated, tiers, tagline, features, availableFinishes, availableSizes, availableMaterials }
+    sku:            varchar("sku", { length: 100 }),
+    gtin:           varchar("gtin", { length: 50 }),
+    mpn:            varchar("mpn", { length: 100 }),
+    brand:          varchar("brand", { length: 255 }).notNull().default("MS Adhésif"),
     active: boolean("active").notNull().default(true),
     reviewsEnabled: boolean("reviews_enabled").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -675,6 +679,7 @@ export const reviews = pgTable(
     displayName:        varchar("display_name", { length: 255 }),
     source:             reviewSourceEnum("source").notNull().default("post_purchase_email"),
     locale:             varchar("locale", { length: 10 }).default("fr"),
+    country:            varchar("country", { length: 10 }).notNull().default("FR"),
     helpfulCount:       integer("helpful_count").notNull().default(0),
     notHelpfulCount:    integer("not_helpful_count").notNull().default(0),
     publishedAt:        timestamp("published_at", { withTimezone: true }),

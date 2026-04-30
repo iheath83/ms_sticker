@@ -36,6 +36,11 @@ export default async function AdminProductEditPage({
         requiresCustomization: product.requiresCustomization,
         active: product.active,
         sortOrder: product.sortOrder,
+        sku: product.sku,
+        gtin: product.gtin,
+        mpn: product.mpn,
+        brand: product.brand,
+        reviewsEnabled: product.reviewsEnabled,
       }}
       variants={variants.map((v) => ({
         id: v.id,

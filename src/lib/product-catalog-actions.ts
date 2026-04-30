@@ -123,6 +123,10 @@ const productInfoSchema = z.object({
   requiresCustomization: z.boolean().default(true),
   active: z.boolean().default(true),
   sortOrder: z.number().int().default(0),
+  sku: z.string().optional().nullable(),
+  gtin: z.string().optional().nullable(),
+  mpn: z.string().optional().nullable(),
+  brand: z.string().optional().nullable(),
 });
 
 export type ProductInfoInput = z.input<typeof productInfoSchema>;
@@ -290,6 +294,10 @@ export async function updateProductInfo(
       requiresCustomization: data.requiresCustomization,
       active: data.active,
       sortOrder: data.sortOrder,
+      sku: data.sku ?? null,
+      gtin: data.gtin ?? null,
+      mpn: data.mpn ?? null,
+      brand: data.brand ?? "MS Adhésif",
       updatedAt: new Date(),
     }).where(eq(products.id, id));
 
