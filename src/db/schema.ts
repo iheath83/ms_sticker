@@ -7,6 +7,7 @@ import {
   boolean,
   integer,
   numeric,
+  real,
   jsonb,
   timestamp,
   index,
@@ -222,6 +223,7 @@ export const products = pgTable(
     minQty: integer("min_qty").notNull().default(1),
     options: jsonb("options").default({}), // { holographic, glitter, uvLaminated, tiers, tagline, features, availableFinishes, availableSizes, availableMaterials }
     active: boolean("active").notNull().default(true),
+    reviewsEnabled: boolean("reviews_enabled").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps,
@@ -640,3 +642,212 @@ export const siteSettings = pgTable("site_settings", {
 
 export type SiteSettings = typeof siteSettings.$inferSelect;
 export type NewProductOptionValue = typeof productOptionValues.$inferInsert;
+
+// ─── Reviews ─────────────────────────────────────────────────────────────────
+
+export const reviewStatusEnum = pgEnum("review_status", ["pending", "published", "rejected", "archived"]);
+export const reviewVerificationStatusEnum = pgEnum("review_verification_status", ["verified_purchase", "unverified", "manual_verified", "imported"]);
+export const reviewSourceEnum = pgEnum("review_source", ["post_purchase_email", "manual_request", "onsite_form", "import", "admin"]);
+export const reviewTypeEnum = pgEnum("review_type", ["product", "store"]);
+export const reviewRequestStatusEnum = pgEnum("review_request_status", ["scheduled", "sent", "opened", "clicked", "submitted", "expired", "cancelled"]);
+export const reviewRequestTypeEnum = pgEnum("review_request_type", ["product", "store", "combined"]);
+export const reviewMediaTypeEnum = pgEnum("review_media_type", ["image", "video"]);
+export const reviewMediaStatusEnum = pgEnum("review_media_status", ["pending", "approved", "rejected"]);
+export const reviewRequestItemStatusEnum = pgEnum("review_request_item_status", ["pending", "submitted", "skipped"]);
+
+export const reviews = pgTable(
+  "reviews",
+  {
+    id:                 uuid("id").primaryKey().defaultRandom(),
+    type:               reviewTypeEnum("type").notNull(),
+    rating:             integer("rating").notNull(),
+    title:              varchar("title", { length: 255 }),
+    body:               text("body"),
+    status:             reviewStatusEnum("status").notNull().default("pending"),
+    verificationStatus: reviewVerificationStatusEnum("verification_status").notNull().default("unverified"),
+    productId:          uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+    productVariantId:   uuid("product_variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+    orderId:            uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    orderItemId:        uuid("order_item_id").references(() => orderItems.id, { onDelete: "set null" }),
+    customerId:         text("customer_id").references(() => users.id, { onDelete: "set null" }),
+    customerEmail:      varchar("customer_email", { length: 320 }).notNull(),
+    customerName:       varchar("customer_name", { length: 255 }),
+    displayName:        varchar("display_name", { length: 255 }),
+    source:             reviewSourceEnum("source").notNull().default("post_purchase_email"),
+    locale:             varchar("locale", { length: 10 }).default("fr"),
+    helpfulCount:       integer("helpful_count").notNull().default(0),
+    notHelpfulCount:    integer("not_helpful_count").notNull().default(0),
+    publishedAt:        timestamp("published_at", { withTimezone: true }),
+    rejectedAt:         timestamp("rejected_at", { withTimezone: true }),
+    rejectionReason:    text("rejection_reason"),
+    ...timestamps,
+  },
+  (t) => [
+    index("reviews_product_id_idx").on(t.productId),
+    index("reviews_order_id_idx").on(t.orderId),
+    index("reviews_customer_email_idx").on(t.customerEmail),
+    index("reviews_status_idx").on(t.status),
+    index("reviews_type_idx").on(t.type),
+  ],
+);
+
+export const reviewMedia = pgTable(
+  "review_media",
+  {
+    id:                  uuid("id").primaryKey().defaultRandom(),
+    reviewId:            uuid("review_id").notNull().references(() => reviews.id, { onDelete: "cascade" }),
+    type:                reviewMediaTypeEnum("type").notNull(),
+    url:                 text("url").notNull(),
+    thumbnailUrl:        text("thumbnail_url"),
+    storageKey:          text("storage_key").notNull(),
+    status:              reviewMediaStatusEnum("status").notNull().default("pending"),
+    altText:             text("alt_text"),
+    caption:             text("caption"),
+    consentForMarketing: boolean("consent_for_marketing").notNull().default(false),
+    ...timestamps,
+  },
+  (t) => [
+    index("review_media_review_id_idx").on(t.reviewId),
+    index("review_media_status_idx").on(t.status),
+  ],
+);
+
+export const reviewRequests = pgTable(
+  "review_requests",
+  {
+    id:               uuid("id").primaryKey().defaultRandom(),
+    orderId:          uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
+    customerId:       text("customer_id").references(() => users.id, { onDelete: "set null" }),
+    customerEmail:    varchar("customer_email", { length: 320 }).notNull(),
+    type:             reviewRequestTypeEnum("type").notNull().default("combined"),
+    tokenHash:        varchar("token_hash", { length: 64 }).notNull().unique(),
+    status:           reviewRequestStatusEnum("status").notNull().default("scheduled"),
+    sendAt:           timestamp("send_at", { withTimezone: true }).notNull(),
+    sentAt:           timestamp("sent_at", { withTimezone: true }),
+    firstOpenedAt:    timestamp("first_opened_at", { withTimezone: true }),
+    firstClickedAt:   timestamp("first_clicked_at", { withTimezone: true }),
+    submittedAt:      timestamp("submitted_at", { withTimezone: true }),
+    expiresAt:        timestamp("expires_at", { withTimezone: true }).notNull(),
+    reminderCount:    integer("reminder_count").notNull().default(0),
+    nextReminderAt:   timestamp("next_reminder_at", { withTimezone: true }),
+    locale:           varchar("locale", { length: 10 }).default("fr"),
+    ...timestamps,
+  },
+  (t) => [
+    index("review_requests_order_id_idx").on(t.orderId),
+    index("review_requests_customer_email_idx").on(t.customerEmail),
+    index("review_requests_status_idx").on(t.status),
+    index("review_requests_send_at_idx").on(t.sendAt),
+  ],
+);
+
+export const reviewRequestItems = pgTable(
+  "review_request_items",
+  {
+    id:              uuid("id").primaryKey().defaultRandom(),
+    reviewRequestId: uuid("review_request_id").notNull().references(() => reviewRequests.id, { onDelete: "cascade" }),
+    productId:       uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+    productVariantId: uuid("product_variant_id").references(() => productVariants.id, { onDelete: "set null" }),
+    orderItemId:     uuid("order_item_id").references(() => orderItems.id, { onDelete: "set null" }),
+    status:          reviewRequestItemStatusEnum("status").notNull().default("pending"),
+    reviewId:        uuid("review_id").references(() => reviews.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [
+    index("review_request_items_request_id_idx").on(t.reviewRequestId),
+    index("review_request_items_product_id_idx").on(t.productId),
+  ],
+);
+
+export const reviewAttributes = pgTable(
+  "review_attributes",
+  {
+    id:        uuid("id").primaryKey().defaultRandom(),
+    reviewId:  uuid("review_id").notNull().references(() => reviews.id, { onDelete: "cascade" }),
+    key:       varchar("key", { length: 100 }).notNull(),
+    label:     varchar("label", { length: 255 }).notNull(),
+    value:     varchar("value", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("review_attributes_review_id_idx").on(t.reviewId),
+    index("review_attributes_key_idx").on(t.key),
+  ],
+);
+
+export const reviewAggregates = pgTable(
+  "review_aggregates",
+  {
+    id:                  uuid("id").primaryKey().defaultRandom(),
+    targetType:          reviewTypeEnum("target_type").notNull(),
+    targetId:            uuid("target_id"),
+    averageRating:       real("average_rating").notNull().default(0),
+    reviewCount:         integer("review_count").notNull().default(0),
+    rating1Count:        integer("rating1_count").notNull().default(0),
+    rating2Count:        integer("rating2_count").notNull().default(0),
+    rating3Count:        integer("rating3_count").notNull().default(0),
+    rating4Count:        integer("rating4_count").notNull().default(0),
+    rating5Count:        integer("rating5_count").notNull().default(0),
+    mediaReviewCount:    integer("media_review_count").notNull().default(0),
+    verifiedReviewCount: integer("verified_review_count").notNull().default(0),
+    updatedAt:           timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("review_aggregates_target_idx").on(t.targetType, t.targetId),
+    index("review_aggregates_target_type_idx").on(t.targetType),
+  ],
+);
+
+export const reviewEmailPreferences = pgTable(
+  "review_email_preferences",
+  {
+    id:            uuid("id").primaryKey().defaultRandom(),
+    customerEmail: varchar("customer_email", { length: 320 }).notNull().unique(),
+    customerId:    text("customer_id").references(() => users.id, { onDelete: "set null" }),
+    optedOut:      boolean("opted_out").notNull().default(false),
+    optedOutAt:    timestamp("opted_out_at", { withTimezone: true }),
+    ...timestamps,
+  },
+);
+
+export const reviewReplies = pgTable(
+  "review_replies",
+  {
+    id:          uuid("id").primaryKey().defaultRandom(),
+    reviewId:    uuid("review_id").notNull().references(() => reviews.id, { onDelete: "cascade" }).unique(),
+    body:        text("body").notNull(),
+    status:      varchar("status", { length: 20 }).notNull().default("published"),
+    ...timestamps,
+  },
+  (t) => [index("review_replies_review_id_idx").on(t.reviewId)],
+);
+
+export const reviewSettings = pgTable("review_settings", {
+  id:                               integer("id").primaryKey().default(1),
+  autoPublish:                      boolean("auto_publish").notNull().default(false),
+  autoPublishMinRating:             integer("auto_publish_min_rating"),
+  requestDelayDaysAfterFulfillment: integer("request_delay_days_after_fulfillment").notNull().default(7),
+  requestExpiresAfterDays:          integer("request_expires_after_days").notNull().default(60),
+  remindersEnabled:                 boolean("reminders_enabled").notNull().default(true),
+  firstReminderDelayDays:           integer("first_reminder_delay_days").notNull().default(5),
+  secondReminderDelayDays:          integer("second_reminder_delay_days"),
+  maxReminderCount:                 integer("max_reminder_count").notNull().default(2),
+  collectStoreReview:               boolean("collect_store_review").notNull().default(true),
+  collectProductReviews:            boolean("collect_product_reviews").notNull().default(true),
+  collectMedia:                     boolean("collect_media").notNull().default(true),
+  requireModerationForMedia:        boolean("require_moderation_for_media").notNull().default(true),
+  requireModerationForLowRating:    boolean("require_moderation_for_low_rating").notNull().default(true),
+  lowRatingThreshold:               integer("low_rating_threshold").notNull().default(3),
+  displayReviewerLastName:          boolean("display_reviewer_last_name").notNull().default(false),
+  displayVerifiedBadge:             boolean("display_verified_badge").notNull().default(true),
+  updatedAt:                        timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Review = typeof reviews.$inferSelect;
+export type NewReview = typeof reviews.$inferInsert;
+export type ReviewMedia = typeof reviewMedia.$inferSelect;
+export type ReviewRequest = typeof reviewRequests.$inferSelect;
+export type NewReviewRequest = typeof reviewRequests.$inferInsert;
+export type ReviewRequestItem = typeof reviewRequestItems.$inferSelect;
+export type ReviewAggregate = typeof reviewAggregates.$inferSelect;
+export type ReviewSettings = typeof reviewSettings.$inferSelect;

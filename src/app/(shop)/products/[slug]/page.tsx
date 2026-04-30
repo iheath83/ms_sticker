@@ -4,6 +4,11 @@ import { materialToPreview } from "@/lib/product-utils";
 import { ProductConfigurator } from "@/components/shop/configurator/product-configurator";
 import { ProductDirectTemplate } from "@/components/shop/product-direct-template";
 import { QUANTITY_TIERS, type PricingTier, type PricingFinish, type PricingSize, type CustomPreset } from "@/lib/pricing";
+import { ProductRatingSummary } from "@/components/reviews/ProductRatingSummary";
+import { ProductReviews } from "@/components/reviews/ProductReviews";
+import { db } from "@/db";
+import { reviewAggregates } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import type { Metadata } from "next";
 
 interface Props {
@@ -28,10 +33,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!product) return {};
   const tagline = product.tagline;
   const desc = product.description?.split("\n").find((l) => l.trim() && !l.startsWith("#"))?.trim();
+
   return {
     title: `${product.name} — MS Adhésif`,
     description: tagline ?? desc,
   };
+}
+
+async function getProductAggregate(productId: string) {
+  try {
+    const [agg] = await db
+      .select()
+      .from(reviewAggregates)
+      .where(and(eq(reviewAggregates.targetType, "product"), eq(reviewAggregates.targetId, productId)));
+    return agg && agg.reviewCount > 0 ? agg : null;
+  } catch {
+    return null;
+  }
 }
 
 export default async function ProductPage({ params }: Props) {
@@ -39,9 +57,37 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductWithVariants(slug);
   if (!product) notFound();
 
+  const aggregate = await getProductAggregate(product.id);
+
+  const jsonLd = aggregate
+    ? JSON.stringify({
+        "@context": "https://schema.org/",
+        "@type": "Product",
+        name: product.name,
+        aggregateRating: {
+          "@type": "AggregateRating",
+          ratingValue: aggregate.averageRating.toFixed(1),
+          reviewCount: aggregate.reviewCount,
+          bestRating: "5",
+          worstRating: "1",
+        },
+      })
+    : null;
+
   // ── Non-customizable products get a simpler template ──────────────────────
   if (!product.requiresCustomization) {
-    return <ProductDirectTemplate product={product} variants={product.variants} />;
+    return (
+      <>
+        {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />}
+        <ProductDirectTemplate product={product} variants={product.variants} />
+        {product.reviewsEnabled && (
+          <div className="max-w-4xl mx-auto px-4 pb-16">
+            <ProductRatingSummary productId={product.id} />
+            <ProductReviews productId={product.id} />
+          </div>
+        )}
+      </>
+    );
   }
 
   // ── Customizable products: existing configurator ───────────────────────────
@@ -122,20 +168,29 @@ export default async function ProductPage({ params }: Props) {
   );
 
   return (
-    <ProductConfigurator
-      products={filteredProducts.length > 0 ? filteredProducts : allActiveProducts}
-      defaultMaterial={defaultMaterial}
-      defaultShape={defaultShape}
-      productName={product.name}
-      description={tagline ?? product.description ?? undefined}
-      imageUrl={product.imageUrl ?? undefined}
-      features={features}
-      pricingTiers={pricingTiers}
-      availableFinishes={availableFinishes.length > 0 ? availableFinishes : allFinishes}
-      availableSizes={availableSizes.length > 0 ? availableSizes : allSizes}
-      minQty={minQty}
-      sizePrices={sizePrices}
-      customPresets={customPresets}
-    />
+    <>
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />}
+      <ProductConfigurator
+        products={filteredProducts.length > 0 ? filteredProducts : allActiveProducts}
+        defaultMaterial={defaultMaterial}
+        defaultShape={defaultShape}
+        productName={product.name}
+        description={tagline ?? product.description ?? undefined}
+        imageUrl={product.imageUrl ?? undefined}
+        features={features}
+        pricingTiers={pricingTiers}
+        availableFinishes={availableFinishes.length > 0 ? availableFinishes : allFinishes}
+        availableSizes={availableSizes.length > 0 ? availableSizes : allSizes}
+        minQty={minQty}
+        sizePrices={sizePrices}
+        customPresets={customPresets}
+      />
+      {product.reviewsEnabled && (
+        <div className="max-w-4xl mx-auto px-4 pb-16">
+          <ProductRatingSummary productId={product.id} />
+          <ProductReviews productId={product.id} />
+        </div>
+      )}
+    </>
   );
 }

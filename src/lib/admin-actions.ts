@@ -383,6 +383,13 @@ export async function changeOrderStatus(
     );
   }
 
+  // Create review request when order is delivered
+  if (toStatus === "delivered") {
+    import("@/lib/reviews/review-request-service")
+      .then(({ createReviewRequestForOrder }) => createReviewRequestForOrder(orderId))
+      .catch((err) => console.error("[admin] review request creation failed:", err));
+  }
+
   return { ok: true, data: undefined };
 }
 
