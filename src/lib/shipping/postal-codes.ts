@@ -33,6 +33,23 @@ function matchesRule(postalCode: string, rule: PostalCodeRule): boolean {
 }
 
 /**
+ * Returns true if an exclude rule matches the given postal code.
+ * Supports: exact, prefix (value without trailing *), and range (fromValue/toValue).
+ */
+function excludeMatches(pc: string, rule: PostalCodeRule): boolean {
+  const val = normalize(rule.value);
+  // Range exclude: fromValue and toValue are set
+  if (rule.fromValue && rule.toValue) {
+    const from = normalize(rule.fromValue);
+    const to = normalize(rule.toValue);
+    return pc >= from && pc <= to;
+  }
+  // Prefix exclude (value is a prefix without *)
+  if (pc.startsWith(val)) return true;
+  return false;
+}
+
+/**
  * Returns true if the postal code is covered by the set of rules.
  * Exclude rules override include rules (they act as blockers).
  */
@@ -45,8 +62,7 @@ export function postalCodeMatchesRules(postalCode: string, rules: PostalCodeRule
 
   // Check exclusions first — a matching exclusion blocks the code
   for (const rule of excludeRules) {
-    // For exclusions, we check if the postal code starts with the value
-    if (pc.startsWith(normalize(rule.value))) return false;
+    if (excludeMatches(pc, rule)) return false;
   }
 
   // At least one include rule must match
@@ -61,5 +77,5 @@ export function postalCodeIsExcluded(postalCode: string, rules: PostalCodeRule[]
   const pc = normalize(postalCode);
   return rules
     .filter((r) => r.type === "exclude")
-    .some((r) => pc.startsWith(normalize(r.value)));
+    .some((r) => excludeMatches(pc, r));
 }

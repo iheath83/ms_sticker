@@ -54,7 +54,21 @@ const emptyForm: ZoneFormState = {
 
 function parsePostalRulesText(text: string): PostalCodeRule[] {
   return text.split("\n").map((line) => line.trim()).filter(Boolean).map((line, i) => {
-    if (line.startsWith("!")) return { id: String(i), type: "exclude" as const, value: line.slice(1).trim() } satisfies PostalCodeRule;
+    if (line.startsWith("!")) {
+      const inner = line.slice(1).trim();
+      // !from-to → exclude range
+      if (inner.includes("-")) {
+        const parts = inner.split("-").map((s) => s.trim());
+        const from = parts[0] ?? inner;
+        const to = parts[1] ?? inner;
+        return { id: String(i), type: "exclude" as const, value: from, fromValue: from, toValue: to } satisfies PostalCodeRule;
+      }
+      // !prefix* → exclude prefix
+      if (inner.endsWith("*")) {
+        return { id: String(i), type: "exclude" as const, value: inner.slice(0, -1) } satisfies PostalCodeRule;
+      }
+      return { id: String(i), type: "exclude" as const, value: inner } satisfies PostalCodeRule;
+    }
     if (line.includes("-")) {
       const parts = line.split("-").map((s) => s.trim());
       const from = parts[0] ?? line;
@@ -68,7 +82,10 @@ function parsePostalRulesText(text: string): PostalCodeRule[] {
 
 function postalRulesToText(rules: ZoneRow["postalRules"]): string {
   return rules.map((r) => {
-    if (r.type === "exclude") return `!${r.value}`;
+    if (r.type === "exclude") {
+      if (r.fromValue && r.toValue) return `!${r.fromValue}-${r.toValue}`;
+      return `!${r.value}`;
+    }
     if (r.type === "prefix") return `${r.value}*`;
     if (r.type === "range") return `${r.fromValue ?? r.value}-${r.toValue ?? r.value}`;
     return r.value;
@@ -82,8 +99,8 @@ export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
   const [form, setForm] = useState<ZoneFormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Postal code tester
-  const [testZoneId, setTestZoneId] = useState<string | null>(null);
+  // Postal code tester — default to first zone
+  const [testZoneId, setTestZoneId] = useState<string | null>(initial[0]?.id ?? null);
   const [testCode, setTestCode] = useState("");
   const [testResult, setTestResult] = useState<string | null>(null);
 
@@ -240,8 +257,12 @@ export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
               placeholder="Ex: 83480"
               style={{ padding: "8px 12px", border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13, width: 160 }}
             />
-            <select onChange={(e) => setTestZoneId(e.target.value)} style={{ padding: "8px 12px", border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13 }}>
-              <option value="">Choisir une zone</option>
+            <select
+              value={testZoneId ?? ""}
+              onChange={(e) => setTestZoneId(e.target.value || null)}
+              style={{ padding: "8px 12px", border: `1.5px solid ${T.border}`, borderRadius: T.radiusSm, fontSize: 13 }}
+            >
+              <option value="">— Choisir une zone —</option>
               {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
             </select>
             <SecondaryBtn onClick={() => {
