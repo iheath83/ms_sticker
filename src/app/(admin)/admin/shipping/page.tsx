@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { shippingMethods, shippingZones, shippingRules } from "@/db/schema";
-import { eq, and, count } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import {
   AdminTopbar,
   AdminPage,
-  AdminCard,
   KpiCard,
-  T,
   PrimaryBtn,
   SectionTitle,
 } from "@/components/admin/admin-ui";
@@ -58,25 +56,31 @@ export default async function ShippingDashboardPage() {
         <SectionTitle>Navigation rapide</SectionTitle>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
           {quickLinks.map((link) => (
-            <Link key={link.href} href={link.href} style={{ textDecoration: "none" }}>
-              <div style={{
-                background: T.surface,
-                border: `1.5px solid ${T.border}`,
-                borderRadius: T.radiusLg,
-                padding: 20,
-                cursor: "pointer",
-                transition: "border-color 0.15s",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = T.brand; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = T.border; }}
-              >
+            <Link key={link.href} href={link.href} className="shipping-quick-link">
+              <div className="shipping-quick-card">
                 <div style={{ fontSize: 28, marginBottom: 8 }}>{link.icon}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.textPrimary, marginBottom: 4 }}>{link.label}</div>
-                <div style={{ fontSize: 12, color: T.textSecondary }}>{link.desc}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{link.label}</div>
+                <div style={{ fontSize: 12, opacity: 0.6 }}>{link.desc}</div>
               </div>
             </Link>
           ))}
         </div>
+        <style>{`
+          .shipping-quick-link { text-decoration: none; display: block; }
+          .shipping-quick-card {
+            background: #fff;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            color: #111;
+          }
+          .shipping-quick-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 2px 8px rgba(37,99,235,0.08);
+          }
+        `}</style>
       </AdminPage>
     </>
   );
