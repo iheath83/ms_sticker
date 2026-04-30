@@ -736,7 +736,8 @@ function VariantEditor({
   const [material, setMaterial] = useState(variant.material);
   const [selectedFinishes, setFinishes] = useState<string[]>(variant.availableFinishes);
   const [selectedShapes, setShapes] = useState<string[]>(variant.shapes);
-  const [basePrice, setBasePrice] = useState((variant.basePriceCents / 100).toFixed(2));
+  // basePriceCents = price for 50 units (reference qty). We show/edit as unit price HT.
+  const [basePrice, setBasePrice] = useState((variant.basePriceCents / 100 / 50).toFixed(4));
   const [minQty, setMinQty] = useState(String(variant.minQty));
   const [weightGrams, setWeightGrams] = useState(String(variant.weightGrams));
   const [minW, setMinW] = useState(String(variant.minWidthMm));
@@ -748,9 +749,10 @@ function VariantEditor({
       ? (variant.tiers as PricingTier[])
       : QUANTITY_TIERS.map((t) => ({ minQty: t.minQty, discountPct: t.discountPct })),
   );
+  // sizePrices stored as cents for 50 units. We show/edit as unit price HT.
   const [sizePrices, setSizePrices] = useState<Record<string, string>>(() => {
     const sp = variant.sizePrices ?? {};
-    return Object.fromEntries(Object.entries(sp).map(([k, v]) => [k, (v / 100).toFixed(2)]));
+    return Object.fromEntries(Object.entries(sp).map(([k, v]) => [k, (v / 100 / 50).toFixed(4)]));
   });
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>(
     (variant.customPresets as CustomPreset[]) ?? [],
@@ -770,7 +772,7 @@ function VariantEditor({
         material,
         availableFinishes: selectedFinishes,
         shapes: selectedShapes,
-        basePriceCents: Math.round(parseFloat(basePrice) * 100) || 1,
+        basePriceCents: Math.round(parseFloat(basePrice) * 50 * 100) || 1,
         minQty: parseInt(minQty) || 1,
         weightGrams: parseInt(weightGrams) || 100,
         minWidthMm: parseInt(minW) || 20,
@@ -781,7 +783,7 @@ function VariantEditor({
         sizePrices: Object.fromEntries(
           Object.entries(sizePrices)
             .filter(([, v]) => v.trim() !== "" && parseFloat(v) > 0)
-            .map(([k, v]) => [k, Math.round(parseFloat(v) * 100)]),
+            .map(([k, v]) => [k, Math.round(parseFloat(v) * 50 * 100)]),
         ),
         customPresets: customPresets.filter((p) => p.id && p.label && p.widthMm > 0 && p.heightMm > 0),
         imageUrl: imageUrl || null,
@@ -832,7 +834,7 @@ function VariantEditor({
             <div>
               <div style={{ fontWeight: 700, fontSize: 13, color: "#0A0E27" }}>{name}</div>
               <div style={{ fontSize: 11, color: "#9CA3AF", fontFamily: "monospace", marginTop: 2 }}>
-                {sku || "—"} · {materials.find((m) => m.slug === material)?.label ?? material} · {(variant.basePriceCents / 100).toFixed(2)} € · {weightGrams}g
+                {sku || "—"} · {materials.find((m) => m.slug === material)?.label ?? material} · {(variant.basePriceCents / 100 / 50).toFixed(4)} €/u HT · {weightGrams}g
               </div>
             </div>
           </div>
@@ -906,9 +908,9 @@ function VariantEditor({
             {/* Pricing + Dimensions */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
               <div>
-                <FieldLabel>Prix de base (€)</FieldLabel>
+                <FieldLabel>Prix unitaire HT (€)</FieldLabel>
                 <div style={{ position: "relative" }}>
-                  <input type="number" step="0.01" min="0" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} style={{ ...inputStyle, paddingRight: 24 }} />
+                  <input type="number" step="0.0001" min="0" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} style={{ ...inputStyle, paddingRight: 24 }} />
                   <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
                 </div>
               </div>
@@ -962,7 +964,7 @@ function VariantEditor({
 
             {/* Size prices */}
             <div>
-              <FieldLabel>Prix par taille fixe (€ TTC pour 50 unités)</FieldLabel>
+              <FieldLabel>Prix unitaire HT par taille (€)</FieldLabel>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 8 }}>
                 {ALL_SIZES.filter((s) => s !== "custom").map((s) => (
                   <div key={s}>
