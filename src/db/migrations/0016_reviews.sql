@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS "reviews" (
   "product_variant_id" uuid REFERENCES "product_variants"("id") ON DELETE SET NULL,
   "order_id" uuid REFERENCES "orders"("id") ON DELETE SET NULL,
   "order_item_id" uuid REFERENCES "order_items"("id") ON DELETE SET NULL,
-  "customer_id" text REFERENCES "user"("id") ON DELETE SET NULL,
+  "customer_id" text REFERENCES "users"("id") ON DELETE SET NULL,
   "customer_email" varchar(320) NOT NULL,
   "customer_name" varchar(255),
   "display_name" varchar(255),
@@ -94,7 +94,7 @@ CREATE INDEX IF NOT EXISTS "review_media_status_idx" ON "review_media"("status")
 CREATE TABLE IF NOT EXISTS "review_requests" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "order_id" uuid REFERENCES "orders"("id") ON DELETE SET NULL,
-  "customer_id" text REFERENCES "user"("id") ON DELETE SET NULL,
+  "customer_id" text REFERENCES "users"("id") ON DELETE SET NULL,
   "customer_email" varchar(320) NOT NULL,
   "type" review_request_type NOT NULL DEFAULT 'combined',
   "token_hash" varchar(64) NOT NULL UNIQUE,
@@ -170,7 +170,7 @@ CREATE INDEX IF NOT EXISTS "review_aggregates_target_type_idx" ON "review_aggreg
 CREATE TABLE IF NOT EXISTS "review_email_preferences" (
   "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   "customer_email" varchar(320) NOT NULL UNIQUE,
-  "customer_id" text REFERENCES "user"("id") ON DELETE SET NULL,
+  "customer_id" text REFERENCES "users"("id") ON DELETE SET NULL,
   "opted_out" boolean NOT NULL DEFAULT false,
   "opted_out_at" timestamptz,
   "created_at" timestamptz NOT NULL DEFAULT now(),
