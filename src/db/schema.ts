@@ -856,3 +856,161 @@ export type NewReviewRequest = typeof reviewRequests.$inferInsert;
 export type ReviewRequestItem = typeof reviewRequestItems.$inferSelect;
 export type ReviewAggregate = typeof reviewAggregates.$inferSelect;
 export type ReviewSettings = typeof reviewSettings.$inferSelect;
+
+// ─── Shipping Engine ──────────────────────────────────────────────────────────
+
+export const shippingMethodTypeEnum = pgEnum("shipping_method_type", [
+  "carrier", "local_delivery", "pickup", "relay_point", "custom", "freight",
+]);
+
+export const shippingMethods = pgTable("shipping_methods", {
+  id:                  uuid("id").primaryKey().defaultRandom(),
+  name:                varchar("name", { length: 255 }).notNull(),
+  publicName:          varchar("public_name", { length: 255 }).notNull(),
+  description:         text("description"),
+  type:                shippingMethodTypeEnum("type").notNull().default("carrier"),
+  isActive:            boolean("is_active").notNull().default(true),
+  isDefault:           boolean("is_default").notNull().default(false),
+  basePriceCents:      integer("base_price_cents").notNull().default(0),
+  currency:            varchar("currency", { length: 3 }).notNull().default("EUR"),
+  minDeliveryDays:     integer("min_delivery_days"),
+  maxDeliveryDays:     integer("max_delivery_days"),
+  carrierCode:         varchar("carrier_code", { length: 100 }),
+  carrierServiceCode:  varchar("carrier_service_code", { length: 100 }),
+  supportsTracking:    boolean("supports_tracking").notNull().default(false),
+  supportsRelayPoint:  boolean("supports_relay_point").notNull().default(false),
+  supportsPickup:      boolean("supports_pickup").notNull().default(false),
+  supportsDeliveryDate: boolean("supports_delivery_date").notNull().default(false),
+  supportsTimeSlot:    boolean("supports_time_slot").notNull().default(false),
+  displayOrder:        integer("display_order").notNull().default(0),
+  ...timestamps,
+});
+
+export const shippingZones = pgTable("shipping_zones", {
+  id:          uuid("id").primaryKey().defaultRandom(),
+  name:        varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  countries:   jsonb("countries").notNull().default([]).$type<string[]>(),
+  regions:     jsonb("regions").notNull().default([]).$type<string[]>(),
+  cities:      jsonb("cities").notNull().default([]).$type<string[]>(),
+  geoRadius:   jsonb("geo_radius").$type<{ enabled: boolean; originLat: number; originLng: number; radiusKm: number } | null>(),
+  isActive:    boolean("is_active").notNull().default(true),
+  ...timestamps,
+});
+
+export const shippingZonePostalRules = pgTable(
+  "shipping_zone_postal_rules",
+  {
+    id:        uuid("id").primaryKey().defaultRandom(),
+    zoneId:    uuid("zone_id").notNull().references(() => shippingZones.id, { onDelete: "cascade" }),
+    type:      varchar("type", { length: 20 }).notNull().$type<"exact" | "prefix" | "range" | "regex" | "exclude">(),
+    value:     varchar("value", { length: 255 }).notNull(),
+    fromValue: varchar("from_value", { length: 255 }),
+    toValue:   varchar("to_value", { length: 255 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("shipping_zone_postal_rules_zone_id_idx").on(t.zoneId)],
+);
+
+export const shippingRules = pgTable(
+  "shipping_rules",
+  {
+    id:                       uuid("id").primaryKey().defaultRandom(),
+    name:                     varchar("name", { length: 255 }).notNull(),
+    description:              text("description"),
+    isActive:                 boolean("is_active").notNull().default(true),
+    priority:                 integer("priority").notNull().default(100),
+    startsAt:                 timestamp("starts_at", { withTimezone: true }),
+    endsAt:                   timestamp("ends_at", { withTimezone: true }),
+    conditionRoot:            jsonb("condition_root").notNull().default({ logic: "AND", conditions: [], groups: [] }).$type<Record<string, unknown>>(),
+    actions:                  jsonb("actions").notNull().default([]).$type<Record<string, unknown>[]>(),
+    stopProcessingAfterMatch: boolean("stop_processing_after_match").notNull().default(false),
+    combinableWithOtherRules: boolean("combinable_with_other_rules").notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [
+    index("shipping_rules_priority_idx").on(t.priority),
+    index("shipping_rules_active_idx").on(t.isActive),
+  ],
+);
+
+export const orderShippingSnapshots = pgTable(
+  "order_shipping_snapshots",
+  {
+    id:                 uuid("id").primaryKey().defaultRandom(),
+    orderId:            uuid("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    selectedMethodId:   varchar("selected_method_id", { length: 255 }),
+    selectedMethodName: varchar("selected_method_name", { length: 255 }),
+    basePriceCents:     integer("base_price_cents").notNull().default(0),
+    finalPriceCents:    integer("final_price_cents").notNull().default(0),
+    currency:           varchar("currency", { length: 3 }).notNull().default("EUR"),
+    appliedRulesJson:   jsonb("applied_rules_json").notNull().default([]).$type<Record<string, unknown>[]>(),
+    hiddenMethodsJson:  jsonb("hidden_methods_json").notNull().default([]).$type<Record<string, unknown>[]>(),
+    destinationJson:    jsonb("destination_json").notNull().default({}).$type<Record<string, unknown>>(),
+    cartSnapshotJson:   jsonb("cart_snapshot_json").notNull().default({}).$type<Record<string, unknown>>(),
+    createdAt:          timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("order_shipping_snapshots_order_id_idx").on(t.orderId)],
+);
+
+// Phase 3 tables
+
+export const shippingPickupLocations = pgTable("shipping_pickup_locations", {
+  id:            uuid("id").primaryKey().defaultRandom(),
+  name:          varchar("name", { length: 255 }).notNull(),
+  addressLine1:  varchar("address_line1", { length: 255 }),
+  addressLine2:  varchar("address_line2", { length: 255 }),
+  city:          varchar("city", { length: 100 }),
+  postalCode:    varchar("postal_code", { length: 20 }),
+  countryCode:   varchar("country_code", { length: 10 }).notNull().default("FR"),
+  phone:         varchar("phone", { length: 50 }),
+  instructions:  text("instructions"),
+  hoursJson:     jsonb("hours_json").notNull().default({}).$type<Record<string, string>>(),
+  daysAvailable: jsonb("days_available").notNull().default([1, 2, 3, 4, 5]).$type<number[]>(),
+  prepDelayDays: integer("prep_delay_days").notNull().default(1),
+  slotCapacity:  integer("slot_capacity").notNull().default(0),
+  isActive:      boolean("is_active").notNull().default(true),
+  ...timestamps,
+});
+
+export const shippingTimeSlots = pgTable(
+  "shipping_time_slots",
+  {
+    id:              uuid("id").primaryKey().defaultRandom(),
+    methodId:        uuid("method_id").references(() => shippingMethods.id, { onDelete: "cascade" }),
+    label:           varchar("label", { length: 100 }).notNull(),
+    startTime:       varchar("start_time", { length: 5 }).notNull(),
+    endTime:         varchar("end_time", { length: 5 }).notNull(),
+    daysOfWeek:      jsonb("days_of_week").notNull().default([1, 2, 3, 4, 5]).$type<number[]>(),
+    maxCapacity:     integer("max_capacity").notNull().default(0),
+    extraPriceCents: integer("extra_price_cents").notNull().default(0),
+    isActive:        boolean("is_active").notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [index("shipping_time_slots_method_id_idx").on(t.methodId)],
+);
+
+export const shippingBlackoutDates = pgTable(
+  "shipping_blackout_dates",
+  {
+    id:               uuid("id").primaryKey().defaultRandom(),
+    date:             varchar("date", { length: 10 }).notNull(),
+    reason:           varchar("reason", { length: 255 }),
+    affectsMethodIds: jsonb("affects_method_ids").notNull().default([]).$type<string[]>(),
+    isRecurring:      boolean("is_recurring").notNull().default(false),
+    ...timestamps,
+  },
+  (t) => [index("shipping_blackout_dates_date_idx").on(t.date)],
+);
+
+export type ShippingMethod = typeof shippingMethods.$inferSelect;
+export type NewShippingMethod = typeof shippingMethods.$inferInsert;
+export type ShippingZone = typeof shippingZones.$inferSelect;
+export type NewShippingZone = typeof shippingZones.$inferInsert;
+export type ShippingZonePostalRule = typeof shippingZonePostalRules.$inferSelect;
+export type ShippingRule = typeof shippingRules.$inferSelect;
+export type NewShippingRule = typeof shippingRules.$inferInsert;
+export type OrderShippingSnapshot = typeof orderShippingSnapshots.$inferSelect;
+export type ShippingPickupLocation = typeof shippingPickupLocations.$inferSelect;
+export type ShippingTimeSlot = typeof shippingTimeSlots.$inferSelect;
+export type ShippingBlackoutDate = typeof shippingBlackoutDates.$inferSelect;

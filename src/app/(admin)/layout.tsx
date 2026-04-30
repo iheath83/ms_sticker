@@ -33,6 +33,18 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: "Expédition",
+    items: [
+      { href: "/admin/shipping",          label: "Tableau de bord", icon: "📊" },
+      { href: "/admin/shipping/methods",  label: "Méthodes",        icon: "🚚" },
+      { href: "/admin/shipping/zones",    label: "Zones",           icon: "🗺️" },
+      { href: "/admin/shipping/rules",    label: "Règles",          icon: "⚙️" },
+      { href: "/admin/shipping/simulate", label: "Simulateur",      icon: "🧪" },
+      { href: "/admin/shipping/pickup",   label: "Points retrait",  icon: "🏪" },
+      { href: "/admin/shipping/calendar", label: "Dates & Créneaux",icon: "📅" },
+    ],
+  },
+  {
     label: "Configuration",
     items: [
       { href: "/admin/discounts", label: "Réductions", icon: "🏷️" },

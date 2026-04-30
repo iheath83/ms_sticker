@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { orders, orderItems, orderEvents, addresses } from "@/db/schema";
+import { orders, orderItems, orderEvents, addresses, orderShippingSnapshots } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { auth } from "@/lib/auth";
@@ -14,6 +14,7 @@ import { getSiteSettingsQuery } from "@/lib/settings-queries";
 import { calculateDiscounts } from "@/lib/discounts/discount-engine";
 import { recordDiscountUsages } from "@/lib/discount-actions";
 import type { AppliedDiscountSnapshot } from "@/lib/discounts/discount-types";
+import { computeShippingQuote, buildContextFromOrder } from "@/lib/shipping/engine";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,7 +45,9 @@ const shippingSchema = z.object({
   postalCode: z.string().regex(/^\d{5}$/, "Code postal 5 chiffres"),
   city: z.string().min(1, "Ville requise"),
   countryCode: z.string().length(2).default("FR"),
-  deliveryMethod: z.enum(["standard", "express"]).default("standard"),
+  deliveryMethod: z.string().default("standard"),
+  selectedMethodName: z.string().optional(),
+  selectedMethodPriceCents: z.number().int().optional(),
   billing: billingAddressSchema.optional(),
   selectedShippingAddressId: z.string().uuid().optional(),
   // B2B / VAT fields
@@ -165,11 +168,69 @@ export async function submitOrder(
 
   // Recalculate discounts server-side (never trust client totals)
   const shopSettings = await getSiteSettingsQuery();
-  const shippingCents = shipping.deliveryMethod === "express"
-    ? shopSettings.expressShippingCents
-    : order.subtotalCents >= shopSettings.freeShippingThresholdCents
-      ? 0
-      : shopSettings.standardShippingCents;
+
+  // Try to compute shipping via engine; fallback to siteSettings
+  let shippingCents: number;
+  let shippingSnapshot: {
+    selectedMethodId: string;
+    selectedMethodName: string;
+    basePriceCents: number;
+    appliedRules: Record<string, unknown>[];
+    hiddenMethods: Record<string, unknown>[];
+  } | null = null;
+
+  try {
+    const ctx = buildContextFromOrder({
+      subtotalCents: order.subtotalCents,
+      totalDiscountCents: 0,
+      items: items.map((i) => ({
+        productId: i.productId ?? "unknown",
+        variantId: i.variantId,
+        name: "Produit",
+        quantity: i.quantity,
+        lineTotalCents: i.lineTotalCents,
+        weightGrams: i.weightGrams,
+      })),
+      destination: {
+        country: shipping.countryCode,
+        postalCode: shipping.postalCode,
+        city: shipping.city,
+        addressLine1: shipping.line1,
+      },
+      customer: userId ? { id: userId } : null,
+      couponCode: order.discountCode,
+    });
+
+    const quote = await computeShippingQuote(ctx);
+    const selectedMethod = quote.methods.find((m) => m.id === shipping.deliveryMethod)
+      ?? quote.methods[0];
+
+    if (selectedMethod) {
+      shippingCents = Math.round(selectedMethod.price * 100);
+      shippingSnapshot = {
+        selectedMethodId: selectedMethod.id,
+        selectedMethodName: selectedMethod.publicName,
+        basePriceCents: Math.round(selectedMethod.originalPrice * 100),
+        appliedRules: selectedMethod.appliedRules.map((r) => ({ name: r })),
+        hiddenMethods: quote.hiddenMethods.map((h) => ({ id: h.id, reason: h.reason })),
+      };
+    } else {
+      // Fallback to siteSettings if engine returns no methods
+      shippingCents = shipping.deliveryMethod === "express"
+        ? shopSettings.expressShippingCents
+        : order.subtotalCents >= shopSettings.freeShippingThresholdCents
+          ? 0
+          : shopSettings.standardShippingCents;
+    }
+  } catch {
+    // Fallback on engine error
+    shippingCents = shipping.deliveryMethod === "express"
+      ? shopSettings.expressShippingCents
+      : order.subtotalCents >= shopSettings.freeShippingThresholdCents
+        ? 0
+        : shopSettings.standardShippingCents;
+  }
+
   const discountResult = await calculateDiscounts({
     cart: {
       orderId,
@@ -267,6 +328,34 @@ export async function submitOrder(
       updatedAt: new Date(),
     })
     .where(eq(orders.id, orderId));
+
+  // 8b. Persist shipping snapshot
+  if (shippingSnapshot) {
+    try {
+      await db.insert(orderShippingSnapshots).values({
+        orderId,
+        selectedMethodId: shippingSnapshot.selectedMethodId,
+        selectedMethodName: shippingSnapshot.selectedMethodName,
+        basePriceCents: shippingSnapshot.basePriceCents,
+        finalPriceCents: shippingTotalCents,
+        currency: "EUR",
+        appliedRulesJson: shippingSnapshot.appliedRules,
+        hiddenMethodsJson: shippingSnapshot.hiddenMethods,
+        destinationJson: {
+          country: shipping.countryCode,
+          postalCode: shipping.postalCode,
+          city: shipping.city,
+          line1: shipping.line1,
+        } as Record<string, unknown>,
+        cartSnapshotJson: {
+          subtotalCents: order.subtotalCents,
+          totalQuantity: items.reduce((acc, i) => acc + i.quantity, 0),
+        } as Record<string, unknown>,
+      });
+    } catch {
+      // Non-blocking
+    }
+  }
 
   // 9. Record audit event
   await db.insert(orderEvents).values({

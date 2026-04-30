@@ -413,7 +413,7 @@ function AuthWall({ onContinueAsGuest }: { onContinueAsGuest: () => void }) {
 interface FormState {
   email: string; firstName: string; lastName: string;
   address: string; zip: string; city: string; phone: string;
-  delivery: "standard" | "express";
+  delivery: string;
   billingSameAsShipping: boolean;
   billingFirstName: string; billingLastName: string;
   billingAddress: string; billingZip: string; billingCity: string;
@@ -424,6 +424,18 @@ interface FormState {
   countryCode: string;
   vatNumber: string;
   companyName: string;
+}
+
+interface DynamicShippingMethod {
+  id: string;
+  publicName: string;
+  description: string | null;
+  price: number;
+  originalPrice: number;
+  isFree: boolean;
+  badges: string[];
+  minDeliveryDays: number | null;
+  maxDeliveryDays: number | null;
 }
 
 interface FormErrors {
@@ -473,6 +485,64 @@ export function CheckoutClient() {
     isProfessional: false, countryCode: "FR", vatNumber: "", companyName: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+
+  // Dynamic shipping methods from engine
+  const [dynamicMethods, setDynamicMethods] = useState<DynamicShippingMethod[]>([]);
+  const [shippingLoading, setShippingLoading] = useState(false);
+
+  // Fetch shipping methods whenever the address is sufficiently filled
+  useEffect(() => {
+    const zip = form.zip.trim();
+    const country = form.countryCode || "FR";
+    if (zip.length < 5 || !cart?.orderId) return;
+
+    const subtotalAfterDiscountVal = Math.max(0, cart.subtotalCents / 100 - (cart.discountCents ?? 0) / 100);
+
+    setShippingLoading(true);
+    const controller = new AbortController();
+
+    fetch("/api/shipping/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        cart: {
+          currency: "EUR",
+          subtotal: subtotalAfterDiscountVal,
+          totalDiscount: (cart.discountCents ?? 0) / 100,
+          totalQuantity: cart.itemCount,
+          items: cart.items.map((i) => ({
+            productId: i.id,
+            name: i.productName ?? "Produit",
+            quantity: i.quantity,
+            unitPrice: i.lineTotalCents / 100 / i.quantity,
+            requiresShipping: true,
+          })),
+        },
+        destination: {
+          country,
+          postalCode: zip,
+          city: form.city || undefined,
+        },
+        customer: session?.user ? { id: session.user.id, email: session.user.email, isB2B: form.isProfessional } : undefined,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data: { methods?: DynamicShippingMethod[]; success?: boolean }) => {
+        if (data.methods && data.methods.length > 0) {
+          setDynamicMethods(data.methods);
+          // Auto-select first method if current selection is invalid
+          setForm((f) => {
+            const valid = data.methods!.some((m) => m.id === f.delivery);
+            return valid ? f : { ...f, delivery: data.methods![0]!.id };
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setShippingLoading(false));
+
+    return () => controller.abort();
+  }, [form.zip, form.countryCode, form.isProfessional, cart?.subtotalCents, cart?.discountCents]);
   const [processing, setProcessing] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
 
@@ -499,8 +569,12 @@ export function CheckoutClient() {
   const subTotalAfterDiscount = Math.max(0, subTotal - discountEuros);
   const freeThreshold = shopSettings.freeShippingThresholdCents / 100;
   const stdShipping = shopSettings.standardShippingCents / 100;
-  const exprShipping = shopSettings.expressShippingCents / 100;
-  const shippingBase = form.delivery === "express" ? exprShipping : subTotalAfterDiscount >= freeThreshold ? 0 : stdShipping;
+
+  // Use dynamic method price if available, else fallback to siteSettings
+  const selectedDynamicMethod = dynamicMethods.find((m) => m.id === form.delivery);
+  const shippingBase = selectedDynamicMethod
+    ? selectedDynamicMethod.price
+    : (subTotalAfterDiscount >= freeThreshold ? 0 : stdShipping);
   const shippingWithVat = shippingBase * (1 + effectiveVatRate);
   const vatAmount = subTotalAfterDiscount * effectiveVatRate;
   const total = subTotalAfterDiscount + vatAmount + shippingWithVat;
@@ -847,10 +921,41 @@ export function CheckoutClient() {
 
                   <div style={{ marginTop: 24 }}>
                     <label style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--grey-600)", marginBottom: 8, display: "block" }}>Mode de livraison</label>
-                    <div style={{ display: "grid", gap: 10 }}>
-                      <DeliveryOption active={form.delivery === "standard"} onClick={() => upd("delivery", "standard")} icon={<TruckIcon />} title="Colissimo standard" sub="2-3 jours ouvrés · suivi" price={subTotalAfterDiscount >= freeThreshold ? "OFFERT" : `${stdShipping.toFixed(2).replace(".", ",")} €`} />
-                      <DeliveryOption active={form.delivery === "express"} onClick={() => upd("delivery", "express")} icon={<SparklesIcon />} title="Chronopost Express" sub="Demain avant 13h" price={`${exprShipping.toFixed(2).replace(".", ",")} €`} />
-                    </div>
+                    {shippingLoading && (
+                      <div style={{ fontSize: 13, color: "var(--grey-600)", padding: "12px 0" }}>Calcul des frais de livraison…</div>
+                    )}
+                    {!shippingLoading && dynamicMethods.length > 0 && (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {dynamicMethods.map((m) => {
+                          const days = m.minDeliveryDays !== null && m.maxDeliveryDays !== null
+                            ? `${m.minDeliveryDays}–${m.maxDeliveryDays} jours ouvrés`
+                            : m.description ?? "";
+                          const priceLabel = m.isFree ? "OFFERT" : `${m.price.toFixed(2).replace(".", ",")} €`;
+                          const icon = m.publicName.toLowerCase().includes("express") || m.publicName.toLowerCase().includes("chrono")
+                            ? <SparklesIcon />
+                            : <TruckIcon />;
+                          return (
+                            <DeliveryOption
+                              key={m.id}
+                              active={form.delivery === m.id}
+                              onClick={() => upd("delivery", m.id)}
+                              icon={icon}
+                              title={m.publicName}
+                              sub={days}
+                              price={priceLabel}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+                    {!shippingLoading && dynamicMethods.length === 0 && form.zip.length >= 5 && (
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <DeliveryOption active={form.delivery === "standard"} onClick={() => upd("delivery", "standard")} icon={<TruckIcon />} title="Livraison standard" sub="3–5 jours ouvrés" price={subTotalAfterDiscount >= freeThreshold ? "OFFERT" : `${stdShipping.toFixed(2).replace(".", ",")} €`} />
+                      </div>
+                    )}
+                    {!shippingLoading && dynamicMethods.length === 0 && form.zip.length < 5 && (
+                      <div style={{ fontSize: 13, color: "var(--grey-600)", padding: "12px 0" }}>Saisissez votre code postal pour voir les options de livraison.</div>
+                    )}
                   </div>
                 </FormCard>
 
