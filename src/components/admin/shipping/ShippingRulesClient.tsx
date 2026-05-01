@@ -6,6 +6,7 @@ import {
   AdminEmptyState, StatusBadge, PrimaryBtn, SecondaryBtn, DangerBtn, T,
 } from "@/components/admin/admin-ui";
 import type { ShippingRuleDB, ShippingRuleCondition, ShippingRuleAction, ShippingConditionGroup } from "@/lib/shipping/types";
+import { PostalCodeSearch } from "./PostalCodeSearch";
 
 // ─── Templates ────────────────────────────────────────────────────────────────
 
@@ -24,7 +25,7 @@ const RULE_TEMPLATES = [
     rule: {
       name: "Surcharge Corse",
       priority: 50,
-      conditionRoot: { id: "root", logic: "AND", conditions: [{ id: "c1", field: "destination.postalCode", operator: "starts_with", value: "20" }], groups: [] },
+      conditionRoot: { id: "root", logic: "AND", conditions: [{ id: "c1", field: "destination.postalCode", operator: "matches_postal_rules", value: "2A*\n2B*\n20000-20999" }], groups: [] },
       actions: [{ id: "a1", type: "add_fixed", value: 12 }],
     },
   },
@@ -87,9 +88,13 @@ const OPERATORS = [
   { value: "starts_with", label: "commence par" },
   { value: "contains", label: "contient" },
   { value: "in", label: "dans la liste" },
+  { value: "matches_postal_rules", label: "correspond aux codes postaux" },
   { value: "is_true", label: "est vrai" },
   { value: "is_false", label: "est faux" },
 ];
+
+/** Fields for which the postal rule editor should be shown */
+const POSTAL_CODE_FIELDS = ["destination.postalCode"];
 
 const ACTION_TYPES = [
   { value: "set_free", label: "Rendre gratuit" },
@@ -307,47 +312,83 @@ export function ShippingRulesClient({ initial }: { initial: ShippingRuleDB[] }) 
                 <span>sont remplies :</span>
               </div>
 
-              {form.conditionRoot.conditions.map((cond, idx) => (
-                <div key={cond.id} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                  <select
-                    value={cond.field}
-                    onChange={(e) => {
-                      const newConds = [...form.conditionRoot.conditions];
-                      newConds[idx] = { ...cond, field: e.target.value as ShippingRuleCondition["field"] };
-                      setForm((f) => ({ ...f, conditionRoot: { ...f.conditionRoot, conditions: newConds } }));
-                    }}
-                    style={selectStyle}
-                  >
-                    {CONDITION_FIELDS.map((cf) => <option key={cf.value} value={cf.value}>{cf.label}</option>)}
-                  </select>
-                  <select
-                    value={cond.operator}
-                    onChange={(e) => {
-                      const newConds = [...form.conditionRoot.conditions];
-                      newConds[idx] = { ...cond, operator: e.target.value as ShippingRuleCondition["operator"] };
-                      setForm((f) => ({ ...f, conditionRoot: { ...f.conditionRoot, conditions: newConds } }));
-                    }}
-                    style={{ ...selectStyle, width: 180 }}
-                  >
-                    {OPERATORS.map((op) => <option key={op.value} value={op.value}>{op.label}</option>)}
-                  </select>
-                  <input
-                    value={String(cond.value ?? "")}
-                    onChange={(e) => {
-                      const newConds = [...form.conditionRoot.conditions];
-                      const val = isNaN(Number(e.target.value)) ? e.target.value : Number(e.target.value);
-                      newConds[idx] = { ...cond, value: val };
-                      setForm((f) => ({ ...f, conditionRoot: { ...f.conditionRoot, conditions: newConds } }));
-                    }}
-                    placeholder="Valeur"
-                    style={{ ...inputStyle, width: 120 }}
-                  />
-                  <button onClick={() => {
-                    const newConds = form.conditionRoot.conditions.filter((_, i) => i !== idx);
-                    setForm((f) => ({ ...f, conditionRoot: { ...f.conditionRoot, conditions: newConds } }));
-                  }} style={{ padding: "4px 8px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, cursor: "pointer", color: T.danger, fontSize: 12 }}>✕</button>
-                </div>
-              ))}
+              {form.conditionRoot.conditions.map((cond, idx) => {
+                const isPostalField = POSTAL_CODE_FIELDS.includes(cond.field);
+                const isPostalOp = cond.operator === "matches_postal_rules";
+
+                function updateCond(patch: Partial<ShippingRuleCondition>) {
+                  const newConds = [...form.conditionRoot.conditions];
+                  newConds[idx] = { ...cond, ...patch };
+                  setForm((f) => ({ ...f, conditionRoot: { ...f.conditionRoot, conditions: newConds } }));
+                }
+
+                return (
+                    <div key={cond.id} style={{ marginBottom: 12, background: "#f8fafc", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, padding: "10px 12px" }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: isPostalOp ? 10 : 0 }}>
+                      {/* Field selector */}
+                      <select
+                        value={cond.field}
+                        onChange={(e) => {
+                          const newField = e.target.value as ShippingRuleCondition["field"];
+                          const newOp = POSTAL_CODE_FIELDS.includes(newField) ? "matches_postal_rules" : "equals";
+                          updateCond({ field: newField, operator: newOp as ShippingRuleCondition["operator"], value: "" });
+                        }}
+                        style={selectStyle}
+                      >
+                        {CONDITION_FIELDS.map((cf) => <option key={cf.value} value={cf.value}>{cf.label}</option>)}
+                      </select>
+
+                      {/* Operator selector — hidden for postal (always matches_postal_rules) */}
+                      {!isPostalField && (
+                        <select
+                          value={cond.operator}
+                          onChange={(e) => updateCond({ operator: e.target.value as ShippingRuleCondition["operator"] })}
+                          style={{ ...selectStyle, width: 180 }}
+                        >
+                          {OPERATORS.filter((op) => op.value !== "matches_postal_rules").map((op) => (
+                            <option key={op.value} value={op.value}>{op.label}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      {/* Value input — only for non-postal simple conditions */}
+                      {!isPostalOp && (
+                        <input
+                          value={String(cond.value ?? "")}
+                          onChange={(e) => {
+                            const val = isNaN(Number(e.target.value)) || e.target.value === "" ? e.target.value : Number(e.target.value);
+                            updateCond({ value: val });
+                          }}
+                          placeholder="Valeur"
+                          style={{ ...inputStyle, width: 120 }}
+                        />
+                      )}
+
+                      <button
+                        onClick={() => {
+                          const newConds = form.conditionRoot.conditions.filter((_, i) => i !== idx);
+                          setForm((f) => ({ ...f, conditionRoot: { ...f.conditionRoot, conditions: newConds } }));
+                        }}
+                        style={{ padding: "4px 8px", background: "transparent", border: `1px solid ${T.border}`, borderRadius: T.radiusSm, cursor: "pointer", color: T.danger, fontSize: 12, flexShrink: 0 }}
+                      >✕</button>
+                    </div>
+
+                    {/* Postal code rule editor */}
+                    {isPostalOp && (
+                      <div style={{ marginTop: 4 }}>
+                        <div style={{ fontSize: 11, color: T.textSecondary, marginBottom: 6 }}>
+                          <strong>Codes postaux correspondants</strong> — recherchez une commune ou saisissez manuellement
+                        </div>
+                        <PostalCodeSearch
+                          value={String(cond.value ?? "")}
+                          onChange={(v) => updateCond({ value: v })}
+                          countries={["FR"]}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <SecondaryBtn onClick={() => setForm((f) => ({ ...f, conditionRoot: { ...f.conditionRoot, conditions: [...f.conditionRoot.conditions, newCondition()] } }))}>+ Condition</SecondaryBtn>
             </div>
 

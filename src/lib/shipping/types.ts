@@ -133,6 +133,7 @@ export type ShippingRuleOperator =
   | "starts_with"
   | "ends_with"
   | "matches_regex"
+  | "matches_postal_rules"
   | "is_true"
   | "is_false";
 

@@ -4,6 +4,8 @@ import type {
   ShippingConditionGroup,
   ConditionDebug,
 } from "./types";
+import { postalCodeMatchesRules } from "./postal-codes";
+import { parsePostalRulesText } from "./postal-rules-parser";
 
 // ─── Operator evaluation ──────────────────────────────────────────────────────
 
@@ -124,6 +126,15 @@ function evaluateCondition(
   condition: ShippingRuleCondition,
 ): { matched: boolean; actual: unknown } {
   const rawActual = resolveField(ctx, condition.field);
+
+  // Special operator: postal code rule set (multiline format)
+  if (condition.operator === "matches_postal_rules") {
+    const rulesText = String(condition.value ?? "");
+    const rules = parsePostalRulesText(rulesText);
+    const postalCode = String(rawActual ?? "");
+    const matched = postalCodeMatchesRules(postalCode, rules);
+    return { matched, actual: postalCode };
+  }
 
   // Some fields return a function (dynamic lookup with condition value)
   if (typeof rawActual === "function") {

@@ -9,6 +9,7 @@ import { postalCodeMatchesRules } from "@/lib/shipping/postal-codes";
 import type { PostalCodeRule } from "@/lib/shipping/types";
 import { CountryPicker, COUNTRIES } from "./CountryPicker";
 import { PostalCodeSearch } from "./PostalCodeSearch";
+import { parsePostalRulesText, postalRulesToText } from "@/lib/shipping/postal-rules-parser";
 
 function CountryFlags({ codes }: { codes: string[] }) {
   if (codes.length === 0) return <span style={{ color: T.textSecondary }}>—</span>;
@@ -52,45 +53,6 @@ const emptyForm: ZoneFormState = {
   isActive: true, postalRulesText: "",
 };
 
-function parsePostalRulesText(text: string): PostalCodeRule[] {
-  return text.split("\n").map((line) => line.trim()).filter(Boolean).map((line, i) => {
-    if (line.startsWith("!")) {
-      const inner = line.slice(1).trim();
-      // !from-to → exclude range
-      if (inner.includes("-")) {
-        const parts = inner.split("-").map((s) => s.trim());
-        const from = parts[0] ?? inner;
-        const to = parts[1] ?? inner;
-        return { id: String(i), type: "exclude" as const, value: from, fromValue: from, toValue: to } satisfies PostalCodeRule;
-      }
-      // !prefix* → exclude prefix
-      if (inner.endsWith("*")) {
-        return { id: String(i), type: "exclude" as const, value: inner.slice(0, -1) } satisfies PostalCodeRule;
-      }
-      return { id: String(i), type: "exclude" as const, value: inner } satisfies PostalCodeRule;
-    }
-    if (line.includes("-")) {
-      const parts = line.split("-").map((s) => s.trim());
-      const from = parts[0] ?? line;
-      const to = parts[1] ?? line;
-      return { id: String(i), type: "range" as const, value: from, fromValue: from, toValue: to } satisfies PostalCodeRule;
-    }
-    if (line.endsWith("*")) return { id: String(i), type: "prefix" as const, value: line.slice(0, -1) } satisfies PostalCodeRule;
-    return { id: String(i), type: "exact" as const, value: line } satisfies PostalCodeRule;
-  });
-}
-
-function postalRulesToText(rules: ZoneRow["postalRules"]): string {
-  return rules.map((r) => {
-    if (r.type === "exclude") {
-      if (r.fromValue && r.toValue) return `!${r.fromValue}-${r.toValue}`;
-      return `!${r.value}`;
-    }
-    if (r.type === "prefix") return `${r.value}*`;
-    if (r.type === "range") return `${r.fromValue ?? r.value}-${r.toValue ?? r.value}`;
-    return r.value;
-  }).join("\n");
-}
 
 export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
   const [zones, setZones] = useState<ZoneRow[]>(initial);
