@@ -148,10 +148,10 @@ export interface CustomerOrderDetail {
   items: Array<{
     id: string;
     quantity: number;
-    widthMm: number;
-    heightMm: number;
-    shape: string;
-    finish: string;
+    widthMm: number | null;
+    heightMm: number | null;
+    shape: string | null;
+    finish: string | null;
     options: unknown;
     unitPriceCents: number;
     lineTotalCents: number;

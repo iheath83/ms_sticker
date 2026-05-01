@@ -3,325 +3,223 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { deleteProduct, duplicateProduct } from "@/lib/product-catalog-actions";
-import {
-  AdminTableWrapper,
-  AdminTableHead,
-  AdminEmptyState,
-  StatusBadge,
-  SecondaryBtn,
-  DangerBtn,
-  T,
-} from "@/components/admin/admin-ui";
+import { softDeleteProduct, duplicateProduct } from "@/lib/product-actions";
+import { T } from "@/components/admin/admin-ui";
 
 type ProductRow = {
   id: string;
-  name: string;
   slug: string;
-  imageUrl: string | null;
-  active: boolean;
-  requiresCustomization: boolean;
-  categoryId: string | null;
-  categoryName: string | null;
-  variantCount: number;
-  priceMinFormatted: string;
-  priceMaxFormatted: string;
+  name: string;
+  tagline: string | null | undefined;
+  imageUrl: string | null | undefined;
+  productFamily: string;
+  status: string;
+  sortOrder: number;
+  sku: string | null | undefined;
+  createdAt: Date;
 };
 
-type Category = { id: string; name: string };
+const STATUS_LABELS: Record<string, { label: string; bg: string; color: string }> = {
+  active: { label: "Actif", bg: T.successBg, color: T.success },
+  draft: { label: "Brouillon", bg: T.warningBg, color: T.warning },
+  archived: { label: "Archivé", bg: T.dangerBg, color: T.danger },
+};
 
-export function ProductsListClient({
-  products,
-  categories,
-}: {
-  products: ProductRow[];
-  categories: Category[];
-}) {
+const FAMILY_LABELS: Record<string, string> = {
+  sticker: "Sticker",
+  label: "Étiquette",
+  pack: "Pack",
+  accessory: "Accessoire",
+  other: "Autre",
+};
+
+export function ProductsListClient({ products }: { products: ProductRow[] }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
-  const [filterCat, setFilterCat] = useState<string>("all");
-  const [filterType, setFilterType] = useState<string>("all");
 
-  const filtered = products.filter((p) => {
-    if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterCat !== "all" && p.categoryId !== filterCat) return false;
-    if (filterType === "custom" && !p.requiresCustomization) return false;
-    if (filterType === "direct" && p.requiresCustomization) return false;
-    return true;
-  });
+  const filtered = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(search.toLowerCase()),
+  );
 
-  function handleDelete(id: string, name: string) {
-    if (!confirm(`Supprimer le produit "${name}" ?`)) return;
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Supprimer "${name}" ?`)) return;
     startTransition(async () => {
-      await deleteProduct(id);
+      await softDeleteProduct(id);
       router.refresh();
     });
   }
 
-  function handleDuplicate(id: string) {
+  async function handleDuplicate(id: string) {
     startTransition(async () => {
-      const res = await duplicateProduct(id);
-      if (res.ok) router.push(`/admin/products/${res.data.id}`);
-      else alert(res.error);
+      const copy = await duplicateProduct(id);
+      if (copy) router.push(`/admin/products/${copy.id}`);
     });
   }
 
   return (
-    <div>
-      {/* Filter bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          marginBottom: 16,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        {/* Search */}
-        <div style={{ position: "relative", flex: "1 1 240px" }}>
-          <span
-            style={{
-              position: "absolute",
-              left: 11,
-              top: "50%",
-              transform: "translateY(-50%)",
-              fontSize: 14,
-              color: T.textSecondary,
-            }}
-          >
-            🔍
-          </span>
-          <input
-            type="text"
-            placeholder="Rechercher un produit…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: "8px 12px 8px 32px",
-              borderRadius: T.radius,
-              border: `1.5px solid ${T.border}`,
-              fontSize: 13,
-              width: "100%",
-              background: T.surface,
-              color: T.textPrimary,
-              outline: "none",
-              boxSizing: "border-box",
-            }}
-          />
+    <div style={{ background: T.bg, minHeight: "100vh", padding: "24px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: T.textPrimary }}>Produits</h1>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: T.textSecondary }}>{products.length} produit{products.length !== 1 ? "s" : ""}</p>
         </div>
+        <Link
+          href="/admin/products/new"
+          style={{
+            padding: "10px 20px",
+            borderRadius: T.radiusSm,
+            background: T.brand,
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 14,
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          + Nouveau produit
+        </Link>
+      </div>
 
-        {/* Category chips */}
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {[{ id: "all", label: "Toutes catégories" }, ...categories.map((c) => ({ id: c.id, label: c.name }))].map(
-            (c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setFilterCat(c.id)}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: 99,
-                  border: `1.5px solid ${filterCat === c.id ? T.brand : T.border}`,
-                  background: filterCat === c.id ? T.brand : T.surface,
-                  color: filterCat === c.id ? "#fff" : T.textSecondary,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {c.label}
-              </button>
-            ),
-          )}
-        </div>
-
-        {/* Type chips */}
-        <div style={{ display: "flex", gap: 4 }}>
-          {[
-            { id: "all", label: "Tous" },
-            { id: "custom", label: "Personnalisés" },
-            { id: "direct", label: "Impression directe" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setFilterType(t.id)}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 99,
-                border: `1.5px solid ${filterType === t.id ? "#5B21B6" : T.border}`,
-                background: filterType === t.id ? "#EDE9FE" : T.surface,
-                color: filterType === t.id ? "#5B21B6" : T.textSecondary,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      {/* Search */}
+      <div style={{ marginBottom: 16 }}>
+        <input
+          type="search"
+          placeholder="Rechercher un produit…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: "100%",
+            maxWidth: 400,
+            padding: "9px 14px",
+            border: `1.5px solid ${T.border}`,
+            borderRadius: T.radiusSm,
+            fontSize: 14,
+            background: "#fff",
+            boxSizing: "border-box",
+          }}
+        />
       </div>
 
       {/* Table */}
-      <AdminTableWrapper>
+      <div style={{ background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: T.radius, overflow: "hidden" }}>
         {filtered.length === 0 ? (
-          <AdminEmptyState
-            icon="🏷️"
-            title="Aucun produit trouvé"
-            subtitle="Modifiez les filtres ou créez un nouveau produit."
-          />
+          <div style={{ padding: "48px 24px", textAlign: "center", color: T.textSecondary }}>
+            {search ? "Aucun produit trouvé." : "Aucun produit. Créez votre premier produit."}
+          </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <AdminTableHead cols={["", "Produit", "Catégorie", "Type", "Déclinaisons", "Prix unitaire HT", "Statut", ""]} />
+            <thead>
+              <tr style={{ borderBottom: `1.5px solid ${T.border}` }}>
+                {["Produit", "Famille", "Statut", "SKU", ""].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      padding: "12px 16px",
+                      textAlign: "left",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: T.textSecondary,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
             <tbody>
-              {filtered.map((p, i) => (
-                <tr
-                  key={p.id}
-                  style={{
-                    borderBottom: i < filtered.length - 1 ? `1px solid ${T.borderSubtle}` : "none",
-                    opacity: p.active ? 1 : 0.55,
-                  }}
-                  className="admin-table-row"
-                >
-                  {/* Image */}
-                  <td style={{ padding: "12px 12px 12px 16px", width: 56 }}>
-                    {p.imageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.imageUrl}
-                        alt={p.name}
-                        style={{
-                          width: 44,
-                          height: 44,
-                          objectFit: "cover",
-                          borderRadius: T.radiusSm,
-                          border: `1.5px solid ${T.border}`,
-                        }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: 44,
-                          height: 44,
-                          background: T.bg,
-                          borderRadius: T.radiusSm,
-                          border: `1.5px solid ${T.border}`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 18,
-                        }}
-                      >
-                        🏷️
+              {filtered.map((product, i) => {
+                const status = STATUS_LABELS[product.status] ?? STATUS_LABELS.active!;
+                return (
+                  <tr
+                    key={product.id}
+                    style={{
+                      borderBottom: i < filtered.length - 1 ? `1px solid ${T.borderSubtle}` : "none",
+                      background: i % 2 === 0 ? T.surface : "#FAFBFC",
+                    }}
+                  >
+                    <td style={{ padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt=""
+                            style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", border: `1px solid ${T.border}` }}
+                          />
+                        ) : (
+                          <div style={{ width: 40, height: 40, borderRadius: 6, background: T.bg, border: `1px solid ${T.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>
+                            🏷️
+                          </div>
+                        )}
+                        <div>
+                          <Link
+                            href={`/admin/products/${product.id}`}
+                            style={{ fontWeight: 700, fontSize: 14, color: T.textPrimary, textDecoration: "none" }}
+                          >
+                            {product.name}
+                          </Link>
+                          {product.tagline && (
+                            <div style={{ fontSize: 12, color: T.textSecondary, marginTop: 1 }}>{product.tagline}</div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </td>
-
-                  {/* Name */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: T.textPrimary }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: T.textDisabled, fontFamily: "monospace", marginTop: 2 }}>
-                      {p.slug}
-                    </div>
-                  </td>
-
-                  {/* Category */}
-                  <td style={{ padding: "12px 16px", fontSize: 12, color: T.textSecondary }}>
-                    {p.categoryName ?? <span style={{ color: T.textDisabled }}>—</span>}
-                  </td>
-
-                  {/* Type */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <StatusBadge
-                      label={p.requiresCustomization ? "Personnalisé" : "Impression directe"}
-                      variant={p.requiresCustomization ? "danger" : "info"}
-                      dot={false}
-                    />
-                  </td>
-
-                  {/* Variants */}
-                  <td style={{ padding: "12px 16px", textAlign: "center" }}>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: 26,
-                        height: 26,
-                        borderRadius: "50%",
-                        background: T.brandLight,
-                        color: T.brand,
-                        fontSize: 12,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {p.variantCount}
-                    </span>
-                  </td>
-
-                  {/* Price */}
-                  <td style={{ padding: "12px 16px", fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: T.textPrimary }}>
-                    {(parseFloat(p.priceMinFormatted.replace(/[^\d,]/g, "").replace(",", ".")) / 50).toFixed(4)} €
-                    {p.priceMinFormatted !== p.priceMaxFormatted && (
-                      <span style={{ color: T.textSecondary }}>
-                        {" – "}
-                        {(parseFloat(p.priceMaxFormatted.replace(/[^\d,]/g, "").replace(",", ".")) / 50).toFixed(4)} €
+                    </td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <span style={{ fontSize: 13, color: T.textSecondary }}>{FAMILY_LABELS[product.productFamily] ?? product.productFamily}</span>
+                    </td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <span style={{ padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, background: status.bg, color: status.color }}>
+                        {status.label}
                       </span>
-                    )}
-                  </td>
-
-                  {/* Status */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <StatusBadge
-                      label={p.active ? "Actif" : "Inactif"}
-                      variant={p.active ? "success" : "neutral"}
-                      dot
-                    />
-                  </td>
-
-                  {/* Actions */}
-                  <td style={{ padding: "12px 16px" }}>
-                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                      <Link
-                        href={`/admin/products/${p.id}`}
-                        style={{
-                          padding: "6px 12px",
-                          borderRadius: T.radiusSm,
-                          background: T.brand,
-                          color: "#fff",
-                          fontSize: 12,
-                          fontWeight: 600,
-                          textDecoration: "none",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Éditer
-                      </Link>
-                      <SecondaryBtn
-                        onClick={() => handleDuplicate(p.id)}
-                        disabled={isPending}
-                        style={{ padding: "6px 10px", fontSize: 13 }}
-                      >
-                        ⧉
-                      </SecondaryBtn>
-                      <DangerBtn
-                        onClick={() => handleDelete(p.id, p.name)}
-                        disabled={isPending}
-                        style={{ padding: "6px 10px", fontSize: 13 }}
-                      >
-                        ✕
-                      </DangerBtn>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <span style={{ fontSize: 12, color: T.textSecondary, fontFamily: "monospace" }}>{product.sku ?? "—"}</span>
+                    </td>
+                    <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                        <Link
+                          href={`/products/${product.slug}`}
+                          target="_blank"
+                          style={{ padding: "5px 10px", borderRadius: T.radiusSm, border: `1.5px solid ${T.border}`, background: "#fff", color: T.textSecondary, fontSize: 12, textDecoration: "none" }}
+                        >
+                          ↗
+                        </Link>
+                        <Link
+                          href={`/admin/products/${product.id}`}
+                          style={{ padding: "5px 12px", borderRadius: T.radiusSm, border: `1.5px solid ${T.border}`, background: "#fff", color: T.textPrimary, fontSize: 12, fontWeight: 600, textDecoration: "none" }}
+                        >
+                          Modifier
+                        </Link>
+                        <button
+                          onClick={() => handleDuplicate(product.id)}
+                          disabled={pending}
+                          style={{ padding: "5px 12px", borderRadius: T.radiusSm, border: `1.5px solid ${T.border}`, background: "#fff", color: T.textSecondary, fontSize: 12, cursor: "pointer" }}
+                        >
+                          Dupliquer
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id, product.name)}
+                          disabled={pending}
+                          style={{ padding: "5px 12px", borderRadius: T.radiusSm, border: `1.5px solid ${T.danger}`, background: T.dangerBg, color: T.danger, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}
-      </AdminTableWrapper>
+      </div>
     </div>
   );
 }

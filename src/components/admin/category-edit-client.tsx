@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createCategory, updateCategory } from "@/lib/product-catalog-actions";
+import { createCategory, updateCategory } from "@/lib/category-actions";
 import { AdminImageUpload } from "@/components/admin/admin-image-upload";
 
 type CategoryData = {
@@ -82,19 +82,17 @@ export function CategoryEditClient({
         sortOrder: parseInt(sortOrder) || 0,
         active,
       };
-      const res = isNew
-        ? await createCategory(input)
-        : await updateCategory(category.id, input);
-
-      if (res.ok) {
+      try {
         if (isNew) {
+          await createCategory(input);
           router.push("/admin/categories");
         } else {
+          await updateCategory(category.id, input);
           setSuccess(true);
           router.refresh();
         }
-      } else {
-        setError(res.error);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erreur lors de la sauvegarde");
       }
     });
   }

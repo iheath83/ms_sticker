@@ -1,13 +1,9 @@
 import { notFound } from "next/navigation";
-import { getActiveProductsWithVariants, getProductWithVariants } from "@/lib/products";
-import { materialToPreview } from "@/lib/product-utils";
-import { ProductConfigurator } from "@/components/shop/configurator/product-configurator";
-import { ProductDirectTemplate } from "@/components/shop/product-direct-template";
+import { getActiveProducts, getProductBySlug } from "@/lib/products";
+import { getStickerCatalogForProduct } from "@/lib/sticker-catalog-actions";
 import { StickerConfigurator } from "@/components/shop/sticker-configurator";
-import { QUANTITY_TIERS, type PricingTier, type PricingFinish, type PricingSize, type CustomPreset } from "@/lib/pricing";
 import { ProductRatingSummary } from "@/components/reviews/ProductRatingSummary";
 import { ProductReviews } from "@/components/reviews/ProductReviews";
-import { getStickerCatalogForProduct } from "@/lib/sticker-catalog-actions";
 import { db } from "@/db";
 import { reviewAggregates } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -19,10 +15,9 @@ interface Props {
 
 export async function generateStaticParams() {
   try {
-    const products = await getActiveProductsWithVariants();
+    const products = await getActiveProducts();
     return products.map((p) => ({ slug: p.slug }));
   } catch {
-    // DB not available at build time — pages rendered on demand at runtime
     return [];
   }
 }
@@ -31,14 +26,16 @@ export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProductWithVariants(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return {};
-  const tagline = product.tagline;
   const desc = product.description?.split("\n").find((l) => l.trim() && !l.startsWith("#"))?.trim();
-
   return {
     title: `${product.name} — MS Adhésif`,
-    description: tagline ?? desc,
+    description: product.seoDescription ?? product.tagline ?? desc,
+    ...(product.seoTitle ? { title: product.seoTitle } : {}),
+    openGraph: {
+      images: product.imageUrl ? [product.imageUrl] : [],
+    },
   };
 }
 
@@ -56,10 +53,13 @@ async function getProductAggregate(productId: string) {
 
 export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
-  const product = await getProductWithVariants(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const aggregate = await getProductAggregate(product.id);
+  const [aggregate, stickerCatalog] = await Promise.all([
+    getProductAggregate(product.id),
+    getStickerCatalogForProduct(product.id),
+  ]);
 
   const appUrl = (process.env.APP_URL ?? "https://msadhesif.fr").replace(/\/$/, "");
   const productSchema: Record<string, unknown> = {
@@ -73,12 +73,7 @@ export default async function ProductPage({ params }: Props) {
     ...(product.mpn ? { mpn: product.mpn } : {}),
     ...(product.imageUrl ? { image: product.imageUrl } : {}),
     ...(product.description
-      ? {
-          description: product.description
-            .split("\n")
-            .find((l) => l.trim() && !l.startsWith("#"))
-            ?.trim(),
-        }
+      ? { description: product.description.split("\n").find((l) => l.trim() && !l.startsWith("#"))?.trim() }
       : {}),
     ...(aggregate
       ? {
@@ -94,155 +89,45 @@ export default async function ProductPage({ params }: Props) {
   };
   const jsonLd = JSON.stringify(productSchema);
 
-  // ── New sticker configurator system ───────────────────────────────────────
-  const stickerCatalog = await getStickerCatalogForProduct(product.id);
-  if (stickerCatalog) {
-    const { config, shapes, sizes, materials, laminations, cutTypes } = stickerCatalog;
-    return (
-      <>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 0" }}>
-          <h1 style={{ fontFamily: "var(--font-archivo, system-ui)", fontSize: 36, fontWeight: 900, color: "#0A0E27", margin: "0 0 8px" }}>
-            {product.name}
-          </h1>
-          {product.tagline && (
-            <p style={{ fontSize: 16, color: "#6B7280", margin: "0 0 24px" }}>{product.tagline}</p>
-          )}
-        </div>
-        <StickerConfigurator
-          productId={product.id}
-          productName={product.name}
-          {...(product.imageUrl ? { imageUrl: product.imageUrl } : {})}
-          config={config}
-          shapes={shapes}
-          sizes={sizes}
-          materials={materials}
-          laminations={laminations}
-          cutTypes={cutTypes}
-        />
-        {product.reviewsEnabled && (
-          <div className="max-w-4xl mx-auto px-4 pb-16">
-            <ProductRatingSummary productId={product.id} />
-            <ProductReviews productId={product.id} />
-          </div>
-        )}
-      </>
-    );
-  }
-
-  // ── Non-customizable products get a simpler template ──────────────────────
-  if (!product.requiresCustomization) {
-    return (
-      <>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
-        <ProductDirectTemplate product={product} variants={product.variants} />
-        {product.reviewsEnabled && (
-          <div className="max-w-4xl mx-auto px-4 pb-16">
-            <ProductRatingSummary productId={product.id} />
-            <ProductReviews productId={product.id} />
-          </div>
-        )}
-      </>
-    );
-  }
-
-  // ── Customizable products: existing configurator ───────────────────────────
-  // Fall back to legacy product fields if no variants (should not happen after migration)
-  const variants = product.variants;
-  const primaryVariant = variants[0];
-
-  const defaultMaterial = primaryVariant
-    ? materialToPreview(primaryVariant.material)
-    : materialToPreview(product.material);
-
-  const defaultShape = primaryVariant
-    ? ((primaryVariant.shapes?.[0] ?? "die-cut") as "die-cut" | "circle" | "square" | "rectangle")
-    : ((product.shapes?.[0] ?? "die-cut") as "die-cut" | "circle" | "square" | "rectangle");
-
-  // For backward compat: if no variants exist, read from products.options
-  const opts = (product.options ?? {}) as Record<string, unknown>;
-
-  // Build features, tagline
-  const features =
-    product.features?.length
-      ? product.features
-      : Array.isArray(opts.features)
-      ? (opts.features as string[])
-      : undefined;
-  const tagline = product.tagline ?? (typeof opts.tagline === "string" ? opts.tagline : undefined);
-
-  // Use primary variant data if available, otherwise fall back to legacy product fields
-  const pricingTiers: ReadonlyArray<PricingTier> = primaryVariant?.tiers?.length
-    ? (primaryVariant.tiers as PricingTier[])
-    : Array.isArray(opts.tiers)
-    ? (opts.tiers as PricingTier[])
-    : QUANTITY_TIERS;
-
-  const allFinishes: PricingFinish[] = ["gloss", "matte", "uv-laminated"];
-  const availableFinishes: PricingFinish[] = primaryVariant?.availableFinishes?.length
-    ? (primaryVariant.availableFinishes as PricingFinish[]).filter((f) => allFinishes.includes(f))
-    : Array.isArray(opts.availableFinishes)
-    ? (opts.availableFinishes as PricingFinish[]).filter((f) => allFinishes.includes(f))
-    : allFinishes;
-
-  const allSizes: PricingSize[] = ["2x2", "3x3", "4x4", "5x5", "7x7", "custom"];
-  const availableSizes: PricingSize[] = Array.isArray(opts.availableSizes)
-    ? (opts.availableSizes as PricingSize[]).filter((s) => allSizes.includes(s))
-    : allSizes;
-
-  const sizePrices: Record<string, number> = primaryVariant?.sizePrices
-    ? (primaryVariant.sizePrices as Record<string, number>)
-    : opts.sizePrices !== null && typeof opts.sizePrices === "object" && !Array.isArray(opts.sizePrices)
-    ? (opts.sizePrices as Record<string, number>)
-    : {};
-
-  const customPresets: CustomPreset[] = primaryVariant?.customPresets?.length
-    ? (primaryVariant.customPresets as CustomPreset[]).filter(
-        (p) => p.id && p.label && typeof p.widthMm === "number" && typeof p.heightMm === "number",
-      )
-    : Array.isArray(opts.customPresets)
-    ? (opts.customPresets as CustomPreset[]).filter(
-        (p) => p.id && p.label && typeof p.widthMm === "number" && typeof p.heightMm === "number",
-      )
-    : [];
-
-  const minQty = primaryVariant?.minQty ?? product.minQty ?? 1;
-
-  // Build product list for material switcher (other variants of this product + all active products)
-  // Each variant maps to a "product-like" object for the configurator
-  const allActiveProducts = await getActiveProductsWithVariants();
-
-  // Available materials from variants
-  const availableMaterials: string[] = variants.length
-    ? [...new Set(variants.map((v) => v.material))]
-    : Array.isArray(opts.availableMaterials)
-    ? (opts.availableMaterials as string[])
-    : allActiveProducts.map((p) => p.material);
-
-  const filteredProducts = allActiveProducts.filter((p) =>
-    availableMaterials.includes(p.material),
-  );
-
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
-      <ProductConfigurator
-        products={filteredProducts.length > 0 ? filteredProducts : allActiveProducts}
-        defaultMaterial={defaultMaterial}
-        defaultShape={defaultShape}
-        productName={product.name}
-        description={tagline ?? product.description ?? undefined}
-        imageUrl={product.imageUrl ?? undefined}
-        features={features}
-        pricingTiers={pricingTiers}
-        availableFinishes={availableFinishes.length > 0 ? availableFinishes : allFinishes}
-        availableSizes={availableSizes.length > 0 ? availableSizes : allSizes}
-        minQty={minQty}
-        sizePrices={sizePrices}
-        customPresets={customPresets}
-      />
+      {stickerCatalog ? (
+        <>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 0" }}>
+            <h1 style={{ fontFamily: "var(--font-archivo, system-ui)", fontSize: 36, fontWeight: 900, color: "#0A0E27", margin: "0 0 8px" }}>
+              {product.name}
+            </h1>
+            {product.tagline && (
+              <p style={{ fontSize: 16, color: "#6B7280", margin: "0 0 24px" }}>{product.tagline}</p>
+            )}
+          </div>
+          <StickerConfigurator
+            productId={product.id}
+            productName={product.name}
+            {...(product.imageUrl ? { imageUrl: product.imageUrl } : {})}
+            config={stickerCatalog.config}
+            shapes={stickerCatalog.shapes}
+            sizes={stickerCatalog.sizes}
+            materials={stickerCatalog.materials}
+            laminations={stickerCatalog.laminations}
+            cutTypes={stickerCatalog.cutTypes}
+          />
+        </>
+      ) : (
+        <div style={{ maxWidth: 900, margin: "80px auto", padding: "0 24px", textAlign: "center" }}>
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: "#0A0E27", marginBottom: 16 }}>{product.name}</h1>
+          {product.tagline && <p style={{ fontSize: 18, color: "#6B7280", marginBottom: 24 }}>{product.tagline}</p>}
+          {product.description && (
+            <div style={{ fontSize: 15, color: "#374151", lineHeight: 1.7, textAlign: "left", maxWidth: 640, margin: "0 auto 40px", whiteSpace: "pre-wrap" }}>
+              {product.description}
+            </div>
+          )}
+          <p style={{ color: "#9CA3AF", fontSize: 14 }}>Ce produit n'a pas encore de configurateur actif. Revenez bientôt.</p>
+        </div>
+      )}
       {product.reviewsEnabled && (
-        <div className="max-w-4xl mx-auto px-4 pb-16">
+        <div className="max-w-4xl mx-auto px-4 pb-16 mt-12">
           <ProductRatingSummary productId={product.id} />
           <ProductReviews productId={product.id} />
         </div>

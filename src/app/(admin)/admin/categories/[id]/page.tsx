@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCategoryById, getCategories } from "@/lib/product-catalog-actions";
+import { getCategoryById, getCategories } from "@/lib/category-actions";
 import { CategoryEditClient } from "@/components/admin/category-edit-client";
 
 export default async function CategoryEditPage({ params }: { params: Promise<{ id: string }> }) {

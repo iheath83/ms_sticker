@@ -185,11 +185,10 @@ export async function submitOrder(
       totalDiscountCents: 0,
       items: items.map((i) => ({
         productId: i.productId ?? "unknown",
-        variantId: i.variantId,
         name: "Produit",
         quantity: i.quantity,
         lineTotalCents: i.lineTotalCents,
-        weightGrams: i.weightGrams,
+        weightGrams: 100,
       })),
       destination: {
         country: shipping.countryCode,

@@ -1,15 +1,11 @@
-import { getCategories, getActiveOptionValues } from "@/lib/product-catalog-actions";
+import { db } from "@/db";
+import { categories } from "@/db/schema";
+import { asc } from "drizzle-orm";
 import { ProductNewClient } from "@/components/admin/product-new-client";
 
+export const metadata = { title: "Nouveau produit — Admin" };
+
 export default async function AdminProductNewPage() {
-  const [categories, materials] = await Promise.all([
-    getCategories(),
-    getActiveOptionValues("material"),
-  ]);
-  return (
-    <ProductNewClient
-      categories={categories.map((c) => ({ id: c.id, name: c.name }))}
-      materials={materials.map((m) => ({ slug: m.slug, label: m.label }))}
-    />
-  );
+  const cats = await db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name));
+  return <ProductNewClient categories={cats} />;
 }

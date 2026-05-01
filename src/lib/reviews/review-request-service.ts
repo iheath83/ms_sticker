@@ -67,7 +67,7 @@ export async function createReviewRequestForOrder(orderId: string): Promise<{ ra
 
   // Create items for each product in the order
   const items = await db
-    .select({ id: orderItems.id, productId: orderItems.productId, variantId: orderItems.variantId })
+    .select({ id: orderItems.id, productId: orderItems.productId })
     .from(orderItems)
     .where(eq(orderItems.orderId, orderId));
 
@@ -86,7 +86,6 @@ export async function createReviewRequestForOrder(orderId: string): Promise<{ ra
       .map((i) => ({
         reviewRequestId: request.id,
         productId: i.productId,
-        productVariantId: i.variantId,
         orderItemId: i.id,
         status: "pending" as const,
       }));

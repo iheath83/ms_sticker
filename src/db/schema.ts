@@ -15,7 +15,6 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import type { EmailBlock } from "@/lib/email-blocks";
-import type { PricingTier, CustomPreset } from "@/lib/pricing";
 import type { AppliedDiscountSnapshot, DiscountConditions, DiscountCombinationRules, DiscountEligibility } from "@/lib/discounts/discount-types";
 
 // ─── Timestamps helper ───────────────────────────────────────────────────────
@@ -204,32 +203,22 @@ export const products = pgTable(
   "products",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    // New Shopify-like fields
-    categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
-    tagline: varchar("tagline", { length: 500 }),
-    features: text("features").array(),
-    images: jsonb("images").$type<string[]>().default([]),
-    requiresCustomization: boolean("requires_customization").notNull().default(true),
-    productFamily: varchar("product_family", { length: 50 }).notNull().default("sticker"),
-    // Original fields (kept for backward compat during migration)
     slug: varchar("slug", { length: 100 }).notNull().unique(),
     name: varchar("name", { length: 255 }).notNull(),
-    description: text("description"), // Markdown
-    basePriceCents: integer("base_price_cents").notNull(), // price for 50 units at 5×5cm
-    material: varchar("material", { length: 50 }).notNull(), // vinyl | holographic | glitter | transparent
-    minWidthMm: integer("min_width_mm").notNull().default(20),
-    maxWidthMm: integer("max_width_mm").notNull().default(300),
-    minHeightMm: integer("min_height_mm").notNull().default(20),
-    maxHeightMm: integer("max_height_mm").notNull().default(300),
-    shapes: text("shapes").array().notNull().default(["die-cut", "circle", "square"]),
-    imageUrl: text("image_url"), // main product photo / hero image
-    minQty: integer("min_qty").notNull().default(1),
-    options: jsonb("options").default({}), // { holographic, glitter, uvLaminated, tiers, tagline, features, availableFinishes, availableSizes, availableMaterials }
-    sku:            varchar("sku", { length: 100 }),
-    gtin:           varchar("gtin", { length: 50 }),
-    mpn:            varchar("mpn", { length: 100 }),
-    brand:          varchar("brand", { length: 255 }).notNull().default("MS Adhésif"),
-    active: boolean("active").notNull().default(true),
+    description: text("description"),
+    tagline: varchar("tagline", { length: 500 }),
+    features: text("features").array(),
+    imageUrl: text("image_url"),
+    images: jsonb("images").$type<string[]>().default([]),
+    categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    productFamily: varchar("product_family", { length: 50 }).notNull().default("sticker"),
+    status: varchar("status", { length: 20 }).notNull().default("active"),
+    sku: varchar("sku", { length: 100 }),
+    gtin: varchar("gtin", { length: 50 }),
+    mpn: varchar("mpn", { length: 100 }),
+    brand: varchar("brand", { length: 255 }).notNull().default("MS Adhésif"),
+    seoTitle: varchar("seo_title", { length: 255 }),
+    seoDescription: text("seo_description"),
     reviewsEnabled: boolean("reviews_enabled").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -238,41 +227,7 @@ export const products = pgTable(
   (t) => [uniqueIndex("products_slug_idx").on(t.slug)],
 );
 
-// ─── product_variants ─────────────────────────────────────────────────────────
-
-export const productVariants = pgTable(
-  "product_variants",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    productId: uuid("product_id")
-      .notNull()
-      .references(() => products.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 255 }).notNull(),
-    sku: varchar("sku", { length: 100 }).unique(),
-    material: varchar("material", { length: 50 }).notNull(),
-    availableFinishes: text("available_finishes").array().notNull().default(["gloss"]),
-    shapes: text("shapes").array().notNull().default(["die-cut", "circle", "square"]),
-    basePriceCents: integer("base_price_cents").notNull(),
-    minQty: integer("min_qty").notNull().default(1),
-    weightGrams: integer("weight_grams").notNull().default(100),
-    minWidthMm: integer("min_width_mm").notNull().default(20),
-    maxWidthMm: integer("max_width_mm").notNull().default(300),
-    minHeightMm: integer("min_height_mm").notNull().default(20),
-    maxHeightMm: integer("max_height_mm").notNull().default(300),
-    tiers: jsonb("tiers").$type<PricingTier[]>(),
-    sizePrices: jsonb("size_prices").$type<Record<string, number>>(),
-    customPresets: jsonb("custom_presets").$type<CustomPreset[]>(),
-    imageUrl: text("image_url"),
-    images: jsonb("images").$type<string[]>().default([]),
-    active: boolean("active").notNull().default(true),
-    sortOrder: integer("sort_order").notNull().default(0),
-    ...timestamps,
-  },
-  (t) => [
-    index("product_variants_product_id_idx").on(t.productId),
-    uniqueIndex("product_variants_sku_idx").on(t.sku),
-  ],
-);
+// product_variants removed — replaced by product_sticker_configs
 
 // ─── orders ───────────────────────────────────────────────────────────────────
 
@@ -342,13 +297,11 @@ export const orderItems = pgTable(
       .notNull()
       .references(() => orders.id, { onDelete: "cascade" }),
     productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
-    variantId: uuid("variant_id").references(() => productVariants.id, { onDelete: "set null" }),
     quantity: integer("quantity").notNull(),
-    widthMm: integer("width_mm").notNull(),
-    heightMm: integer("height_mm").notNull(),
-    shape: varchar("shape", { length: 30 }).notNull(),
-    finish: varchar("finish", { length: 20 }).notNull().default("gloss"),
-    weightGrams: integer("weight_grams"), // snapshot of variant weight at order time
+    widthMm: integer("width_mm"),
+    heightMm: integer("height_mm"),
+    shape: varchar("shape", { length: 30 }),
+    finish: varchar("finish", { length: 20 }),
     options: jsonb("options").default({}),
     unitPriceCents: integer("unit_price_cents").notNull(),
     lineTotalCents: integer("line_total_cents").notNull(),
@@ -556,8 +509,6 @@ export type Category = typeof categories.$inferSelect;
 export type NewCategory = typeof categories.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
-export type ProductVariant = typeof productVariants.$inferSelect;
-export type NewProductVariant = typeof productVariants.$inferInsert;
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
@@ -567,29 +518,7 @@ export type NewOrderEvent = typeof orderEvents.$inferInsert;
 export type OrderFile = typeof orderFiles.$inferSelect;
 export type ShippingRate = typeof shippingRates.$inferSelect;
 
-// ─── product_option_values ────────────────────────────────────────────────────
-// Référentiel admin-géré pour les formes, finitions et matières disponibles
-// type: "shape" | "finish" | "material"
-
-export const PRODUCT_OPTION_TYPES = ["shape", "finish", "material"] as const;
-export type ProductOptionType = (typeof PRODUCT_OPTION_TYPES)[number];
-
-export const productOptionValues = pgTable(
-  "product_option_values",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    type: varchar("type", { length: 30 }).notNull(),
-    slug: varchar("slug", { length: 100 }).notNull(),
-    label: varchar("label", { length: 255 }).notNull(),
-    description: text("description"),
-    active: boolean("active").notNull().default(true),
-    sortOrder: integer("sort_order").notNull().default(0),
-    ...timestamps,
-  },
-  (t) => [uniqueIndex("product_option_values_type_slug_idx").on(t.type, t.slug)],
-);
-
-export type ProductOptionValue = typeof productOptionValues.$inferSelect;
+// product_option_values removed — replaced by sticker catalog tables
 
 // ─── site_settings ─────────────────────────────────────────────────────────────
 
@@ -649,7 +578,6 @@ export const siteSettings = pgTable("site_settings", {
 });
 
 export type SiteSettings = typeof siteSettings.$inferSelect;
-export type NewProductOptionValue = typeof productOptionValues.$inferInsert;
 
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 
@@ -674,7 +602,6 @@ export const reviews = pgTable(
     status:             reviewStatusEnum("status").notNull().default("pending"),
     verificationStatus: reviewVerificationStatusEnum("verification_status").notNull().default("unverified"),
     productId:          uuid("product_id").references(() => products.id, { onDelete: "set null" }),
-    productVariantId:   uuid("product_variant_id").references(() => productVariants.id, { onDelete: "set null" }),
     orderId:            uuid("order_id").references(() => orders.id, { onDelete: "set null" }),
     orderItemId:        uuid("order_item_id").references(() => orderItems.id, { onDelete: "set null" }),
     customerId:         text("customer_id").references(() => users.id, { onDelete: "set null" }),
@@ -756,7 +683,6 @@ export const reviewRequestItems = pgTable(
     id:              uuid("id").primaryKey().defaultRandom(),
     reviewRequestId: uuid("review_request_id").notNull().references(() => reviewRequests.id, { onDelete: "cascade" }),
     productId:       uuid("product_id").references(() => products.id, { onDelete: "set null" }),
-    productVariantId: uuid("product_variant_id").references(() => productVariants.id, { onDelete: "set null" }),
     orderItemId:     uuid("order_item_id").references(() => orderItems.id, { onDelete: "set null" }),
     status:          reviewRequestItemStatusEnum("status").notNull().default("pending"),
     reviewId:        uuid("review_id").references(() => reviews.id, { onDelete: "set null" }),

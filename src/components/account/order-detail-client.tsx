@@ -41,9 +41,9 @@ interface SerializedOrderDetail {
   items: Array<{
     id: string;
     quantity: number;
-    widthMm: number;
-    heightMm: number;
-    shape: string;
+    widthMm: number | null;
+    heightMm: number | null;
+    shape: string | null;
     unitPriceCents: number;
     lineTotalCents: number;
     productName: string | null;
@@ -508,7 +508,7 @@ export default function OrderDetailClient({ detail }: Props) {
                       {item.productName ?? "Sticker personnalisé"}
                     </div>
                     <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
-                      {item.widthMm}×{item.heightMm} mm — {item.shape} — {item.quantity} unité{item.quantity > 1 ? "s" : ""}
+                      {item.widthMm && item.heightMm ? `${item.widthMm}×${item.heightMm} mm — ` : ""}{item.shape ? `${item.shape} — ` : ""}{item.quantity} unité{item.quantity > 1 ? "s" : ""}
                     </div>
                     {item.customerFile && (
                       <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>

@@ -1,206 +1,202 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createProduct } from "@/lib/product-catalog-actions";
-
-type OptionItem = { slug: string; label: string };
+import { createProduct } from "@/lib/product-actions";
+import { T } from "@/components/admin/admin-ui";
 
 const inputStyle: React.CSSProperties = {
-  padding: "9px 12px",
-  borderRadius: 6,
-  border: "1px solid #D1D5DB",
-  fontSize: 13,
-  color: "#0A0E27",
-  background: "#fff",
-  fontFamily: "inherit",
   width: "100%",
+  padding: "9px 12px",
+  border: `1.5px solid ${T.border}`,
+  borderRadius: T.radiusSm,
+  fontSize: 14,
+  color: T.textPrimary,
+  background: "#fff",
   boxSizing: "border-box",
-  outline: "none",
 };
 
-export function ProductNewClient({
-  categories,
-  materials,
-}: {
-  categories: { id: string; name: string }[];
-  materials: OptionItem[];
-}) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [name, setName] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [requiresCustomization, setRequiresCustomization] = useState(true);
-  const [material, setMaterial] = useState(materials[0]?.slug ?? "vinyl");
-  const [basePrice, setBasePrice] = useState("5.99");
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: T.textSecondary,
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  display: "block",
+  marginBottom: 5,
+};
 
-  function handleTypeChange(direct: boolean) {
-    setRequiresCustomization(!direct);
-    // Reset default price to something sensible for each type
-    setBasePrice(direct ? "1.00" : "5.99");
-  }
+const FAMILY_OPTIONS = [
+  { value: "sticker", label: "Sticker personnalisé" },
+  { value: "label", label: "Étiquette" },
+  { value: "pack", label: "Pack de stickers" },
+  { value: "accessory", label: "Accessoire" },
+  { value: "other", label: "Autre" },
+] as const;
+
+export function ProductNewClient({ categories }: { categories: { id: string; name: string }[] }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  function handleCreate() {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [tagline, setTagline] = useState("");
+  const [productFamily, setProductFamily] = useState<"sticker" | "label" | "pack" | "accessory" | "other">("sticker");
+  const [status, setStatus] = useState<"draft" | "active">("active");
+  const [categoryId, setCategoryId] = useState<string>("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     if (!name.trim()) return;
-    setError(null);
+
     startTransition(async () => {
-      // basePriceCents always stored as unit_price × 50 × 100 (reference-qty convention)
-      // so the variant editor (which divides by 50) and the direct template (which also divides by 50)
-      // both get the correct unit price back.
-      const basePriceCents = Math.round(parseFloat(basePrice) * 50 * 100) || 29950;
-      const res = await createProduct({
-        name: name.trim(),
-        categoryId: categoryId || null,
-        requiresCustomization,
-        material,
-        basePriceCents,
-      });
-      if (res.ok) {
-        router.push(`/admin/products/${res.data.id}`);
-      } else {
-        setError(res.error);
+      try {
+        const product = await createProduct({
+          name: name.trim(),
+          description: description || null,
+          tagline: tagline || null,
+          productFamily,
+          status,
+          reviewsEnabled: true,
+          sortOrder: 0,
+          ...(categoryId ? { categoryId } : {}),
+        });
+        if (product) {
+          router.push(`/admin/products/${product.id}?tab=configurateur`);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erreur lors de la création");
       }
     });
   }
 
   return (
-    <main style={{ padding: "32px 40px", maxWidth: 560 }}>
-      <div style={{ marginBottom: 20, fontSize: 13, color: "#9CA3AF" }}>
-        <Link href="/admin/products" style={{ color: "#6B7280", textDecoration: "underline" }}>Produits</Link>
-        {" / "}
-        <span>Nouveau produit</span>
-      </div>
+    <div style={{ background: T.bg, minHeight: "100vh", padding: "40px 24px" }}>
+      <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 24, fontWeight: 900, color: T.textPrimary, margin: "0 0 8px" }}>Nouveau produit</h1>
+        <p style={{ fontSize: 14, color: T.textSecondary, margin: "0 0 32px" }}>
+          Créez d'abord le produit, puis configurez ses options sticker dans l'onglet Configurateur.
+        </p>
 
-      <h1 style={{ fontFamily: "var(--font-archivo), system-ui, sans-serif", fontSize: 24, fontWeight: 900, color: "#0A0E27", letterSpacing: "-0.02em", margin: "0 0 8px" }}>
-        Nouveau produit
-      </h1>
-      <p style={{ fontSize: 13, color: "#9CA3AF", marginBottom: 32 }}>
-        Renseignez les informations de base. Vous pourrez ajouter les déclinaisons, images et tarifs détaillés dans l&apos;éditeur.
-      </p>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Nom */}
+          <div style={{ background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: T.radius, padding: "20px 24px" }}>
+            <h2 style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 800, color: T.textPrimary, textTransform: "uppercase", letterSpacing: "0.04em" }}>Informations générales</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Nom du produit *</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex : Stickers personnalisés vinyle"
+                  required
+                  style={inputStyle}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Accroche (tagline)</label>
+                <input
+                  type="text"
+                  value={tagline}
+                  onChange={(e) => setTagline(e.target.value)}
+                  placeholder="Ex : Vos stickers imprimés en 48h"
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Description (Markdown)</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Description détaillée du produit…"
+                  rows={4}
+                  style={{ ...inputStyle, resize: "vertical" }}
+                />
+              </div>
+            </div>
+          </div>
 
-      {error && <div style={{ background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8, padding: "10px 16px", fontSize: 13, color: "#991B1B", marginBottom: 20 }}>{error}</div>}
+          {/* Famille & statut */}
+          <div style={{ background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: T.radius, padding: "20px 24px" }}>
+            <h2 style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 800, color: T.textPrimary, textTransform: "uppercase", letterSpacing: "0.04em" }}>Type et statut</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Famille de produit</label>
+                <select
+                  value={productFamily}
+                  onChange={(e) => setProductFamily(e.target.value as typeof productFamily)}
+                  style={inputStyle}
+                >
+                  {FAMILY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Statut</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as typeof status)}
+                  style={inputStyle}
+                >
+                  <option value="active">Actif</option>
+                  <option value="draft">Brouillon</option>
+                </select>
+              </div>
+              {categories.length > 0 && (
+                <div style={{ gridColumn: "span 2" }}>
+                  <label style={labelStyle}>Catégorie</label>
+                  <select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">— Aucune catégorie —</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, background: "#fff", border: "1px solid #E5E7EB", borderRadius: 12, padding: "24px" }}>
-        <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>Nom du produit *</label>
-          <input
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ex : Stickers vinyle personnalisés"
-            style={inputStyle}
-            onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
-          />
-        </div>
+          {error && (
+            <div style={{ padding: "12px 16px", background: T.dangerBg, border: `1px solid ${T.danger}`, borderRadius: T.radiusSm, color: T.danger, fontSize: 13 }}>
+              {error}
+            </div>
+          )}
 
-        <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>Catégorie</label>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} style={inputStyle}>
-            <option value="">— Sans catégorie —</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 10 }}>Type de produit *</label>
           <div style={{ display: "flex", gap: 12 }}>
             <button
-              type="button"
-              onClick={() => handleTypeChange(false)}
+              type="submit"
+              disabled={pending || !name.trim()}
               style={{
-                flex: 1,
-                padding: "14px 16px",
-                borderRadius: 8,
-                border: `2px solid ${requiresCustomization ? "#DC2626" : "#E5E7EB"}`,
-                background: requiresCustomization ? "#FEF2F2" : "#F9FAFB",
-                cursor: "pointer",
-                textAlign: "left",
+                padding: "11px 24px",
+                borderRadius: T.radiusSm,
+                border: "none",
+                background: T.brand,
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: 14,
+                cursor: pending || !name.trim() ? "not-allowed" : "pointer",
+                opacity: pending || !name.trim() ? 0.6 : 1,
               }}
             >
-              <div style={{ fontWeight: 700, fontSize: 13, color: requiresCustomization ? "#991B1B" : "#374151" }}>Personnalisé</div>
-              <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>Upload fichier + BAT requis</div>
+              {pending ? "Création…" : "Créer et configurer →"}
             </button>
-            <button
-              type="button"
-              onClick={() => handleTypeChange(true)}
-              style={{
-                flex: 1,
-                padding: "14px 16px",
-                borderRadius: 8,
-                border: `2px solid ${!requiresCustomization ? "#1D4ED8" : "#E5E7EB"}`,
-                background: !requiresCustomization ? "#EFF6FF" : "#F9FAFB",
-                cursor: "pointer",
-                textAlign: "left",
-              }}
+            <a
+              href="/admin/products"
+              style={{ padding: "11px 20px", borderRadius: T.radiusSm, border: `1.5px solid ${T.border}`, background: "#fff", color: T.textSecondary, fontWeight: 600, fontSize: 14, textDecoration: "none" }}
             >
-              <div style={{ fontWeight: 700, fontSize: 13, color: !requiresCustomization ? "#1D4ED8" : "#374151" }}>Impression directe</div>
-              <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>Pas de fichier, pas de BAT</div>
-            </button>
+              Annuler
+            </a>
           </div>
-        </div>
-
-        <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 8 }}>Matière principale</label>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {materials.map((m) => (
-              <button
-                key={m.slug}
-                type="button"
-                onClick={() => setMaterial(m.slug)}
-                style={{
-                  padding: "7px 14px",
-                  borderRadius: 8,
-                  border: `2px solid ${material === m.slug ? "#0A0E27" : "#E5E7EB"}`,
-                  background: material === m.slug ? "#0A0E27" : "#F9FAFB",
-                  color: material === m.slug ? "#fff" : "#374151",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
-            Prix unitaire HT (€)
-          </label>
-          <div style={{ position: "relative", maxWidth: 180 }}>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={basePrice}
-              onChange={(e) => setBasePrice(e.target.value)}
-              style={{ ...inputStyle, paddingRight: 28 }}
-            />
-            <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#9CA3AF" }}>€</span>
-          </div>
-          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
-            {requiresCustomization
-              ? "Prix de référence à 5×5 cm. Le moteur de prix applique ensuite les multiplicateurs (taille, matière, forme)."
-              : "Prix affiché tel quel sur la page produit, sans multiplicateur."}
-          </p>
-        </div>
+        </form>
       </div>
-
-      <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-        <button
-          onClick={handleCreate}
-          disabled={isPending || !name.trim()}
-          style={{ padding: "12px 28px", borderRadius: 8, border: "none", background: "#0A0E27", color: "#fff", fontSize: 14, fontWeight: 700, cursor: isPending || !name.trim() ? "not-allowed" : "pointer", opacity: isPending || !name.trim() ? 0.6 : 1 }}
-        >
-          {isPending ? "Création…" : "Créer le produit →"}
-        </button>
-        <Link href="/admin/products" style={{ padding: "12px 20px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#374151", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>
-          Annuler
-        </Link>
-      </div>
-    </main>
+    </div>
   );
 }

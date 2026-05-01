@@ -16,15 +16,10 @@ export interface CartItem {
   productId: string | null;
   productName: string;
   quantity: number;
-  widthMm: number;
-  heightMm: number;
-  shape: string;
-  finish: string;
-  material: string;
-  options: Record<string, boolean>;
   unitPriceCents: number;
   lineTotalCents: number;
   customizationNote?: string | undefined;
+  stickerConfig?: StickerConfigSnapshot | undefined;
   file: CartItemFile | null;
 }
 
@@ -50,16 +45,7 @@ export interface AddToCartInput {
   productId?: string | undefined;
   productName: string;
   quantity: number;
-  widthMm: number;
-  heightMm: number;
-  shape: string;
-  finish: string;
-  material: string;
-  basePriceCents: number;
-  options: Record<string, boolean>;
+  unitPriceCents: number;
   customizationNote?: string | undefined;
-  /** For non-customizable products: bypass shape/area/material multipliers from computePrice */
-  directUnitPriceCents?: number | undefined;
-  /** Full sticker configuration for new-system products */
-  stickerConfig?: StickerConfigSnapshot | undefined;
+  stickerConfig: StickerConfigSnapshot;
 }

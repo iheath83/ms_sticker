@@ -437,9 +437,8 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
         },
       });
 
-      // If no item requires customization → skip BAT, go straight to in_production
-      const { orderRequiresCustomization } = await import("@/lib/product-catalog-actions");
-      const needsCustomization = await orderRequiresCustomization(orderId);
+      // All sticker orders require customization (file upload / BAT)
+      const needsCustomization = true;
       if (!needsCustomization) {
         const directTransition = validateTransition("paid", "in_production");
         if (directTransition.ok) {

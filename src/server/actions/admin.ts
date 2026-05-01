@@ -12,7 +12,6 @@ export {
   refundOrder,
   generateInvoice,
   refreshInvoiceUrl,
-  updateProduct,
   getSendCloudShippingMethods,
   createShipment,
 } from "@/lib/admin-actions";

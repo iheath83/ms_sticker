@@ -6,13 +6,11 @@ import { FeatureStrip } from "@/components/shop/home/feature-strip";
 import { BestSellersSection } from "@/components/shop/home/bestsellers-section";
 import { ProcessSection } from "@/components/shop/home/process-section";
 import { ReviewsSection } from "@/components/shop/home/reviews-section";
-import { getActiveProducts, getActiveCategories } from "@/lib/products";
+import { getActiveProducts } from "@/lib/products";
 
 export default async function HomePage() {
-  const [products, categories] = await Promise.all([
-    getActiveProducts().catch(() => []),
-    getActiveCategories().catch(() => []),
-  ]);
+  const products = await getActiveProducts().catch(() => []);
+  const categories: import("@/db/schema").Category[] = [];
 
   return (
     <main>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { deleteCategory } from "@/lib/product-catalog-actions";
+import { deleteCategory } from "@/lib/category-actions";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 

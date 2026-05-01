@@ -37,7 +37,6 @@ export interface ReviewRow {
   status: ReviewStatus;
   verificationStatus: ReviewVerificationStatus;
   productId: string | null;
-  productVariantId: string | null;
   orderId: string | null;
   orderItemId: string | null;
   customerId: string | null;
@@ -95,7 +94,6 @@ export interface ReviewRequestItemRow {
   id: string;
   reviewRequestId: string;
   productId: string | null;
-  productVariantId: string | null;
   orderItemId: string | null;
   status: ReviewRequestItemStatus;
   reviewId: string | null;
@@ -154,7 +152,6 @@ export interface ReviewReplyRow {
 export interface SubmitReviewPayload {
   type: ReviewType;
   productId?: string | undefined;
-  productVariantId?: string | undefined;
   orderItemId?: string | undefined;
   rating: number;
   title?: string | undefined;

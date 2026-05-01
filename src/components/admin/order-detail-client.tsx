@@ -132,13 +132,14 @@ interface SerializedOrder {
 interface SerializedItem {
   id: string;
   quantity: number;
-  widthMm: number;
-  heightMm: number;
-  shape: string;
-  finish: string;
+  widthMm: number | null;
+  heightMm: number | null;
+  shape: string | null;
+  finish: string | null;
   unitPriceCents: number;
   lineTotalCents: number;
   customizationNote: string | null;
+  stickerConfig?: unknown;
   createdAt: string;
   updatedAt: string;
 }
@@ -794,10 +795,10 @@ export function OrderDetailClient({ detail }: Props) {
                 >
                   <div>
                     <div style={{ fontWeight: 600, fontSize: 14, color: "#0A0E27" }}>
-                      {item.quantity}× sticker {item.shape}
+                      {item.quantity}× sticker {item.shape ?? (item.stickerConfig as { shapeName?: string } | undefined)?.shapeName ?? ""}
                     </div>
                     <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
-                      {item.widthMm}mm × {item.heightMm}mm · finition {item.finish}
+                      {item.widthMm && item.heightMm ? `${item.widthMm}mm × ${item.heightMm}mm` : ""}{item.finish ? ` · finition ${item.finish}` : ""}
                     </div>
                     {item.customizationNote && (
                       <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2, fontStyle: "italic" }}>

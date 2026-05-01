@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getCategories } from "@/lib/product-catalog-actions";
+import { getCategories } from "@/lib/category-actions";
 import { CategoriesClient } from "@/components/admin/categories-client";
 
 export default async function AdminCategoriesPage() {

@@ -739,7 +739,7 @@ export function CheckoutClient() {
                       <div key={item.id} style={{ background: "var(--grey-50)", border: "1px solid var(--grey-200)", borderRadius: "var(--r)", padding: 14, display: "flex", gap: 12 }}>
                         {/* Shape icon */}
                         <div style={{ width: 56, height: 56, background: "var(--white)", borderRadius: 8, display: "grid", placeItems: "center", border: "1px dashed var(--grey-200)", flexShrink: 0, fontSize: 22 }}>
-                          {item.shape === "circle" ? "⬤" : item.shape === "die-cut" ? "⬟" : "■"}
+                          {item.stickerConfig?.shapeCode === "circle" ? "⬤" : item.stickerConfig?.shapeCode === "die-cut" ? "⬟" : "■"}
                         </div>
 
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -747,7 +747,7 @@ export function CheckoutClient() {
                             <div>
                               <div style={{ fontSize: 13, fontWeight: 700 }}>{item.productName}</div>
                               <div style={{ fontSize: 11, color: "var(--grey-600)", marginTop: 2 }}>
-                                {item.shape} · {item.widthMm}×{item.heightMm} mm · {item.material}
+                                {item.stickerConfig ? `${item.stickerConfig.shapeName} · ${item.stickerConfig.widthMm}×${item.stickerConfig.heightMm} mm · ${item.stickerConfig.materialName}` : ""}
                               </div>
                             </div>
                             <button
@@ -1058,11 +1058,11 @@ export function CheckoutClient() {
                 {cart.items.map((item) => (
                   <div key={item.id} style={{ display: "flex", gap: 12, marginBottom: 14 }}>
                     <div style={{ width: 48, height: 48, background: "var(--grey-50)", borderRadius: 8, display: "grid", placeItems: "center", flexShrink: 0, border: "1px dashed var(--grey-200)", fontSize: 18 }}>
-                      {item.shape === "circle" ? "⬤" : item.shape === "die-cut" ? "⬟" : "■"}
+                      {item.stickerConfig?.shapeCode === "circle" ? "⬤" : item.stickerConfig?.shapeCode === "die-cut" ? "⬟" : "■"}
                     </div>
                     <div style={{ flex: 1, fontSize: 12 }}>
                       <div style={{ fontWeight: 700 }}>{item.productName}</div>
-                      <div style={{ color: "var(--grey-600)", marginTop: 2 }}>{item.shape} · {item.widthMm}×{item.heightMm} mm · ×{item.quantity}</div>
+                      <div style={{ color: "var(--grey-600)", marginTop: 2 }}>{item.stickerConfig ? `${item.stickerConfig.shapeName} · ${item.stickerConfig.widthMm}×${item.stickerConfig.heightMm} mm` : ""} · ×{item.quantity}</div>
                       {item.file && <div style={{ fontSize: 10, color: "#16A34A", marginTop: 2 }}>✅ {item.file.filename ?? "Design attaché"}</div>}
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{(item.lineTotalCents / 100).toFixed(2)} €</div>

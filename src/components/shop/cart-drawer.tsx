@@ -417,13 +417,13 @@ export function CartDrawer() {
                     fontSize: 24,
                   }}
                 >
-                  {item.shape === "circle" ? "⬤" : item.shape === "die-cut" ? "⬟" : "■"}
+                  {item.stickerConfig?.shapeCode === "circle" ? "⬤" : item.stickerConfig?.shapeCode === "die-cut" ? "⬟" : "■"}
                 </div>
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{item.productName}</div>
                   <div style={{ fontSize: 11, color: "var(--grey-600)", marginTop: 2 }}>
-                    {item.shape} · {item.widthMm}×{item.heightMm} mm · {item.material}
+                    {item.stickerConfig ? `${item.stickerConfig.shapeName} · ${item.stickerConfig.widthMm}×${item.stickerConfig.heightMm} mm · ${item.stickerConfig.materialName}` : item.productName}
                   </div>
                   <div
                     style={{

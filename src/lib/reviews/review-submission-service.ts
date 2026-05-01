@@ -53,7 +53,6 @@ export async function submitReviewFromToken(
           status,
           verificationStatus: "verified_purchase",
           productId: item.productId,
-          productVariantId: item.productVariantId ?? null,
           orderId: request.orderId ?? null,
           orderItemId: item.orderItemId ?? null,
           customerId: request.customerId ?? null,

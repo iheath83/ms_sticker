@@ -12,7 +12,6 @@ const attributeSchema = z.object({
 const reviewItemSchema = z.object({
   type: z.enum(["product", "store"]),
   productId: z.string().uuid().optional(),
-  productVariantId: z.string().uuid().optional(),
   orderItemId: z.string().uuid().optional(),
   rating: z.number().int().min(1).max(5),
   title: z.string().max(255).optional(),
@@ -47,7 +46,6 @@ export async function POST(
   const payload: SubmitReviewPayload[] = parsed.data.map((item) => {
     const p: SubmitReviewPayload = { type: item.type, rating: item.rating };
     if (item.productId !== undefined) p.productId = item.productId;
-    if (item.productVariantId !== undefined) p.productVariantId = item.productVariantId;
     if (item.orderItemId !== undefined) p.orderItemId = item.orderItemId;
     if (item.title !== undefined) p.title = item.title;
     if (item.body !== undefined) p.body = item.body;
