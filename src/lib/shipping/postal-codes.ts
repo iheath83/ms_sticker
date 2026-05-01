@@ -16,6 +16,8 @@ function matchesRule(postalCode: string, rule: PostalCodeRule): boolean {
     case "range": {
       const from = normalize(rule.fromValue ?? rule.value);
       const to = normalize(rule.toValue ?? rule.value);
+      // Require same length to avoid "834400" matching range "01000-95999"
+      if (pc.length !== from.length) return false;
       return pc >= from && pc <= to;
     }
     case "regex": {

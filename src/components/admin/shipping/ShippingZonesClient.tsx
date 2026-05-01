@@ -182,15 +182,27 @@ export function ShippingZonesClient({ initial }: { initial: ZoneRow[] }) {
   }
 
   function testPostalCode(zone: ZoneRow) {
-    const rules: PostalCodeRule[] = zone.postalRules.map((r) => {
-      const rule: PostalCodeRule = { id: r.id, type: r.type as PostalCodeRule["type"], value: r.value };
-      if (r.fromValue) rule.fromValue = r.fromValue;
-      if (r.toValue) rule.toValue = r.toValue;
-      return rule;
-    });
+    const code = testCode.trim();
+    if (!code) return;
+
+    // If this zone is currently being edited, use the live form rules (no re-save needed)
+    let rules: PostalCodeRule[];
+    if (editing?.id === zone.id) {
+      rules = parsePostalRulesText(form.postalRulesText);
+    } else {
+      rules = zone.postalRules.map((r) => {
+        const rule: PostalCodeRule = { id: r.id, type: r.type as PostalCodeRule["type"], value: r.value };
+        if (r.fromValue) rule.fromValue = r.fromValue;
+        if (r.toValue) rule.toValue = r.toValue;
+        return rule;
+      });
+    }
+
     const countryMatch = zone.countries.length === 0 || zone.countries.includes("FR");
-    const matched = rules.length === 0 ? countryMatch : postalCodeMatchesRules(testCode, rules);
-    setTestResult(matched ? `✅ "${testCode}" appartient à "${zone.name}"` : `❌ "${testCode}" n'appartient pas à "${zone.name}"`);
+    const matched = rules.length === 0 ? countryMatch : postalCodeMatchesRules(code, rules);
+    const icon = matched ? "✅" : "❌";
+    const msg = matched ? "appartient à" : "n'appartient pas à";
+    setTestResult(`${icon} "${code}" ${msg} "${zone.name}"`);
   }
 
   const showForm = creating || !!editing;
