@@ -28,6 +28,12 @@ const GRID_SIZE       = INNER_SIZE + 2 * PAD;
 const ALPHA_THRESHOLD = 15;
 const SIMPLIFY_TOL    = 1.0;
 const SMOOTH_PASSES   = 5;     // lissage généreux pour aspect blob kiss cut
+
+// Anti-fjord : détecte deux points du contour proches en distance mais
+// éloignés en index (= aller-retour dans une concavité étroite) et shortcut.
+const FJORD_CHORD_THRESH = 12;   // px grille
+const FJORD_MIN_LOOKAHEAD = 4;
+const FJORD_MAX_LOOKAHEAD = 80;
 const BEVEL_THRESHOLD = 1.4;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
@@ -95,20 +101,60 @@ export async function generateAlphaCutline(
   // 8. Retirer le padding (passer en repère [0..INNER_SIZE])
   const unpadded = outer.map(p => ({ x: p.x - PAD, y: p.y - PAD }));
 
-  // 9. Simplification
-  const simplified = douglasPeucker(unpadded, SIMPLIFY_TOL);
+  // 9. Anti-fjord : éliminer les concavités étroites (aller-retour du contour)
+  const dewarped = removeFjords(unpadded, FJORD_CHORD_THRESH, FJORD_MIN_LOOKAHEAD, FJORD_MAX_LOOKAHEAD);
 
-  // 10. Scaling vers l'affichage
+  // 10. Simplification
+  const simplified = douglasPeucker(dewarped, SIMPLIFY_TOL);
+
+  // 11. Scaling vers l'affichage
   const sx = displayW / INNER_SIZE, sy = displayH / INNER_SIZE;
   const scaled = simplified.map(p => ({ x: p.x * sx, y: p.y * sy }));
 
-  // 11. Offset polygonal
+  // 12. Offset polygonal
   const expanded = offsetPx > 0 ? normalBevelOffset(scaled, offsetPx) : scaled;
 
-  // 12. Lissage
+  // 13. Lissage
   const smoothed = smoothPolygon(expanded, SMOOTH_PASSES);
 
   return { ok: true, result: { pathData: toSvgPath(smoothed), pointCount: smoothed.length } };
+}
+
+// ─── Anti-fjord ───────────────────────────────────────────────────────────────
+
+/**
+ * Élimine les fjords (concavités étroites en aller-retour) du contour.
+ *
+ * Pour chaque sommet i, cherche le sommet j le plus loin (entre min et max
+ * lookahead) tel que dist(P[i], P[j]) < threshold. Si trouvé, on saute
+ * directement de i à j dans le résultat → remplace l'aller-retour par
+ * une ligne droite.
+ */
+function removeFjords(
+  pts: Point[],
+  chordThresh: number,
+  minLookahead: number,
+  maxLookahead: number,
+): Point[] {
+  const n = pts.length;
+  if (n < minLookahead * 2 + 4) return pts;
+  const result: Point[] = [];
+  let i = 0;
+  while (i < n) {
+    result.push(pts[i]!);
+    let bestJ = i + 1;
+    const limit = Math.min(n - 1, i + maxLookahead);
+    for (let k = minLookahead; i + k <= limit; k++) {
+      const j = i + k;
+      const dx = pts[j]!.x - pts[i]!.x;
+      const dy = pts[j]!.y - pts[i]!.y;
+      if (Math.hypot(dx, dy) < chordThresh) {
+        bestJ = j;
+      }
+    }
+    i = bestJ;
+  }
+  return result;
 }
 
 // ─── Sélection du contour extérieur ───────────────────────────────────────────
