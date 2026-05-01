@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Stage, Layer, Rect, Image as KonvaImage, Transformer, Group } from "react-konva";
+import { Stage, Layer, Rect, Image as KonvaImage, Transformer, Path, Line } from "react-konva";
 import type Konva from "konva";
 import type { EditorImage, EditorSettings } from "@/lib/sticker-editor/editor.types";
 import { mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
@@ -11,7 +11,7 @@ const COLOR_CUTLINE_THROUGH = "#00B3D8"; // cyan
 const COLOR_CUTLINE_KISS = "#E91E8C";    // magenta
 const COLOR_BLEED = "#F87171";           // rouge clair
 const COLOR_SAFETY = "#22C55E";          // vert
-const DASHES_GUIDE = [6, 4];
+const DASHES_GUIDE: number[] = [6, 4];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -63,9 +63,11 @@ export default function EditorCanvasClient({
   const handleDragEnd = useCallback(
     (e: Konva.KonvaEventObject<DragEvent>) => {
       const node = e.target as Konva.Image;
+      const w = node.width() * node.scaleX();
+      const h = node.height() * node.scaleY();
       onImageChange({
-        xMm: (node.x() + node.width() * node.scaleX() / 2) / scale,
-        yMm: (node.y() + node.height() * node.scaleY() / 2) / scale,
+        xMm: (node.x() + w / 2) / scale,
+        yMm: (node.y() + h / 2) / scale,
       });
     },
     [scale, onImageChange],
@@ -76,6 +78,7 @@ export default function EditorCanvasClient({
       const node = e.target as Konva.Image;
       const newWPx = node.width() * node.scaleX();
       const newHPx = node.height() * node.scaleY();
+      // Reset scale → bake into width/height
       node.scaleX(1);
       node.scaleY(1);
       node.width(newWPx);
@@ -91,45 +94,64 @@ export default function EditorCanvasClient({
     [scale, onImageChange],
   );
 
-  // ── Calcul des rects guides (en px) ──
-  const guides = image
-    ? computeGuides(image, settings, scale)
+  // ── Position absolue de l'image (coin haut-gauche) ──
+  const imgX = image ? mmToPx(image.xMm, scale) - mmToPx(image.widthMm, scale) / 2 : 0;
+  const imgY = image ? mmToPx(image.yMm, scale) - mmToPx(image.heightMm, scale) / 2 : 0;
+  const imgW = image ? mmToPx(image.widthMm, scale) : 0;
+  const imgH = image ? mmToPx(image.heightMm, scale) : 0;
+
+  // ── Guides bounding box ──
+  const bbGuides = image
+    ? computeBoundingBoxGuides(image, settings, scale)
     : null;
 
+  // ── Couleur cutline ──
+  const cutlineColor =
+    settings.cutline.cutType === "through_cut" ? COLOR_CUTLINE_THROUGH : COLOR_CUTLINE_KISS;
+
+  // ── Rendu du contour alpha (Konva.Path) ──
+  const hasAlphaPath =
+    settings.cutline.method === "alpha" &&
+    settings.cutline.alphaCutlinePath &&
+    settings.cutline.status === "generated";
+
+  // Pour la rotation : le Path est positionné à l'image center avec offsetX/Y = imgW/2, imgH/2
+  const pathX = imgX + imgW / 2;
+  const pathY = imgY + imgH / 2;
+  const offsetPx = image ? mmToPx(settings.cutline.offsetMm, scale) : 0;
+
   return (
-    <Stage ref={stageRef} width={stageW} height={stageH} style={{ cursor: "crosshair" }}>
+    <Stage ref={stageRef} width={stageW} height={stageH} style={{ cursor: "default" }}>
       {/* ── Fond blanc ── */}
       <Layer>
         <Rect x={0} y={0} width={stageW} height={stageH} fill="#ffffff" />
       </Layer>
 
-      {/* ── Calque fond perdu (sous l'image) ── */}
-      {settings.showBleed && guides?.bleed && (
+      {/* ── Fond perdu (sous l'image) ── */}
+      {settings.showBleed && bbGuides?.bleed && settings.cutline.method === "bounding_box" && (
         <Layer>
           <Rect
-            {...guides.bleed}
+            {...bbGuides.bleed}
             stroke={COLOR_BLEED}
             strokeWidth={1.5}
-            fill="rgba(248,113,113,0.07)"
+            fill="rgba(248,113,113,0.06)"
             dash={DASHES_GUIDE}
             listening={false}
           />
         </Layer>
       )}
 
-      {/* ── Calque artwork ── */}
+      {/* ── Artwork + Transformer ── */}
       <Layer>
         {konvaImg && image && (
           <KonvaImage
             ref={imageNodeRef}
             image={konvaImg}
-            x={mmToPx(image.xMm, scale) - mmToPx(image.widthMm, scale) / 2}
-            y={mmToPx(image.yMm, scale) - mmToPx(image.heightMm, scale) / 2}
-            width={mmToPx(image.widthMm, scale)}
-            height={mmToPx(image.heightMm, scale)}
+            x={imgX}
+            y={imgY}
+            width={imgW}
+            height={imgH}
             rotation={image.rotationDeg}
-            offsetX={0}
-            offsetY={0}
             draggable
             onDragEnd={handleDragEnd}
             onTransformEnd={handleTransformEnd}
@@ -137,48 +159,28 @@ export default function EditorCanvasClient({
         )}
         <Transformer
           ref={transformerRef}
+          /* Resize toujours proportionnel */
+          keepRatio={true}
+          enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
           rotateEnabled={true}
-          keepRatio={false}
-          enabledAnchors={[
-            "top-left",
-            "top-right",
-            "bottom-left",
-            "bottom-right",
-            "middle-left",
-            "middle-right",
-            "top-center",
-            "bottom-center",
-          ]}
           boundBoxFunc={(oldBox, newBox) => {
-            if (Math.abs(newBox.width) < 10 || Math.abs(newBox.height) < 10) return oldBox;
+            if (Math.abs(newBox.width) < 20 || Math.abs(newBox.height) < 20) return oldBox;
             return newBox;
           }}
         />
       </Layer>
 
-      {/* ── Calque zone de sécurité ── */}
-      {settings.showSafety && guides?.safety && (
+      {/* ── Ligne de coupe alpha (suit l'image) ── */}
+      {settings.showCutline && hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
         <Layer listening={false}>
-          <Rect
-            {...guides.safety}
-            stroke={COLOR_SAFETY}
-            strokeWidth={1}
-            fill="rgba(34,197,94,0.05)"
-            dash={DASHES_GUIDE}
-          />
-        </Layer>
-      )}
-
-      {/* ── Calque ligne de coupe ── */}
-      {settings.showCutline && settings.cutline.enabled && guides?.cutline && (
-        <Layer listening={false}>
-          <Rect
-            {...guides.cutline}
-            stroke={
-              settings.cutline.cutType === "through_cut"
-                ? COLOR_CUTLINE_THROUGH
-                : COLOR_CUTLINE_KISS
-            }
+          <Path
+            x={pathX}
+            y={pathY}
+            offsetX={imgW / 2}
+            offsetY={imgH / 2}
+            rotation={image.rotationDeg}
+            data={settings.cutline.alphaCutlinePath}
+            stroke={cutlineColor}
             strokeWidth={1.5}
             fill="transparent"
             dash={[5, 3]}
@@ -186,7 +188,59 @@ export default function EditorCanvasClient({
         </Layer>
       )}
 
-      {/* ── Grille optionnelle ── */}
+      {/* ── Ligne de coupe bounding box (rect) ── */}
+      {settings.showCutline &&
+        settings.cutline.method === "bounding_box" &&
+        bbGuides?.cutline && (
+          <Layer listening={false}>
+            <Rect
+              {...bbGuides.cutline}
+              stroke={cutlineColor}
+              strokeWidth={1.5}
+              fill="transparent"
+              dash={[5, 3]}
+            />
+          </Layer>
+        )}
+
+      {/* ── Zone de sécurité ── */}
+      {settings.showSafety && bbGuides?.safety && (
+        <Layer listening={false}>
+          <Rect
+            {...bbGuides.safety}
+            stroke={COLOR_SAFETY}
+            strokeWidth={1}
+            fill="rgba(34,197,94,0.04)"
+            dash={DASHES_GUIDE}
+          />
+        </Layer>
+      )}
+
+      {/* ── Fond perdu pour alpha cutline ── */}
+      {settings.showBleed && settings.cutline.method === "alpha" && hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
+        <Layer listening={false}>
+          <Path
+            x={pathX}
+            y={pathY}
+            offsetX={imgW / 2}
+            offsetY={imgH / 2}
+            rotation={image.rotationDeg}
+            data={scaledPath(
+              settings.cutline.alphaCutlinePath,
+              imgW,
+              imgH,
+              offsetPx,
+              mmToPx(settings.bleedMm, scale),
+            )}
+            stroke={COLOR_BLEED}
+            strokeWidth={1}
+            fill="rgba(248,113,113,0.06)"
+            dash={DASHES_GUIDE}
+          />
+        </Layer>
+      )}
+
+      {/* ── Grille ── */}
       {settings.showGrid && (
         <Layer listening={false}>
           <GridLines stageW={stageW} stageH={stageH} stepMm={10} scale={scale} />
@@ -198,7 +252,7 @@ export default function EditorCanvasClient({
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function computeGuides(
+function computeBoundingBoxGuides(
   image: EditorImage,
   settings: EditorSettings,
   scale: number,
@@ -234,8 +288,32 @@ function computeGuides(
   };
 }
 
+/**
+ * Produit un path légèrement agrandi (fond perdu) à partir du path alpha cutline.
+ * Utilise une transformation de mise à l'échelle simple autour du centre de l'image.
+ */
+function scaledPath(
+  pathData: string,
+  imgW: number,
+  imgH: number,
+  currentOffsetPx: number,
+  additionalOffsetPx: number,
+): string {
+  if (!additionalOffsetPx) return pathData;
+  const cx = imgW / 2;
+  const cy = imgH / 2;
+  const sx = (imgW + 2 * (currentOffsetPx + additionalOffsetPx)) / Math.max(1, imgW + 2 * currentOffsetPx);
+  const sy = (imgH + 2 * (currentOffsetPx + additionalOffsetPx)) / Math.max(1, imgH + 2 * currentOffsetPx);
+
+  // Parser le path SVG et mettre à l'échelle depuis le centre
+  return pathData.replace(/([ML])(-?\d+\.?\d*),(-?\d+\.?\d*)/g, (_m, cmd, xs, ys) => {
+    const x = (parseFloat(xs) - cx) * sx + cx;
+    const y = (parseFloat(ys) - cy) * sy + cy;
+    return `${cmd}${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
+  });
+}
+
 // ─── Grille ───────────────────────────────────────────────────────────────────
-import { Line } from "react-konva";
 
 function GridLines({
   stageW,

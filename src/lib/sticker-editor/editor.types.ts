@@ -35,6 +35,8 @@ export interface CutlineSettings {
   /** Marge autour du visuel en mm */
   offsetMm: number;
   status: CutlineStatus;
+  /** Chemin SVG du contour alpha (relatif au coin haut-gauche de l'image affichée) */
+  alphaCutlinePath: string | undefined;
 }
 
 // ─── Paramètres globaux ───────────────────────────────────────────────────────
@@ -86,7 +88,9 @@ export type EditorAction =
   | { type: "SET_UPLOADING"; value: boolean }
   | { type: "SET_UPLOAD_ERROR"; error: string | null }
   | { type: "SET_CUT_TYPE"; cutType: CutType }
+  | { type: "SET_CUTLINE_METHOD"; method: CutlineMethod }
   | { type: "SET_CUTLINE_OFFSET"; offsetMm: number }
+  | { type: "SET_CUTLINE_PATH"; path: string | undefined; status: CutlineStatus }
   | { type: "SET_BLEED"; bleedMm: number }
   | { type: "SET_SAFETY_MARGIN"; safetyMarginMm: number }
   | { type: "TOGGLE_SHOW_BLEED" }

@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: EditorSettings = {
     method: "bounding_box",
     offsetMm: 2,
     status: "not_generated",
+    alphaCutlinePath: undefined as string | undefined,
   },
   bleedMm: 2,
   safetyMarginMm: 2,
@@ -60,7 +61,8 @@ export function editorReducer(
           ...state.settings,
           cutline: {
             ...state.settings.cutline,
-            status: "not_generated",
+            status: "not_generated" as const,
+            alphaCutlinePath: undefined as string | undefined,
           },
         },
       };
@@ -73,7 +75,7 @@ export function editorReducer(
         isDirty: false,
         settings: {
           ...state.settings,
-          cutline: { ...state.settings.cutline, status: "not_generated" },
+          cutline: { ...state.settings.cutline, status: "not_generated" as const, alphaCutlinePath: undefined as string | undefined },
         },
       };
 
@@ -101,6 +103,34 @@ export function editorReducer(
         },
       };
 
+    case "SET_CUTLINE_METHOD":
+      return {
+        ...state,
+        isDirty: true,
+        settings: {
+          ...state.settings,
+          cutline: {
+            ...state.settings.cutline,
+            method: action.method,
+            alphaCutlinePath: action.method === "bounding_box" ? (undefined as string | undefined) : state.settings.cutline.alphaCutlinePath,
+            status: "not_generated" as const,
+          },
+        },
+      };
+
+    case "SET_CUTLINE_PATH":
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          cutline: {
+            ...state.settings.cutline,
+            alphaCutlinePath: action.path as string | undefined,
+            status: action.status,
+          },
+        },
+      };
+
     case "SET_CUTLINE_OFFSET":
       return {
         ...state,
@@ -110,7 +140,8 @@ export function editorReducer(
           cutline: {
             ...state.settings.cutline,
             offsetMm: action.offsetMm,
-            status: "not_generated",
+            alphaCutlinePath: undefined as string | undefined,
+            status: "not_generated" as const,
           },
         },
       };

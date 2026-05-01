@@ -1,1374 +1,1365 @@
 # Graph Report - .  (2026-05-01)
 
 ## Corpus Check
-- Large corpus: 276 files · ~152,673 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
+- 271 files · ~148,678 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 871 nodes · 888 edges · 213 communities detected
-- Extraction: 98% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 13 edges (avg confidence: 0.79)
+- 853 nodes · 862 edges · 213 communities detected
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_POST()|POST()]]
-- [[_COMMUNITY_Guide déploiement VPS MS Adhésif|Guide déploiement VPS MS Adhésif]]
-- [[_COMMUNITY_product-catalog-actions.ts|product-catalog-actions.ts]]
-- [[_COMMUNITY_admin-actions.ts|admin-actions.ts]]
-- [[_COMMUNITY_order-detail-client.tsx|order-detail-client.tsx]]
-- [[_COMMUNITY_ShippingRulesClient.tsx|ShippingRulesClient.tsx]]
-- [[_COMMUNITY_unlayer-designs.ts|unlayer-designs.ts]]
-- [[_COMMUNITY_nav-editor-client.tsx|nav-editor-client.tsx]]
-- [[_COMMUNITY_page-editor-client.tsx|page-editor-client.tsx]]
-- [[_COMMUNITY_requireAdmin()|requireAdmin()]]
-- [[_COMMUNITY_euros()|euros()]]
-- [[_COMMUNITY_checkout-client.tsx|checkout-client.tsx]]
-- [[_COMMUNITY_cart-actions.ts|cart-actions.ts]]
-- [[_COMMUNITY_pennylane.ts|pennylane.ts]]
-- [[_COMMUNITY_email-renderer.ts|email-renderer.ts]]
-- [[_COMMUNITY_discount-actions.ts|discount-actions.ts]]
-- [[_COMMUNITY_storage.ts|storage.ts]]
-- [[_COMMUNITY_generateMetadata()|generateMetadata()]]
-- [[_COMMUNITY_pages-actions.ts|pages-actions.ts]]
-- [[_COMMUNITY_sendcloud.ts|sendcloud.ts]]
-- [[_COMMUNITY_nav-actions.ts|nav-actions.ts]]
-- [[_COMMUNITY_email-template-actions.ts|email-template-actions.ts]]
-- [[_COMMUNITY_review-email-service.ts|review-email-service.ts]]
-- [[_COMMUNITY_options-client.tsx|options-client.tsx]]
-- [[_COMMUNITY_product-edit-client-v2.tsx|product-edit-client-v2.tsx]]
-- [[_COMMUNITY_ShippingMethodsClient.tsx|ShippingMethodsClient.tsx]]
-- [[_COMMUNITY_ShippingZonesClient.tsx|ShippingZonesClient.tsx]]
-- [[_COMMUNITY_carriers.ts|carriers.ts]]
-- [[_COMMUNITY_review-request-service.ts|review-request-service.ts]]
-- [[_COMMUNITY_profile-client.tsx|profile-client.tsx]]
-- [[_COMMUNITY_requireCustomer()|requireCustomer()]]
-- [[_COMMUNITY_requireUser()|requireUser()]]
-- [[_COMMUNITY_auth-actions.ts|auth-actions.ts]]
-- [[_COMMUNITY_vat.ts|vat.ts]]
-- [[_COMMUNITY_review-moderation-service.ts|review-moderation-service.ts]]
-- [[_COMMUNITY_products.ts|products.ts]]
-- [[_COMMUNITY_cookie-banner.tsx|cookie-banner.tsx]]
-- [[_COMMUNITY_baseProps()|baseProps()]]
-- [[_COMMUNITY_CustomerDetailClient.tsx|CustomerDetailClient.tsx]]
-- [[_COMMUNITY_ShippingPickupClient.tsx|ShippingPickupClient.tsx]]
-- [[_COMMUNITY_brevo.ts|brevo.ts]]
-- [[_COMMUNITY_pricing.ts|pricing.ts]]
-- [[_COMMUNITY_products.ts|products.ts]]
-- [[_COMMUNITY_settings-actions.ts|settings-actions.ts]]
-- [[_COMMUNITY_normalize()|normalize()]]
-- [[_COMMUNITY_engine.ts|engine.ts]]
-- [[_COMMUNITY_addresses-client.tsx|addresses-client.tsx]]
-- [[_COMMUNITY_review-detail-client.tsx|review-detail-client.tsx]]
-- [[_COMMUNITY_orders.ts|orders.ts]]
-- [[_COMMUNITY_product-direct-template.tsx|product-direct-template.tsx]]
-- [[_COMMUNITY_ShippingCalendarClient.tsx|ShippingCalendarClient.tsx]]
-- [[_COMMUNITY_order-actions.ts|order-actions.ts]]
-- [[_COMMUNITY_calculateDiscounts()|calculateDiscounts()]]
-- [[_COMMUNITY_evaluateCondition()|evaluateCondition()]]
-- [[_COMMUNITY_ConfirmationPage()|ConfirmationPage()]]
-- [[_COMMUNITY_cart-context.tsx|cart-context.tsx]]
-- [[_COMMUNITY_email-editor-client.tsx|email-editor-client.tsx]]
-- [[_COMMUNITY_category-edit-client.tsx|category-edit-client.tsx]]
-- [[_COMMUNITY_discount-list-client.tsx|discount-list-client.tsx]]
-- [[_COMMUNITY_discount-form-client.tsx|discount-form-client.tsx]]
-- [[_COMMUNITY_runSimulation()|runSimulation()]]
-- [[_COMMUNITY_requireSession()|requireSession()]]
-- [[_COMMUNITY_order-state.ts|order-state.ts]]
-- [[_COMMUNITY_checkout-actions.ts|checkout-actions.ts]]
-- [[_COMMUNITY_pricing.ts|pricing.ts]]
-- [[_COMMUNITY_zones.ts|zones.ts]]
-- [[_COMMUNITY_Module srclibpricing.ts (PURE FUNCTIO|Module /src/lib/pricing.ts (PURE FUNCTIO]]
-- [[_COMMUNITY_createEnv()|createEnv()]]
-- [[_COMMUNITY_orders-list-client.tsx|orders-list-client.tsx]]
-- [[_COMMUNITY_review-settings-client.tsx|review-settings-client.tsx]]
-- [[_COMMUNITY_product-new-client.tsx|product-new-client.tsx]]
-- [[_COMMUNITY_product-edit-client.tsx|product-edit-client.tsx]]
-- [[_COMMUNITY_admin-image-upload.tsx|admin-image-upload.tsx]]
-- [[_COMMUNITY_products-list-client.tsx|products-list-client.tsx]]
-- [[_COMMUNITY_CountryPicker.tsx|CountryPicker.tsx]]
-- [[_COMMUNITY_PostalCodeSearch.tsx|PostalCodeSearch.tsx]]
-- [[_COMMUNITY_DeliveryDatePicker.tsx|DeliveryDatePicker.tsx]]
-- [[_COMMUNITY_product-utils.ts|product-utils.ts]]
-- [[_COMMUNITY_sendEmail()|sendEmail()]]
-- [[_COMMUNITY_debug.ts|debug.ts]]
-- [[_COMMUNITY_applyAction()|applyAction()]]
-- [[_COMMUNITY_postal-rules-parser.ts|postal-rules-parser.ts]]
-- [[_COMMUNITY_review-aggregate-service.ts|review-aggregate-service.ts]]
-- [[_COMMUNITY_review-submission-service.ts|review-submission-service.ts]]
-- [[_COMMUNITY_Table order_events append-only (audit)|Table order_events append-only (audit)]]
-- [[_COMMUNITY_Document or file UI icon with folded cor|Document or file UI icon with folded cor]]
-- [[_COMMUNITY_proxy()|proxy()]]
-- [[_COMMUNITY_ShopLayout()|ShopLayout()]]
-- [[_COMMUNITY_HomePage()|HomePage()]]
-- [[_COMMUNITY_CustomStickersPage()|CustomStickersPage()]]
-- [[_COMMUNITY_CheckoutPage()|CheckoutPage()]]
-- [[_COMMUNITY_ReviewThankYouPage()|ReviewThankYouPage()]]
-- [[_COMMUNITY_handleSubmit()|handleSubmit()]]
-- [[_COMMUNITY_MaintenancePage()|MaintenancePage()]]
-- [[_COMMUNITY_AccountPage()|AccountPage()]]
-- [[_COMMUNITY_ProfilePage()|ProfilePage()]]
-- [[_COMMUNITY_AddressesPage()|AddressesPage()]]
-- [[_COMMUNITY_MyOrdersPage()|MyOrdersPage()]]
-- [[_COMMUNITY_MyOrderDetailPage()|MyOrderDetailPage()]]
-- [[_COMMUNITY_RegisterPage()|RegisterPage()]]
-- [[_COMMUNITY_LoginPage()|LoginPage()]]
-- [[_COMMUNITY_AdminLayout()|AdminLayout()]]
-- [[_COMMUNITY_AdminCustomerDetailPage()|AdminCustomerDetailPage()]]
-- [[_COMMUNITY_handleSave()|handleSave()]]
-- [[_COMMUNITY_SettingsPage()|SettingsPage()]]
-- [[_COMMUNITY_OptionsPage()|OptionsPage()]]
-- [[_COMMUNITY_handleMigrate()|handleMigrate()]]
-- [[_COMMUNITY_AdminProductNewPage()|AdminProductNewPage()]]
-- [[_COMMUNITY_AdminProductEditPage()|AdminProductEditPage()]]
-- [[_COMMUNITY_NavigationPage()|NavigationPage()]]
-- [[_COMMUNITY_AdminDiscountsPage()|AdminDiscountsPage()]]
-- [[_COMMUNITY_NewDiscountPage()|NewDiscountPage()]]
-- [[_COMMUNITY_EditDiscountPage()|EditDiscountPage()]]
-- [[_COMMUNITY_ShippingMethodsPage()|ShippingMethodsPage()]]
-- [[_COMMUNITY_ShippingCalendarPage()|ShippingCalendarPage()]]
-- [[_COMMUNITY_ShippingZonesPage()|ShippingZonesPage()]]
-- [[_COMMUNITY_ShippingSimulatePage()|ShippingSimulatePage()]]
-- [[_COMMUNITY_ShippingPickupPage()|ShippingPickupPage()]]
-- [[_COMMUNITY_ShippingRulesPage()|ShippingRulesPage()]]
-- [[_COMMUNITY_AdminOrderDetailPage()|AdminOrderDetailPage()]]
-- [[_COMMUNITY_PageEditorPage()|PageEditorPage()]]
-- [[_COMMUNITY_CategoryEditPage()|CategoryEditPage()]]
-- [[_COMMUNITY_AdminReviewsPage()|AdminReviewsPage()]]
-- [[_COMMUNITY_AdminReviewSettingsPage()|AdminReviewSettingsPage()]]
-- [[_COMMUNITY_ReviewRequestsClient()|ReviewRequestsClient()]]
-- [[_COMMUNITY_AdminReviewRequestsPage()|AdminReviewRequestsPage()]]
-- [[_COMMUNITY_AdminReviewDetailPage()|AdminReviewDetailPage()]]
-- [[_COMMUNITY_queryCustomerDetail()|queryCustomerDetail()]]
-- [[_COMMUNITY_Badge()|Badge()]]
-- [[_COMMUNITY_handleSubmit()|handleSubmit()]]
-- [[_COMMUNITY_SignOutButton()|SignOutButton()]]
-- [[_COMMUNITY_handleSubmit()|handleSubmit()]]
-- [[_COMMUNITY_ProductCard()|ProductCard()]]
-- [[_COMMUNITY_sticker-preview.tsx|sticker-preview.tsx]]
-- [[_COMMUNITY_handleSubmit()|handleSubmit()]]
-- [[_COMMUNITY_uploadFile()|uploadFile()]]
-- [[_COMMUNITY_productToCard()|productToCard()]]
-- [[_COMMUNITY_if()|if()]]
-- [[_COMMUNITY_handleDelete()|handleDelete()]]
-- [[_COMMUNITY_AdminBypassCookieSetter()|AdminBypassCookieSetter()]]
-- [[_COMMUNITY_ProductRatingSummary()|ProductRatingSummary()]]
-- [[_COMMUNITY_load()|load()]]
-- [[_COMMUNITY_ReviewStars()|ReviewStars()]]
-- [[_COMMUNITY_getSiteSettingsQuery()|getSiteSettingsQuery()]]
-- [[_COMMUNITY_stripe.ts|stripe.ts]]
-- [[_COMMUNITY_utils.ts|utils.ts]]
-- [[_COMMUNITY_makeInput()|makeInput()]]
-- [[_COMMUNITY_mockFetch()|mockFetch()]]
-- [[_COMMUNITY_interpolate()|interpolate()]]
-- [[_COMMUNITY_checkRateLimit()|checkRateLimit()]]
-- [[_COMMUNITY_computeDiscountAmount()|computeDiscountAmount()]]
-- [[_COMMUNITY_validateDiscount()|validateDiscount()]]
-- [[_COMMUNITY_resolveConflicts()|resolveConflicts()]]
-- [[_COMMUNITY_main()|main()]]
-- [[_COMMUNITY_getDb()|getDb()]]
-- [[_COMMUNITY_Next.js framework wordmark and stacked l|Next.js framework wordmark and stacked l]]
-- [[_COMMUNITY_next-env.d.ts|next-env.d.ts]]
-- [[_COMMUNITY_drizzle.config.ts|drizzle.config.ts]]
-- [[_COMMUNITY_vitest.config.ts|vitest.config.ts]]
-- [[_COMMUNITY_next.config.ts|next.config.ts]]
-- [[_COMMUNITY_layout.tsx|layout.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_layout.tsx|layout.tsx]]
-- [[_COMMUNITY_account-nav.tsx|account-nav.tsx]]
-- [[_COMMUNITY_layout.tsx|layout.tsx]]
-- [[_COMMUNITY_layout.tsx|layout.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_page.tsx|page.tsx]]
-- [[_COMMUNITY_admin-reviews-client.tsx|admin-reviews-client.tsx]]
-- [[_COMMUNITY_admin.ts|admin.ts]]
-- [[_COMMUNITY_orders.ts|orders.ts]]
-- [[_COMMUNITY_card.tsx|card.tsx]]
-- [[_COMMUNITY_label.tsx|label.tsx]]
-- [[_COMMUNITY_drawer.tsx|drawer.tsx]]
-- [[_COMMUNITY_dialog.tsx|dialog.tsx]]
-- [[_COMMUNITY_button.tsx|button.tsx]]
-- [[_COMMUNITY_input.tsx|input.tsx]]
-- [[_COMMUNITY_auth-card.tsx|auth-card.tsx]]
-- [[_COMMUNITY_ticker.tsx|ticker.tsx]]
-- [[_COMMUNITY_footer.tsx|footer.tsx]]
-- [[_COMMUNITY_logo.tsx|logo.tsx]]
-- [[_COMMUNITY_header.tsx|header.tsx]]
-- [[_COMMUNITY_categories-section.tsx|categories-section.tsx]]
-- [[_COMMUNITY_feature-strip.tsx|feature-strip.tsx]]
-- [[_COMMUNITY_reviews-section.tsx|reviews-section.tsx]]
-- [[_COMMUNITY_hero-section.tsx|hero-section.tsx]]
-- [[_COMMUNITY_process-section.tsx|process-section.tsx]]
-- [[_COMMUNITY_confirmation-client.tsx|confirmation-client.tsx]]
-- [[_COMMUNITY_order-summary.tsx|order-summary.tsx]]
-- [[_COMMUNITY_stepper-layout.tsx|stepper-layout.tsx]]
-- [[_COMMUNITY_admin-ui.tsx|admin-ui.tsx]]
-- [[_COMMUNITY_DeliveryTimeSlotPicker.tsx|DeliveryTimeSlotPicker.tsx]]
-- [[_COMMUNITY_ReviewCard.tsx|ReviewCard.tsx]]
-- [[_COMMUNITY_ReviewMediaGallery.tsx|ReviewMediaGallery.tsx]]
-- [[_COMMUNITY_page-sections.ts|page-sections.ts]]
-- [[_COMMUNITY_order-state.test.ts|order-state.test.ts]]
-- [[_COMMUNITY_vat.test.ts|vat.test.ts]]
-- [[_COMMUNITY_cart-types.ts|cart-types.ts]]
-- [[_COMMUNITY_email-defaults.ts|email-defaults.ts]]
-- [[_COMMUNITY_auth.ts|auth.ts]]
-- [[_COMMUNITY_auth-client.ts|auth-client.ts]]
-- [[_COMMUNITY_discount-types.ts|discount-types.ts]]
-- [[_COMMUNITY_types.ts|types.ts]]
-- [[_COMMUNITY_validators.ts|validators.ts]]
-- [[_COMMUNITY_review-types.ts|review-types.ts]]
-- [[_COMMUNITY_schema.ts|schema.ts]]
-- [[_COMMUNITY_Liens documentation Next.js officielle|Liens documentation Next.js officielle]]
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 9|Community 9]]
+- [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 33|Community 33]]
+- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 57|Community 57]]
+- [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 59|Community 59]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 61|Community 61]]
+- [[_COMMUNITY_Community 62|Community 62]]
+- [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 64|Community 64]]
+- [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 66|Community 66]]
+- [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 68|Community 68]]
+- [[_COMMUNITY_Community 69|Community 69]]
+- [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 93|Community 93]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
+- [[_COMMUNITY_Community 97|Community 97]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
+- [[_COMMUNITY_Community 107|Community 107]]
+- [[_COMMUNITY_Community 108|Community 108]]
+- [[_COMMUNITY_Community 109|Community 109]]
+- [[_COMMUNITY_Community 110|Community 110]]
+- [[_COMMUNITY_Community 111|Community 111]]
+- [[_COMMUNITY_Community 112|Community 112]]
+- [[_COMMUNITY_Community 113|Community 113]]
+- [[_COMMUNITY_Community 114|Community 114]]
+- [[_COMMUNITY_Community 115|Community 115]]
+- [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
+- [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
+- [[_COMMUNITY_Community 127|Community 127]]
+- [[_COMMUNITY_Community 128|Community 128]]
+- [[_COMMUNITY_Community 129|Community 129]]
+- [[_COMMUNITY_Community 130|Community 130]]
+- [[_COMMUNITY_Community 131|Community 131]]
+- [[_COMMUNITY_Community 132|Community 132]]
+- [[_COMMUNITY_Community 133|Community 133]]
+- [[_COMMUNITY_Community 134|Community 134]]
+- [[_COMMUNITY_Community 135|Community 135]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 139|Community 139]]
+- [[_COMMUNITY_Community 140|Community 140]]
+- [[_COMMUNITY_Community 141|Community 141]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
+- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
+- [[_COMMUNITY_Community 167|Community 167]]
+- [[_COMMUNITY_Community 168|Community 168]]
+- [[_COMMUNITY_Community 169|Community 169]]
+- [[_COMMUNITY_Community 170|Community 170]]
+- [[_COMMUNITY_Community 171|Community 171]]
+- [[_COMMUNITY_Community 172|Community 172]]
+- [[_COMMUNITY_Community 173|Community 173]]
+- [[_COMMUNITY_Community 174|Community 174]]
+- [[_COMMUNITY_Community 175|Community 175]]
+- [[_COMMUNITY_Community 176|Community 176]]
+- [[_COMMUNITY_Community 177|Community 177]]
+- [[_COMMUNITY_Community 178|Community 178]]
+- [[_COMMUNITY_Community 179|Community 179]]
+- [[_COMMUNITY_Community 180|Community 180]]
+- [[_COMMUNITY_Community 181|Community 181]]
+- [[_COMMUNITY_Community 182|Community 182]]
+- [[_COMMUNITY_Community 183|Community 183]]
+- [[_COMMUNITY_Community 184|Community 184]]
+- [[_COMMUNITY_Community 185|Community 185]]
+- [[_COMMUNITY_Community 186|Community 186]]
+- [[_COMMUNITY_Community 187|Community 187]]
+- [[_COMMUNITY_Community 188|Community 188]]
+- [[_COMMUNITY_Community 189|Community 189]]
+- [[_COMMUNITY_Community 190|Community 190]]
+- [[_COMMUNITY_Community 191|Community 191]]
+- [[_COMMUNITY_Community 192|Community 192]]
+- [[_COMMUNITY_Community 193|Community 193]]
+- [[_COMMUNITY_Community 194|Community 194]]
+- [[_COMMUNITY_Community 195|Community 195]]
+- [[_COMMUNITY_Community 196|Community 196]]
+- [[_COMMUNITY_Community 197|Community 197]]
+- [[_COMMUNITY_Community 198|Community 198]]
+- [[_COMMUNITY_Community 199|Community 199]]
+- [[_COMMUNITY_Community 200|Community 200]]
+- [[_COMMUNITY_Community 201|Community 201]]
+- [[_COMMUNITY_Community 202|Community 202]]
+- [[_COMMUNITY_Community 203|Community 203]]
+- [[_COMMUNITY_Community 204|Community 204]]
+- [[_COMMUNITY_Community 205|Community 205]]
+- [[_COMMUNITY_Community 206|Community 206]]
+- [[_COMMUNITY_Community 207|Community 207]]
+- [[_COMMUNITY_Community 208|Community 208]]
+- [[_COMMUNITY_Community 209|Community 209]]
+- [[_COMMUNITY_Community 210|Community 210]]
+- [[_COMMUNITY_Community 211|Community 211]]
+- [[_COMMUNITY_Community 212|Community 212]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `POST()` - 31 edges
+1. `POST()` - 34 edges
 2. `GET()` - 29 edges
-3. `requireAdmin()` - 17 edges
-4. `requireAdmin()` - 13 edges
-5. `uid()` - 12 edges
-6. `requireAdmin()` - 12 edges
-7. `PATCH()` - 10 edges
-8. `DELETE()` - 10 edges
-9. `requireAdmin()` - 7 edges
-10. `requireAdmin()` - 7 edges
+3. `requireAdmin()` - 12 edges
+4. `uid()` - 12 edges
+5. `requireAdmin()` - 12 edges
+6. `PATCH()` - 10 edges
+7. `DELETE()` - 10 edges
+8. `requireAdmin()` - 7 edges
+9. `getClient()` - 7 edges
+10. `getBucket()` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `README template create-next-app (dev/deploy Vercel)` --conceptually_related_to--> `Contraintes: aucun CMS, code propriétaire, VPS`  [AMBIGUOUS]
-  README.md → instruction.md
-- `Next.js: changements cassants, lire node_modules/next/dist/docs` --conceptually_related_to--> `Stack imposée (Next.js 15, Drizzle, Better-Auth, Stripe, etc.)`  [INFERRED]
-  AGENTS.md → instruction.md
-- `README template create-next-app (dev/deploy Vercel)` --conceptually_related_to--> `Stack imposée (Next.js 15, Drizzle, Better-Auth, Stripe, etc.)`  [INFERRED]
-  README.md → instruction.md
-- `Webhook Stripe production /api/webhooks/stripe` --conceptually_related_to--> `Facturation Pennylane API v2`  [INFERRED]
-  docs/deploy.md → instruction.md
-- `Référence code src/lib/pennylane.ts createAndFinalizeInvoice` --conceptually_related_to--> `Facturation Pennylane API v2`  [INFERRED]
-  docs/compliance.md → instruction.md
-- `Remboursements refundOrder src/lib/admin-actions.ts` --conceptually_related_to--> `Facturation Pennylane API v2`  [INFERRED]
-  docs/compliance.md → instruction.md
-- `Contraintes: aucun CMS, code propriétaire, VPS` --conceptually_related_to--> `Guide déploiement VPS MS Adhésif`  [INFERRED]
-  instruction.md → docs/deploy.md
-- `Factur-X via Pennylane (ODP DGFIP)` --conceptually_related_to--> `Facturation Pennylane API v2`  [INFERRED]
-  docs/compliance.md → instruction.md
-- `Documenter Factur-X / conformité dans /docs/compliance.md` --references--> `Document fichier docs/compliance.md (cible instruction)`  [EXTRACTED]
-  instruction.md → docs/compliance.md
-- `Fichier CLAUDE.md pointe vers AGENTS.md` --references--> `Next.js: changements cassants, lire node_modules/next/dist/docs`  [EXTRACTED]
-  CLAUDE.md → AGENTS.md
+- `GET()` --calls--> `escapeXml()`  [EXTRACTED]
+  src/app/api/reviews/store/route.ts → src/app/feeds/google/product-reviews.xml/route.ts
+- `GET()` --calls--> `isPublicAsset()`  [EXTRACTED]
+  src/app/api/reviews/store/route.ts → src/app/api/uploads/download/route.ts
+- `GET()` --calls--> `getSettings()`  [EXTRACTED]
+  src/app/api/reviews/store/route.ts → src/app/api/maintenance/route.ts
+- `POST()` --calls--> `resolveModifier()`  [EXTRACTED]
+  src/app/api/reviews/media/route.ts → src/app/api/stickers/calculate-price/route.ts
+- `POST()` --calls--> `getMinioClient()`  [EXTRACTED]
+  src/app/api/reviews/media/route.ts → src/app/api/admin/uploads/route.ts
 
 ## Communities
 
-### Community 0 - "POST()"
-Cohesion: 0.04
-Nodes (17): createPennylaneInvoice(), DELETE(), escapeXml(), euros(), GET(), getBucket(), getMinioClient(), getSettings() (+9 more)
+### Community 0 - "Community 0"
+Cohesion: 0.05
+Nodes (16): createPennylaneInvoice(), escapeXml(), euros(), GET(), getBucket(), getMinioClient(), getSettings(), handleChargeRefunded() (+8 more)
 
-### Community 1 - "Guide déploiement VPS MS Adhésif"
-Cohesion: 0.07
-Nodes (31): Next.js: changements cassants, lire node_modules/next/dist/docs, Fichier CLAUDE.md pointe vers AGENTS.md, Conformité facturation électronique B2B FR, Factur-X via Pennylane (ODP DGFIP), RGPD données facturation base légale art. 6.1.c, Citation Ordonnance n°2021-1190 + BOI-TVA-DECLA-30-10-30, Référence code src/lib/pennylane.ts createAndFinalizeInvoice, Rationale: Pennylane ODP couvre Factur-X, PPF, archivage 10 ans (+23 more)
+### Community 1 - "Community 1"
+Cohesion: 0.11
+Nodes (7): getActiveStickerLaminations(), getActiveStickerMaterials(), getActiveStickerShapes(), getActiveStickerSizes(), getProductStickerConfig(), getStickerCatalogForProduct(), upsertProductStickerConfig()
 
-### Community 2 - "product-catalog-actions.ts"
-Cohesion: 0.14
-Nodes (19): createCategory(), createOptionValue(), createProduct(), createVariant(), deleteCategory(), deleteOptionValue(), deleteProduct(), deleteVariant() (+11 more)
+### Community 2 - "Community 2"
+Cohesion: 0.18
+Nodes (13): addInternalNote(), changeOrderStatus(), createShipment(), generateInvoice(), getSendCloudShippingMethods(), markPaidByTransfer(), refreshInvoiceUrl(), refundOrder() (+5 more)
 
-### Community 3 - "admin-actions.ts"
-Cohesion: 0.17
-Nodes (14): addInternalNote(), changeOrderStatus(), createShipment(), generateInvoice(), getSendCloudShippingMethods(), markPaidByTransfer(), refreshInvoiceUrl(), refundOrder() (+6 more)
-
-### Community 4 - "order-detail-client.tsx"
+### Community 3 - "Community 3"
 Cohesion: 0.12
 Nodes (2): euros(), formatDate()
 
-### Community 5 - "ShippingRulesClient.tsx"
+### Community 4 - "Community 4"
+Cohesion: 0.3
+Nodes (12): addToCart(), clearDraftOrder(), clearDraftOrderCookie(), getCart(), getCurrentUserId(), getDraftOrderId(), getOrCreateDraftOrder(), prepareFileUpload() (+4 more)
+
+### Community 5 - "Community 5"
+Cohesion: 0.21
+Nodes (2): DELETE(), PATCH()
+
+### Community 6 - "Community 6"
 Cohesion: 0.18
 Nodes (6): closeForm(), handleSave(), newCondition(), newRoot(), openEdit(), ruleToFormState()
 
-### Community 6 - "unlayer-designs.ts"
+### Community 7 - "Community 7"
 Cohesion: 0.27
 Nodes (13): buttonBlock(), dividerBlock(), footerBlock(), heroBlock(), logoBlock(), makeBody(), makeColumn(), makeDesign() (+5 more)
 
-### Community 7 - "nav-editor-client.tsx"
+### Community 8 - "Community 8"
 Cohesion: 0.18
 Nodes (4): emptyForm(), handleSave(), openNew(), showToast()
 
-### Community 8 - "page-editor-client.tsx"
+### Community 9 - "Community 9"
 Cohesion: 0.17
 Nodes (2): handleSave(), showToast()
 
-### Community 9 - "requireAdmin()"
+### Community 10 - "Community 10"
 Cohesion: 0.29
 Nodes (12): archiveReview(), createManualReviewRequest(), getAdminReview(), getAdminReviewRequests(), getAdminReviews(), getReviewSettings(), importReviewsFromCSV(), publishReview() (+4 more)
 
-### Community 10 - "euros()"
-Cohesion: 0.18
-Nodes (2): euros(), formatDate()
-
-### Community 11 - "checkout-client.tsx"
+### Community 11 - "Community 11"
 Cohesion: 0.18
 Nodes (2): handleSubmitOrder(), validate()
 
-### Community 12 - "cart-actions.ts"
-Cohesion: 0.39
-Nodes (11): addToCart(), clearDraftOrder(), clearDraftOrderCookie(), getCart(), getCurrentUserId(), getDraftOrderId(), getOrCreateDraftOrder(), recomputeOrderTotals() (+3 more)
+### Community 12 - "Community 12"
+Cohesion: 0.36
+Nodes (10): buildStorageKey(), deleteObject(), ensureBucketExists(), getBucket(), getClient(), getPresignedDownloadUrl(), getPresignedUploadUrl(), sanitizeFilename() (+2 more)
 
-### Community 13 - "pennylane.ts"
+### Community 13 - "Community 13"
 Cohesion: 0.24
 Nodes (8): createCompanyCustomer(), createCreditNote(), createIndividualCustomer(), findCustomerByEmail(), getConfig(), getOrCreateCustomer(), plFetch(), vatRateToCode()
 
-### Community 14 - "email-renderer.ts"
+### Community 14 - "Community 14"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 15 - "discount-actions.ts"
+### Community 15 - "Community 15"
 Cohesion: 0.29
 Nodes (8): applyDiscountCode(), createDiscount(), deleteDiscount(), getAdminDiscount(), getAdminDiscounts(), getCurrentUserId(), requireAdmin(), updateDiscount()
 
-### Community 16 - "storage.ts"
-Cohesion: 0.38
-Nodes (9): buildStorageKey(), deleteObject(), ensureBucketExists(), getBucket(), getClient(), getPresignedDownloadUrl(), getPresignedUploadUrl(), sanitizeFilename() (+1 more)
-
-### Community 17 - "generateMetadata()"
+### Community 16 - "Community 16"
 Cohesion: 0.2
 Nodes (2): generateMetadata(), generateStaticParams()
 
-### Community 18 - "pages-actions.ts"
+### Community 17 - "Community 17"
+Cohesion: 0.22
+Nodes (2): euros(), formatDate()
+
+### Community 18 - "Community 18"
 Cohesion: 0.33
 Nodes (7): createPage(), deletePage(), getAllPagesAdmin(), getPageAdmin(), requireAdmin(), seedDefaultPages(), updatePage()
 
-### Community 19 - "sendcloud.ts"
+### Community 19 - "Community 19"
 Cohesion: 0.39
 Nodes (8): authHeader(), autoCreateSendCloudOrder(), createParcel(), getFromAddress(), getLabelUrl(), getShippingMethods(), requireAdmin(), scFetch()
 
-### Community 20 - "nav-actions.ts"
+### Community 20 - "Community 20"
 Cohesion: 0.39
 Nodes (7): createNavItem(), deleteNavItem(), getNavTreeAdmin(), reorderNavItems(), requireAdmin(), seedDefaultNav(), updateNavItem()
 
-### Community 21 - "email-template-actions.ts"
+### Community 21 - "Community 21"
 Cohesion: 0.33
 Nodes (5): requireAdmin(), resetEmailTemplate(), saveEmailTemplate(), seedEmailTemplates(), seedUnlayerDesigns()
 
-### Community 22 - "review-email-service.ts"
+### Community 22 - "Community 22"
 Cohesion: 0.44
 Nodes (8): buildReminderEmailHtml(), buildRequestEmailHtml(), buildReviewLink(), buildThankYouEmailHtml(), escapeHtml(), sendReminderEmail(), sendReviewRequestEmail(), sendThankYouEmail()
 
-### Community 23 - "options-client.tsx"
-Cohesion: 0.25
-Nodes (0): 
-
-### Community 24 - "product-edit-client-v2.tsx"
-Cohesion: 0.25
-Nodes (0): 
-
-### Community 25 - "ShippingMethodsClient.tsx"
+### Community 23 - "Community 23"
 Cohesion: 0.29
 Nodes (2): closeForm(), handleSave()
 
-### Community 26 - "ShippingZonesClient.tsx"
+### Community 24 - "Community 24"
 Cohesion: 0.32
 Nodes (3): buildPayload(), closeForm(), handleSave()
 
-### Community 27 - "carriers.ts"
+### Community 25 - "Community 25"
+Cohesion: 0.29
+Nodes (2): handleEditorValidate(), handleFileSelect()
+
+### Community 26 - "Community 26"
 Cohesion: 0.25
 Nodes (2): ChronopostProvider, ColissimoProvider
 
-### Community 28 - "review-request-service.ts"
+### Community 27 - "Community 27"
 Cohesion: 0.29
 Nodes (2): createReviewRequestForOrder(), generateToken()
 
-### Community 29 - "profile-client.tsx"
+### Community 28 - "Community 28"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 30 - "requireCustomer()"
+### Community 29 - "Community 29"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 30 - "Community 30"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 31 - "Community 31"
 Cohesion: 0.52
 Nodes (6): approveProof(), getMyOrderDetail(), getMyOrders(), reorderFromOrder(), requestProofRevision(), requireCustomer()
 
-### Community 31 - "requireUser()"
+### Community 32 - "Community 32"
 Cohesion: 0.52
 Nodes (6): deleteAddress(), getLastOrderAddress(), getUserAddresses(), requireUser(), saveAddress(), setDefaultAddress()
 
-### Community 32 - "auth-actions.ts"
+### Community 33 - "Community 33"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 33 - "vat.ts"
+### Community 34 - "Community 34"
+Cohesion: 0.43
+Nodes (4): applyModifier(), computeStickerPrice(), getMultiplierValue(), getQuantityDiscount()
+
+### Community 35 - "Community 35"
 Cohesion: 0.43
 Nodes (4): callVies(), computeVatRate(), normalise(), validateVatNumber()
 
-### Community 34 - "review-moderation-service.ts"
+### Community 36 - "Community 36"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 37 - "Community 37"
 Cohesion: 0.48
 Nodes (5): approveReviewMedia(), archive(), publish(), reject(), triggerRecalculation()
 
-### Community 35 - "products.ts"
-Cohesion: 0.33
-Nodes (0): 
-
-### Community 36 - "cookie-banner.tsx"
+### Community 38 - "Community 38"
 Cohesion: 0.47
 Nodes (3): acceptAll(), acceptEssential(), storeConsent()
 
-### Community 37 - "baseProps()"
+### Community 39 - "Community 39"
 Cohesion: 0.6
 Nodes (5): baseProps(), CartIcon(), ChevronDownIcon(), CloseIcon(), SearchIcon()
 
-### Community 38 - "CustomerDetailClient.tsx"
+### Community 40 - "Community 40"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 39 - "ShippingPickupClient.tsx"
+### Community 41 - "Community 41"
 Cohesion: 0.4
 Nodes (2): closeForm(), handleSave()
 
-### Community 40 - "brevo.ts"
+### Community 42 - "Community 42"
 Cohesion: 0.6
 Nodes (4): baseLayout(), btn(), buildAdminOrderNotificationEmail(), buildOrderConfirmationEmail()
 
-### Community 41 - "pricing.ts"
-Cohesion: 0.47
-Nodes (3): ceilCent(), computePrice(), getQuantityDiscount()
-
-### Community 42 - "products.ts"
+### Community 43 - "Community 43"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 43 - "settings-actions.ts"
+### Community 44 - "Community 44"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 45 - "Community 45"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 46 - "Community 46"
 Cohesion: 0.53
 Nodes (4): ensureSettingsRow(), getSiteSettings(), requireAdmin(), updateSiteSettings()
 
-### Community 44 - "normalize()"
+### Community 47 - "Community 47"
 Cohesion: 0.67
 Nodes (5): excludeMatches(), matchesRule(), normalize(), postalCodeIsExcluded(), postalCodeMatchesRules()
 
-### Community 45 - "engine.ts"
+### Community 48 - "Community 48"
 Cohesion: 0.47
 Nodes (3): computeShippingQuote(), loadActiveMethods(), loadActiveRules()
 
-### Community 46 - "addresses-client.tsx"
+### Community 49 - "Community 49"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 47 - "review-detail-client.tsx"
+### Community 50 - "Community 50"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 48 - "orders.ts"
+### Community 51 - "Community 51"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 49 - "product-direct-template.tsx"
+### Community 52 - "Community 52"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 50 - "ShippingCalendarClient.tsx"
+### Community 53 - "Community 53"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 51 - "order-actions.ts"
+### Community 54 - "Community 54"
 Cohesion: 0.6
 Nodes (3): formatOrderNumber(), getDraftOrderId(), submitOrder()
 
-### Community 52 - "calculateDiscounts()"
+### Community 55 - "Community 55"
 Cohesion: 0.7
 Nodes (4): calculateDiscounts(), getActiveAutomaticDiscounts(), getDiscountsByCode(), resolveDiscountCombinations()
 
-### Community 53 - "evaluateCondition()"
+### Community 56 - "Community 56"
 Cohesion: 0.7
 Nodes (4): evaluate(), evaluateCondition(), evaluateConditionGroup(), resolveField()
 
-### Community 54 - "ConfirmationPage()"
+### Community 57 - "Community 57"
 Cohesion: 0.83
 Nodes (3): ConfirmationPage(), fetchOrderData(), formatOrderNumber()
 
-### Community 55 - "cart-context.tsx"
+### Community 58 - "Community 58"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 56 - "email-editor-client.tsx"
+### Community 59 - "Community 59"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 57 - "category-edit-client.tsx"
+### Community 60 - "Community 60"
 Cohesion: 0.67
 Nodes (2): handleNameChange(), slugify()
 
-### Community 58 - "discount-list-client.tsx"
+### Community 61 - "Community 61"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 59 - "discount-form-client.tsx"
+### Community 62 - "Community 62"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 60 - "runSimulation()"
+### Community 63 - "Community 63"
 Cohesion: 0.83
 Nodes (3): runJson(), runSimple(), runSimulation()
 
-### Community 61 - "requireSession()"
+### Community 64 - "Community 64"
 Cohesion: 0.83
 Nodes (3): deleteUserAccount(), exportUserData(), requireSession()
 
-### Community 62 - "order-state.ts"
+### Community 65 - "Community 65"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 63 - "checkout-actions.ts"
+### Community 66 - "Community 66"
 Cohesion: 0.67
 Nodes (2): createCheckoutSession(), requireSession()
 
-### Community 64 - "pricing.ts"
+### Community 67 - "Community 67"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 65 - "zones.ts"
+### Community 68 - "Community 68"
 Cohesion: 0.67
 Nodes (2): destinationMatchesZone(), haversineKm()
 
-### Community 66 - "Module /src/lib/pricing.ts (PURE FUNCTIO"
-Cohesion: 0.5
-Nodes (4): Module /src/lib/pricing.ts (PURE FUNCTION), Arborescence projet single Next.js app, Rationale: pricing pur et isomorphe pour preview temps réel, Section 5 — Moteur de prix et règles
+### Community 69 - "Community 69"
+Cohesion: 1.0
+Nodes (2): buildCsp(), proxy()
 
-### Community 67 - "createEnv()"
+### Community 70 - "Community 70"
 Cohesion: 1.0
 Nodes (2): createEnv(), getEnv()
 
-### Community 68 - "orders-list-client.tsx"
+### Community 71 - "Community 71"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 69 - "review-settings-client.tsx"
+### Community 72 - "Community 72"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 70 - "product-new-client.tsx"
+### Community 73 - "Community 73"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 71 - "product-edit-client.tsx"
+### Community 74 - "Community 74"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 72 - "admin-image-upload.tsx"
+### Community 75 - "Community 75"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 73 - "products-list-client.tsx"
+### Community 76 - "Community 76"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 74 - "CountryPicker.tsx"
+### Community 77 - "Community 77"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 75 - "PostalCodeSearch.tsx"
+### Community 78 - "Community 78"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 76 - "DeliveryDatePicker.tsx"
+### Community 79 - "Community 79"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 77 - "product-utils.ts"
+### Community 80 - "Community 80"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 78 - "sendEmail()"
+### Community 81 - "Community 81"
 Cohesion: 1.0
 Nodes (2): sendEmail(), sendTemplatedEmail()
 
-### Community 79 - "debug.ts"
+### Community 82 - "Community 82"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 80 - "applyAction()"
+### Community 83 - "Community 83"
 Cohesion: 1.0
 Nodes (2): applyAction(), getTargetStates()
 
-### Community 81 - "postal-rules-parser.ts"
+### Community 84 - "Community 84"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 82 - "review-aggregate-service.ts"
+### Community 85 - "Community 85"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 83 - "review-submission-service.ts"
+### Community 86 - "Community 86"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 84 - "Table order_events append-only (audit)"
+### Community 87 - "Community 87"
 Cohesion: 0.67
-Nodes (3): Table order_events append-only (audit), State machine commandes /src/lib/order-state.ts, Rationale: order_events comme audit trail légal
-
-### Community 85 - "Document or file UI icon with folded cor"
-Cohesion: 1.0
-Nodes (3): Document or file UI icon with folded corner and horizontal line placeholders suggesting text content, Earth globe icon with meridians and parallels representing world or internationalization, Browser or application window frame with title bar and traffic-light style control dots
-
-### Community 86 - "proxy()"
-Cohesion: 1.0
 Nodes (0): 
 
-### Community 87 - "ShopLayout()"
-Cohesion: 1.0
+### Community 88 - "Community 88"
+Cohesion: 0.67
 Nodes (0): 
 
-### Community 88 - "HomePage()"
+### Community 89 - "Community 89"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 89 - "CustomStickersPage()"
+### Community 90 - "Community 90"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 90 - "CheckoutPage()"
+### Community 91 - "Community 91"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 91 - "ReviewThankYouPage()"
+### Community 92 - "Community 92"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 92 - "handleSubmit()"
+### Community 93 - "Community 93"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 93 - "MaintenancePage()"
+### Community 94 - "Community 94"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 94 - "AccountPage()"
+### Community 95 - "Community 95"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 95 - "ProfilePage()"
+### Community 96 - "Community 96"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 96 - "AddressesPage()"
+### Community 97 - "Community 97"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 97 - "MyOrdersPage()"
+### Community 98 - "Community 98"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 98 - "MyOrderDetailPage()"
+### Community 99 - "Community 99"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 99 - "RegisterPage()"
+### Community 100 - "Community 100"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 100 - "LoginPage()"
+### Community 101 - "Community 101"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 101 - "AdminLayout()"
+### Community 102 - "Community 102"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 102 - "AdminCustomerDetailPage()"
+### Community 103 - "Community 103"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 103 - "handleSave()"
+### Community 104 - "Community 104"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 104 - "SettingsPage()"
+### Community 105 - "Community 105"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 105 - "OptionsPage()"
+### Community 106 - "Community 106"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 106 - "handleMigrate()"
+### Community 107 - "Community 107"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 107 - "AdminProductNewPage()"
+### Community 108 - "Community 108"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 108 - "AdminProductEditPage()"
+### Community 109 - "Community 109"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 109 - "NavigationPage()"
+### Community 110 - "Community 110"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 110 - "AdminDiscountsPage()"
+### Community 111 - "Community 111"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 111 - "NewDiscountPage()"
+### Community 112 - "Community 112"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 112 - "EditDiscountPage()"
+### Community 113 - "Community 113"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 113 - "ShippingMethodsPage()"
+### Community 114 - "Community 114"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 114 - "ShippingCalendarPage()"
+### Community 115 - "Community 115"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 115 - "ShippingZonesPage()"
+### Community 116 - "Community 116"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 116 - "ShippingSimulatePage()"
+### Community 117 - "Community 117"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 117 - "ShippingPickupPage()"
+### Community 118 - "Community 118"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 118 - "ShippingRulesPage()"
+### Community 119 - "Community 119"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 119 - "AdminOrderDetailPage()"
+### Community 120 - "Community 120"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 120 - "PageEditorPage()"
+### Community 121 - "Community 121"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 121 - "CategoryEditPage()"
+### Community 122 - "Community 122"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 122 - "AdminReviewsPage()"
+### Community 123 - "Community 123"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 123 - "AdminReviewSettingsPage()"
+### Community 124 - "Community 124"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 124 - "ReviewRequestsClient()"
+### Community 125 - "Community 125"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 125 - "AdminReviewRequestsPage()"
+### Community 126 - "Community 126"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 126 - "AdminReviewDetailPage()"
+### Community 127 - "Community 127"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 127 - "queryCustomerDetail()"
+### Community 128 - "Community 128"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 128 - "Badge()"
+### Community 129 - "Community 129"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 129 - "handleSubmit()"
+### Community 130 - "Community 130"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 130 - "SignOutButton()"
+### Community 131 - "Community 131"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 131 - "handleSubmit()"
+### Community 132 - "Community 132"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 132 - "ProductCard()"
+### Community 133 - "Community 133"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 133 - "sticker-preview.tsx"
+### Community 134 - "Community 134"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 134 - "handleSubmit()"
+### Community 135 - "Community 135"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 135 - "uploadFile()"
+### Community 136 - "Community 136"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 136 - "productToCard()"
+### Community 137 - "Community 137"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 137 - "if()"
+### Community 138 - "Community 138"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 138 - "handleDelete()"
+### Community 139 - "Community 139"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 139 - "AdminBypassCookieSetter()"
+### Community 140 - "Community 140"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 140 - "ProductRatingSummary()"
+### Community 141 - "Community 141"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 141 - "load()"
+### Community 142 - "Community 142"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 142 - "ReviewStars()"
+### Community 143 - "Community 143"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 143 - "getSiteSettingsQuery()"
+### Community 144 - "Community 144"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 144 - "stripe.ts"
+### Community 145 - "Community 145"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 145 - "utils.ts"
+### Community 146 - "Community 146"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 146 - "makeInput()"
+### Community 147 - "Community 147"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 147 - "mockFetch()"
+### Community 148 - "Community 148"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 148 - "interpolate()"
+### Community 149 - "Community 149"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 149 - "checkRateLimit()"
+### Community 150 - "Community 150"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 150 - "computeDiscountAmount()"
+### Community 151 - "Community 151"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 151 - "validateDiscount()"
+### Community 152 - "Community 152"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 152 - "resolveConflicts()"
+### Community 153 - "Community 153"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 153 - "main()"
+### Community 154 - "Community 154"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 154 - "getDb()"
+### Community 155 - "Community 155"
 Cohesion: 1.0
 Nodes (0): 
-
-### Community 155 - "Next.js framework wordmark and stacked l"
-Cohesion: 1.0
-Nodes (2): Next.js framework wordmark and stacked logo typography in black paths, Vercel brand mark: upward-pointing white triangle on triangular field
 
-### Community 156 - "next-env.d.ts"
+### Community 156 - "Community 156"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 157 - "drizzle.config.ts"
+### Community 157 - "Community 157"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 158 - "vitest.config.ts"
+### Community 158 - "Community 158"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 159 - "next.config.ts"
+### Community 159 - "Community 159"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 160 - "layout.tsx"
+### Community 160 - "Community 160"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 161 - "page.tsx"
+### Community 161 - "Community 161"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 162 - "page.tsx"
+### Community 162 - "Community 162"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 163 - "page.tsx"
+### Community 163 - "Community 163"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 164 - "page.tsx"
+### Community 164 - "Community 164"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 165 - "page.tsx"
+### Community 165 - "Community 165"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 166 - "layout.tsx"
+### Community 166 - "Community 166"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 167 - "account-nav.tsx"
+### Community 167 - "Community 167"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 168 - "layout.tsx"
+### Community 168 - "Community 168"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 169 - "layout.tsx"
+### Community 169 - "Community 169"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 170 - "page.tsx"
+### Community 170 - "Community 170"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 171 - "page.tsx"
+### Community 171 - "Community 171"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 172 - "page.tsx"
+### Community 172 - "Community 172"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 173 - "page.tsx"
+### Community 173 - "Community 173"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 174 - "admin-reviews-client.tsx"
+### Community 174 - "Community 174"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 175 - "admin.ts"
+### Community 175 - "Community 175"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 176 - "orders.ts"
+### Community 176 - "Community 176"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 177 - "card.tsx"
+### Community 177 - "Community 177"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 178 - "label.tsx"
+### Community 178 - "Community 178"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 179 - "drawer.tsx"
+### Community 179 - "Community 179"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 180 - "dialog.tsx"
+### Community 180 - "Community 180"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 181 - "button.tsx"
+### Community 181 - "Community 181"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 182 - "input.tsx"
+### Community 182 - "Community 182"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 183 - "auth-card.tsx"
+### Community 183 - "Community 183"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 184 - "ticker.tsx"
+### Community 184 - "Community 184"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 185 - "footer.tsx"
+### Community 185 - "Community 185"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 186 - "logo.tsx"
+### Community 186 - "Community 186"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 187 - "header.tsx"
+### Community 187 - "Community 187"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 188 - "categories-section.tsx"
+### Community 188 - "Community 188"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 189 - "feature-strip.tsx"
+### Community 189 - "Community 189"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 190 - "reviews-section.tsx"
+### Community 190 - "Community 190"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 191 - "hero-section.tsx"
+### Community 191 - "Community 191"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 192 - "process-section.tsx"
+### Community 192 - "Community 192"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 193 - "confirmation-client.tsx"
+### Community 193 - "Community 193"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 194 - "order-summary.tsx"
+### Community 194 - "Community 194"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 195 - "stepper-layout.tsx"
+### Community 195 - "Community 195"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 196 - "admin-ui.tsx"
+### Community 196 - "Community 196"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 197 - "DeliveryTimeSlotPicker.tsx"
+### Community 197 - "Community 197"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 198 - "ReviewCard.tsx"
+### Community 198 - "Community 198"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 199 - "ReviewMediaGallery.tsx"
+### Community 199 - "Community 199"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 200 - "page-sections.ts"
+### Community 200 - "Community 200"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 201 - "order-state.test.ts"
+### Community 201 - "Community 201"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 202 - "vat.test.ts"
+### Community 202 - "Community 202"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 203 - "cart-types.ts"
+### Community 203 - "Community 203"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 204 - "email-defaults.ts"
+### Community 204 - "Community 204"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 205 - "auth.ts"
+### Community 205 - "Community 205"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 206 - "auth-client.ts"
+### Community 206 - "Community 206"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 207 - "discount-types.ts"
+### Community 207 - "Community 207"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 208 - "types.ts"
+### Community 208 - "Community 208"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 209 - "validators.ts"
+### Community 209 - "Community 209"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 210 - "review-types.ts"
+### Community 210 - "Community 210"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 211 - "schema.ts"
+### Community 211 - "Community 211"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 212 - "Liens documentation Next.js officielle"
+### Community 212 - "Community 212"
 Cohesion: 1.0
-Nodes (1): Liens documentation Next.js officielle
-
-## Ambiguous Edges - Review These
-- `Contraintes: aucun CMS, code propriétaire, VPS` → `README template create-next-app (dev/deploy Vercel)`  [AMBIGUOUS]
-  README.md · relation: conceptually_related_to
+Nodes (0): 
 
 ## Knowledge Gaps
-- **25 isolated node(s):** `Référence fonctionnelle aadesigns.co`, `Arborescence projet single Next.js app`, `Section 5 — Moteur de prix et règles`, `State machine commandes /src/lib/order-state.ts`, `Documenter Factur-X / conformité dans /docs/compliance.md` (+20 more)
-  These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `proxy()`** (2 nodes): `proxy()`, `proxy.ts`
+- **Thin community `Community 89`** (2 nodes): `ShopLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ShopLayout()`** (2 nodes): `ShopLayout()`, `layout.tsx`
+- **Thin community `Community 90`** (2 nodes): `HomePage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `HomePage()`** (2 nodes): `HomePage()`, `page.tsx`
+- **Thin community `Community 91`** (2 nodes): `CustomStickersPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `CustomStickersPage()`** (2 nodes): `CustomStickersPage()`, `page.tsx`
+- **Thin community `Community 92`** (2 nodes): `CheckoutPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `CheckoutPage()`** (2 nodes): `CheckoutPage()`, `page.tsx`
+- **Thin community `Community 93`** (2 nodes): `ReviewThankYouPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ReviewThankYouPage()`** (2 nodes): `ReviewThankYouPage()`, `page.tsx`
+- **Thin community `Community 94`** (2 nodes): `handleSubmit()`, `maintenance-client.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `handleSubmit()`** (2 nodes): `handleSubmit()`, `maintenance-client.tsx`
+- **Thin community `Community 95`** (2 nodes): `MaintenancePage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `MaintenancePage()`** (2 nodes): `MaintenancePage()`, `page.tsx`
+- **Thin community `Community 96`** (2 nodes): `AccountPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AccountPage()`** (2 nodes): `AccountPage()`, `page.tsx`
+- **Thin community `Community 97`** (2 nodes): `ProfilePage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ProfilePage()`** (2 nodes): `ProfilePage()`, `page.tsx`
+- **Thin community `Community 98`** (2 nodes): `AddressesPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AddressesPage()`** (2 nodes): `AddressesPage()`, `page.tsx`
+- **Thin community `Community 99`** (2 nodes): `MyOrdersPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `MyOrdersPage()`** (2 nodes): `MyOrdersPage()`, `page.tsx`
+- **Thin community `Community 100`** (2 nodes): `MyOrderDetailPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `MyOrderDetailPage()`** (2 nodes): `MyOrderDetailPage()`, `page.tsx`
+- **Thin community `Community 101`** (2 nodes): `RegisterPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `RegisterPage()`** (2 nodes): `RegisterPage()`, `page.tsx`
+- **Thin community `Community 102`** (2 nodes): `LoginPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `LoginPage()`** (2 nodes): `LoginPage()`, `page.tsx`
+- **Thin community `Community 103`** (2 nodes): `AdminLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminLayout()`** (2 nodes): `AdminLayout()`, `layout.tsx`
+- **Thin community `Community 104`** (2 nodes): `AdminCustomerDetailPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminCustomerDetailPage()`** (2 nodes): `AdminCustomerDetailPage()`, `page.tsx`
+- **Thin community `Community 105`** (2 nodes): `handleSave()`, `settings-client.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `handleSave()`** (2 nodes): `handleSave()`, `settings-client.tsx`
+- **Thin community `Community 106`** (2 nodes): `SettingsPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `SettingsPage()`** (2 nodes): `SettingsPage()`, `page.tsx`
+- **Thin community `Community 107`** (2 nodes): `AdminProductsPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `OptionsPage()`** (2 nodes): `OptionsPage()`, `page.tsx`
+- **Thin community `Community 108`** (2 nodes): `AdminProductNewPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `handleMigrate()`** (2 nodes): `handleMigrate()`, `page.tsx`
+- **Thin community `Community 109`** (2 nodes): `NavigationPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminProductNewPage()`** (2 nodes): `AdminProductNewPage()`, `page.tsx`
+- **Thin community `Community 110`** (2 nodes): `AdminDiscountsPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminProductEditPage()`** (2 nodes): `AdminProductEditPage()`, `page.tsx`
+- **Thin community `Community 111`** (2 nodes): `NewDiscountPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `NavigationPage()`** (2 nodes): `NavigationPage()`, `page.tsx`
+- **Thin community `Community 112`** (2 nodes): `EditDiscountPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminDiscountsPage()`** (2 nodes): `AdminDiscountsPage()`, `page.tsx`
+- **Thin community `Community 113`** (2 nodes): `ShippingMethodsPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `NewDiscountPage()`** (2 nodes): `NewDiscountPage()`, `page.tsx`
+- **Thin community `Community 114`** (2 nodes): `ShippingCalendarPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `EditDiscountPage()`** (2 nodes): `EditDiscountPage()`, `page.tsx`
+- **Thin community `Community 115`** (2 nodes): `ShippingZonesPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ShippingMethodsPage()`** (2 nodes): `ShippingMethodsPage()`, `page.tsx`
+- **Thin community `Community 116`** (2 nodes): `ShippingSimulatePage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ShippingCalendarPage()`** (2 nodes): `ShippingCalendarPage()`, `page.tsx`
+- **Thin community `Community 117`** (2 nodes): `ShippingPickupPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ShippingZonesPage()`** (2 nodes): `ShippingZonesPage()`, `page.tsx`
+- **Thin community `Community 118`** (2 nodes): `ShippingRulesPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ShippingSimulatePage()`** (2 nodes): `ShippingSimulatePage()`, `page.tsx`
+- **Thin community `Community 119`** (2 nodes): `StickerCatalogPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ShippingPickupPage()`** (2 nodes): `ShippingPickupPage()`, `page.tsx`
+- **Thin community `Community 120`** (2 nodes): `AdminOrderDetailPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ShippingRulesPage()`** (2 nodes): `ShippingRulesPage()`, `page.tsx`
+- **Thin community `Community 121`** (2 nodes): `PageEditorPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminOrderDetailPage()`** (2 nodes): `AdminOrderDetailPage()`, `page.tsx`
+- **Thin community `Community 122`** (2 nodes): `CategoryEditPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `PageEditorPage()`** (2 nodes): `PageEditorPage()`, `page.tsx`
+- **Thin community `Community 123`** (2 nodes): `AdminReviewsPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `CategoryEditPage()`** (2 nodes): `CategoryEditPage()`, `page.tsx`
+- **Thin community `Community 124`** (2 nodes): `AdminReviewSettingsPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminReviewsPage()`** (2 nodes): `AdminReviewsPage()`, `page.tsx`
+- **Thin community `Community 125`** (2 nodes): `ReviewRequestsClient()`, `review-requests-client.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminReviewSettingsPage()`** (2 nodes): `AdminReviewSettingsPage()`, `page.tsx`
+- **Thin community `Community 126`** (2 nodes): `AdminReviewRequestsPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ReviewRequestsClient()`** (2 nodes): `ReviewRequestsClient()`, `review-requests-client.tsx`
+- **Thin community `Community 127`** (2 nodes): `AdminReviewDetailPage()`, `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminReviewRequestsPage()`** (2 nodes): `AdminReviewRequestsPage()`, `page.tsx`
+- **Thin community `Community 128`** (2 nodes): `queryCustomerDetail()`, `customers.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminReviewDetailPage()`** (2 nodes): `AdminReviewDetailPage()`, `page.tsx`
+- **Thin community `Community 129`** (2 nodes): `Badge()`, `badge.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `queryCustomerDetail()`** (2 nodes): `queryCustomerDetail()`, `customers.ts`
+- **Thin community `Community 130`** (2 nodes): `handleSubmit()`, `register-form.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Badge()`** (2 nodes): `Badge()`, `badge.tsx`
+- **Thin community `Community 131`** (2 nodes): `SignOutButton()`, `sign-out-button.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `handleSubmit()`** (2 nodes): `handleSubmit()`, `register-form.tsx`
+- **Thin community `Community 132`** (2 nodes): `handleSubmit()`, `login-form.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `SignOutButton()`** (2 nodes): `SignOutButton()`, `sign-out-button.tsx`
+- **Thin community `Community 133`** (2 nodes): `ProductCard()`, `product-card.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `handleSubmit()`** (2 nodes): `handleSubmit()`, `login-form.tsx`
+- **Thin community `Community 134`** (2 nodes): `sticker-preview.tsx`, `colorHex()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ProductCard()`** (2 nodes): `ProductCard()`, `product-card.tsx`
+- **Thin community `Community 135`** (2 nodes): `handleSubmit()`, `page-renderer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `sticker-preview.tsx`** (2 nodes): `sticker-preview.tsx`, `colorHex()`
+- **Thin community `Community 136`** (2 nodes): `uploadFile()`, `cart-drawer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `handleSubmit()`** (2 nodes): `handleSubmit()`, `page-renderer.tsx`
+- **Thin community `Community 137`** (2 nodes): `handleSubmit()`, `product-new-client.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `uploadFile()`** (2 nodes): `uploadFile()`, `cart-drawer.tsx`
+- **Thin community `Community 138`** (2 nodes): `handleDelete()`, `categories-client.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `productToCard()`** (2 nodes): `productToCard()`, `bestsellers-section.tsx`
+- **Thin community `Community 139`** (2 nodes): `AdminBypassCookieSetter()`, `admin-bypass-cookie-setter.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `if()`** (2 nodes): `if()`, `product-configurator.tsx`
+- **Thin community `Community 140`** (2 nodes): `ProductRatingSummary()`, `ProductRatingSummary.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `handleDelete()`** (2 nodes): `handleDelete()`, `categories-client.tsx`
+- **Thin community `Community 141`** (2 nodes): `load()`, `ProductReviews.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `AdminBypassCookieSetter()`** (2 nodes): `AdminBypassCookieSetter()`, `admin-bypass-cookie-setter.tsx`
+- **Thin community `Community 142`** (2 nodes): `ReviewStars()`, `ReviewStars.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ProductRatingSummary()`** (2 nodes): `ProductRatingSummary()`, `ProductRatingSummary.tsx`
+- **Thin community `Community 143`** (2 nodes): `getSiteSettingsQuery()`, `settings-queries.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `load()`** (2 nodes): `load()`, `ProductReviews.tsx`
+- **Thin community `Community 144`** (2 nodes): `stripe.ts`, `getStripe()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ReviewStars()`** (2 nodes): `ReviewStars()`, `ReviewStars.tsx`
+- **Thin community `Community 145`** (2 nodes): `utils.ts`, `cn()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `getSiteSettingsQuery()`** (2 nodes): `getSiteSettingsQuery()`, `settings-queries.ts`
+- **Thin community `Community 146`** (2 nodes): `mockFetch()`, `pennylane.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `stripe.ts`** (2 nodes): `stripe.ts`, `getStripe()`
+- **Thin community `Community 147`** (2 nodes): `interpolate()`, `email-blocks.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `utils.ts`** (2 nodes): `utils.ts`, `cn()`
+- **Thin community `Community 148`** (2 nodes): `checkRateLimit()`, `rate-limit.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `makeInput()`** (2 nodes): `makeInput()`, `pricing.test.ts`
+- **Thin community `Community 149`** (2 nodes): `computeDiscountAmount()`, `discount-calculation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `mockFetch()`** (2 nodes): `mockFetch()`, `pennylane.test.ts`
+- **Thin community `Community 150`** (2 nodes): `validateDiscount()`, `discount-validation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `interpolate()`** (2 nodes): `interpolate()`, `email-blocks.ts`
+- **Thin community `Community 151`** (2 nodes): `resolveConflicts()`, `conflicts.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `checkRateLimit()`** (2 nodes): `checkRateLimit()`, `rate-limit.ts`
+- **Thin community `Community 152`** (2 nodes): `main()`, `seed.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `computeDiscountAmount()`** (2 nodes): `computeDiscountAmount()`, `discount-calculation.ts`
+- **Thin community `Community 153`** (2 nodes): `getDb()`, `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `validateDiscount()`** (2 nodes): `validateDiscount()`, `discount-validation.ts`
+- **Thin community `Community 154`** (1 nodes): `next-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `resolveConflicts()`** (2 nodes): `resolveConflicts()`, `conflicts.ts`
+- **Thin community `Community 155`** (1 nodes): `drizzle.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `main()`** (2 nodes): `main()`, `seed.ts`
+- **Thin community `Community 156`** (1 nodes): `vitest.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `getDb()`** (2 nodes): `getDb()`, `index.ts`
+- **Thin community `Community 157`** (1 nodes): `next.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Next.js framework wordmark and stacked l`** (2 nodes): `Next.js framework wordmark and stacked logo typography in black paths`, `Vercel brand mark: upward-pointing white triangle on triangular field`
+- **Thin community `Community 158`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `next-env.d.ts`** (1 nodes): `next-env.d.ts`
+- **Thin community `Community 159`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `drizzle.config.ts`** (1 nodes): `drizzle.config.ts`
+- **Thin community `Community 160`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `vitest.config.ts`** (1 nodes): `vitest.config.ts`
+- **Thin community `Community 161`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `next.config.ts`** (1 nodes): `next.config.ts`
+- **Thin community `Community 162`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `layout.tsx`** (1 nodes): `layout.tsx`
+- **Thin community `Community 163`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 164`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 165`** (1 nodes): `account-nav.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 166`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 167`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 168`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `layout.tsx`** (1 nodes): `layout.tsx`
+- **Thin community `Community 169`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `account-nav.tsx`** (1 nodes): `account-nav.tsx`
+- **Thin community `Community 170`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `layout.tsx`** (1 nodes): `layout.tsx`
+- **Thin community `Community 171`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `layout.tsx`** (1 nodes): `layout.tsx`
+- **Thin community `Community 172`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 173`** (1 nodes): `admin-reviews-client.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 174`** (1 nodes): `admin.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 175`** (1 nodes): `orders.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page.tsx`** (1 nodes): `page.tsx`
+- **Thin community `Community 176`** (1 nodes): `card.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `admin-reviews-client.tsx`** (1 nodes): `admin-reviews-client.tsx`
+- **Thin community `Community 177`** (1 nodes): `label.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `admin.ts`** (1 nodes): `admin.ts`
+- **Thin community `Community 178`** (1 nodes): `drawer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `orders.ts`** (1 nodes): `orders.ts`
+- **Thin community `Community 179`** (1 nodes): `dialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `card.tsx`** (1 nodes): `card.tsx`
+- **Thin community `Community 180`** (1 nodes): `button.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `label.tsx`** (1 nodes): `label.tsx`
+- **Thin community `Community 181`** (1 nodes): `input.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `drawer.tsx`** (1 nodes): `drawer.tsx`
+- **Thin community `Community 182`** (1 nodes): `auth-card.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `dialog.tsx`** (1 nodes): `dialog.tsx`
+- **Thin community `Community 183`** (1 nodes): `ticker.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `button.tsx`** (1 nodes): `button.tsx`
+- **Thin community `Community 184`** (1 nodes): `footer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `input.tsx`** (1 nodes): `input.tsx`
+- **Thin community `Community 185`** (1 nodes): `logo.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `auth-card.tsx`** (1 nodes): `auth-card.tsx`
+- **Thin community `Community 186`** (1 nodes): `header.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ticker.tsx`** (1 nodes): `ticker.tsx`
+- **Thin community `Community 187`** (1 nodes): `categories-section.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `footer.tsx`** (1 nodes): `footer.tsx`
+- **Thin community `Community 188`** (1 nodes): `feature-strip.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `logo.tsx`** (1 nodes): `logo.tsx`
+- **Thin community `Community 189`** (1 nodes): `reviews-section.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `header.tsx`** (1 nodes): `header.tsx`
+- **Thin community `Community 190`** (1 nodes): `bestsellers-section.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `categories-section.tsx`** (1 nodes): `categories-section.tsx`
+- **Thin community `Community 191`** (1 nodes): `hero-section.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `feature-strip.tsx`** (1 nodes): `feature-strip.tsx`
+- **Thin community `Community 192`** (1 nodes): `process-section.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `reviews-section.tsx`** (1 nodes): `reviews-section.tsx`
+- **Thin community `Community 193`** (1 nodes): `confirmation-client.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `hero-section.tsx`** (1 nodes): `hero-section.tsx`
+- **Thin community `Community 194`** (1 nodes): `admin-ui.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `process-section.tsx`** (1 nodes): `process-section.tsx`
+- **Thin community `Community 195`** (1 nodes): `DeliveryTimeSlotPicker.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `confirmation-client.tsx`** (1 nodes): `confirmation-client.tsx`
+- **Thin community `Community 196`** (1 nodes): `EditorCanvasClient.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `order-summary.tsx`** (1 nodes): `order-summary.tsx`
+- **Thin community `Community 197`** (1 nodes): `configurator.types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `stepper-layout.tsx`** (1 nodes): `stepper-layout.tsx`
+- **Thin community `Community 198`** (1 nodes): `ReviewCard.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `admin-ui.tsx`** (1 nodes): `admin-ui.tsx`
+- **Thin community `Community 199`** (1 nodes): `ReviewMediaGallery.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `DeliveryTimeSlotPicker.tsx`** (1 nodes): `DeliveryTimeSlotPicker.tsx`
+- **Thin community `Community 200`** (1 nodes): `page-sections.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ReviewCard.tsx`** (1 nodes): `ReviewCard.tsx`
+- **Thin community `Community 201`** (1 nodes): `order-state.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `ReviewMediaGallery.tsx`** (1 nodes): `ReviewMediaGallery.tsx`
+- **Thin community `Community 202`** (1 nodes): `vat.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `page-sections.ts`** (1 nodes): `page-sections.ts`
+- **Thin community `Community 203`** (1 nodes): `cart-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `order-state.test.ts`** (1 nodes): `order-state.test.ts`
+- **Thin community `Community 204`** (1 nodes): `email-defaults.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `vat.test.ts`** (1 nodes): `vat.test.ts`
+- **Thin community `Community 205`** (1 nodes): `auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `cart-types.ts`** (1 nodes): `cart-types.ts`
+- **Thin community `Community 206`** (1 nodes): `auth-client.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `email-defaults.ts`** (1 nodes): `email-defaults.ts`
+- **Thin community `Community 207`** (1 nodes): `discount-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `auth.ts`** (1 nodes): `auth.ts`
+- **Thin community `Community 208`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `auth-client.ts`** (1 nodes): `auth-client.ts`
+- **Thin community `Community 209`** (1 nodes): `validators.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `discount-types.ts`** (1 nodes): `discount-types.ts`
+- **Thin community `Community 210`** (1 nodes): `editor.types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `types.ts`** (1 nodes): `types.ts`
+- **Thin community `Community 211`** (1 nodes): `review-types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `validators.ts`** (1 nodes): `validators.ts`
+- **Thin community `Community 212`** (1 nodes): `schema.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `review-types.ts`** (1 nodes): `review-types.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `schema.ts`** (1 nodes): `schema.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Liens documentation Next.js officielle`** (1 nodes): `Liens documentation Next.js officielle`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+
+## Suggested Questions
+_Questions this graph is uniquely positioned to answer:_
+
+- **Why does `GET()` connect `Community 0` to `Community 5`?**
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **Should `Community 0` be split into smaller, more focused modules?**
+  _Cohesion score 0.05 - nodes in this community are weakly interconnected._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
+- **Should `Community 3` be split into smaller, more focused modules?**
+  _Cohesion score 0.12 - nodes in this community are weakly interconnected._

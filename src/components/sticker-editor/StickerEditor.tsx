@@ -12,8 +12,9 @@ import dynamic from "next/dynamic";
 import type Konva from "konva";
 import { editorReducer, createInitialState } from "@/lib/sticker-editor/editor.reducer";
 import { validateEditor, detectTransparency } from "@/lib/sticker-editor/validation.service";
-import { fitImageToCanvas, computeDpi } from "@/lib/sticker-editor/geometry.utils";
-import type { EditorValidationOutput, CutType, EditorImage } from "@/lib/sticker-editor/editor.types";
+import { fitImageToCanvas, computeDpi, mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
+import { generateAlphaCutline } from "@/lib/sticker-editor/cutline.service";
+import type { EditorValidationOutput, CutType, CutlineMethod, EditorImage } from "@/lib/sticker-editor/editor.types";
 
 // Konva chargé côté client uniquement (pas de SSR)
 const EditorCanvasClient = dynamic(() => import("./EditorCanvasClient"), {
@@ -56,6 +57,7 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
   const [containerWidth, setContainerWidth] = useState(MAX_CANVAS_WIDTH);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isGeneratingCutline, setIsGeneratingCutline] = useState(false);
 
   // Mesure la largeur réelle du conteneur canvas
   useEffect(() => {
@@ -125,6 +127,49 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
 
     dispatch({ type: "SET_IMAGE", image });
   }, [widthMm, heightMm]);
+
+  // ── Génération ligne de coupe alpha ──
+  const handleGenerateCutline = useCallback(async () => {
+    if (!state.image) return;
+    dispatch({ type: "SET_CUTLINE_PATH", path: undefined, status: "generating" });
+    setIsGeneratingCutline(true);
+    try {
+      const scale = computeScale(containerWidth, widthMm);
+      const displayW = mmToPx(state.image.widthMm, scale);
+      const displayH = mmToPx(state.image.heightMm, scale);
+      const offsetPx = mmToPx(state.settings.cutline.offsetMm, scale);
+
+      const result = await generateAlphaCutline(
+        state.image.url,
+        displayW,
+        displayH,
+        offsetPx,
+      );
+
+      if (result) {
+        dispatch({ type: "SET_CUTLINE_PATH", path: result.pathData, status: "generated" });
+      } else {
+        dispatch({ type: "SET_CUTLINE_PATH", path: undefined, status: "error" });
+      }
+    } catch {
+      dispatch({ type: "SET_CUTLINE_PATH", path: undefined, status: "error" });
+    } finally {
+      setIsGeneratingCutline(false);
+    }
+  }, [state.image, state.settings.cutline.offsetMm, containerWidth, widthMm]);
+
+  // Déclencher automatiquement la génération quand on passe en mode alpha
+  useEffect(() => {
+    if (
+      state.settings.cutline.method === "alpha" &&
+      state.image &&
+      state.settings.cutline.status === "not_generated" &&
+      !isGeneratingCutline
+    ) {
+      void handleGenerateCutline();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.settings.cutline.method, state.image?.url, state.settings.cutline.status]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -371,6 +416,20 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
               />
             </SideSection>
 
+            {/* ── Méthode de découpe ── */}
+            {image && (
+              <SideSection title="Forme de découpe">
+                <CutlineMethodSelector
+                  method={settings.cutline.method}
+                  status={settings.cutline.status}
+                  isGenerating={isGeneratingCutline}
+                  hasTransparency={image.hasTransparency}
+                  onChangeMethod={(m) => dispatch({ type: "SET_CUTLINE_METHOD", method: m })}
+                  onRegenerate={handleGenerateCutline}
+                />
+              </SideSection>
+            )}
+
             {/* ── Marges ── */}
             <SideSection title="Marges & guides">
               <label style={labelStyle}>
@@ -462,7 +521,11 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
             {image ? (
               <span>
                 <span style={{ color: cutlineColor, fontWeight: 700 }}>●</span>{" "}
-                {cutlineLabel} · offset {settings.cutline.offsetMm} mm
+                {cutlineLabel} ·{" "}
+                {settings.cutline.method === "alpha"
+                  ? "contour à la forme"
+                  : "bounding box"}{" "}
+                · offset {settings.cutline.offsetMm} mm
               </span>
             ) : (
               "Importez un fichier pour commencer"
@@ -641,6 +704,97 @@ function InfoChip({ label, color = "default" }: { label: string; color?: "defaul
     }}>
       {label}
     </span>
+  );
+}
+
+function CutlineMethodSelector({
+  method,
+  status,
+  isGenerating,
+  hasTransparency,
+  onChangeMethod,
+  onRegenerate,
+}: {
+  method: CutlineMethod;
+  status: import("@/lib/sticker-editor/editor.types").CutlineStatus;
+  isGenerating: boolean;
+  hasTransparency: boolean;
+  onChangeMethod: (m: CutlineMethod) => void;
+  onRegenerate: () => void;
+}) {
+  const options: { v: CutlineMethod; label: string; desc: string; icon: string; requiresAlpha?: boolean }[] = [
+    {
+      v: "bounding_box",
+      label: "Rectangle",
+      desc: "Découpe rectangulaire autour du visuel.",
+      icon: "⬜",
+    },
+    {
+      v: "alpha",
+      label: "À la forme",
+      desc: "Contour qui suit le motif (nécessite un fond transparent).",
+      icon: "✂️",
+      requiresAlpha: true,
+    },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {options.map((opt) => {
+        const disabled = opt.requiresAlpha && !hasTransparency;
+        return (
+          <button
+            key={opt.v}
+            type="button"
+            onClick={() => !disabled && onChangeMethod(opt.v)}
+            disabled={disabled}
+            style={{
+              textAlign: "left", padding: "10px 14px", borderRadius: 10,
+              border: `2px solid ${method === opt.v && !disabled ? "#0A0E27" : "#E5E7EB"}`,
+              background: method === opt.v && !disabled ? "#0A0E2710" : disabled ? "#F9FAFB" : "#fff",
+              cursor: disabled ? "not-allowed" : "pointer",
+              opacity: disabled ? 0.5 : 1,
+              transition: "all 0.15s",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 16 }}>{opt.icon}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27" }}>{opt.label}</span>
+              {method === opt.v && status === "generated" && (
+                <span style={{ marginLeft: "auto", fontSize: 11, color: "#059669", fontWeight: 600 }}>✓ Généré</span>
+              )}
+              {method === opt.v && status === "generating" && (
+                <span style={{ marginLeft: "auto", fontSize: 11, color: "#6366F1" }}>⏳ Calcul…</span>
+              )}
+              {method === opt.v && status === "error" && (
+                <span style={{ marginLeft: "auto", fontSize: 11, color: "#DC2626" }}>⚠ Erreur</span>
+              )}
+            </div>
+            <p style={{ margin: "3px 0 0 24px", fontSize: 11, color: "#6B7280" }}>{opt.desc}</p>
+            {disabled && (
+              <p style={{ margin: "3px 0 0 24px", fontSize: 11, color: "#B45309" }}>
+                Fond transparent requis (PNG avec alpha)
+              </p>
+            )}
+          </button>
+        );
+      })}
+
+      {/* Bouton régénérer */}
+      {method === "alpha" && (
+        <button
+          type="button"
+          onClick={onRegenerate}
+          disabled={isGenerating}
+          style={{
+            ...btnStyle(isGenerating ? "#E5E7EB" : "#EFF6FF", isGenerating ? "#9CA3AF" : "#1D4ED8"),
+            fontSize: 12, padding: "8px 14px",
+          }}
+        >
+          {isGenerating ? "⏳ Calcul en cours…" : "↺ Régénérer le contour"}
+        </button>
+      )}
+    </div>
   );
 }
 
