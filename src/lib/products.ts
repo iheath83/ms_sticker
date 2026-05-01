@@ -1,7 +1,7 @@
 // Server-only module — imports DB, do NOT import from Client Components
 import { db } from "@/db";
 import { products, productVariants, categories } from "@/db/schema";
-import { eq, asc, isNull, inArray } from "drizzle-orm";
+import { eq, asc, isNull, inArray, and } from "drizzle-orm";
 import type { Product, ProductVariant, Category } from "@/db/schema";
 
 export type { Product, ProductVariant, Category };
@@ -16,7 +16,7 @@ export async function getActiveProducts(): Promise<Product[]> {
   return db
     .select()
     .from(products)
-    .where(eq(products.active, true))
+    .where(and(eq(products.active, true), isNull(products.deletedAt)))
     .orderBy(asc(products.sortOrder));
 }
 
@@ -24,7 +24,7 @@ export async function getActiveProductsWithVariants(): Promise<ProductWithVarian
   const prods = await db
     .select()
     .from(products)
-    .where(eq(products.active, true))
+    .where(and(eq(products.active, true), isNull(products.deletedAt)))
     .orderBy(asc(products.sortOrder));
 
   if (!prods.length) return [];
@@ -53,7 +53,7 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   const rows = await db
     .select()
     .from(products)
-    .where(eq(products.slug, slug))
+    .where(and(eq(products.slug, slug), isNull(products.deletedAt), eq(products.active, true)))
     .limit(1);
   return rows[0];
 }
@@ -62,7 +62,7 @@ export async function getProductWithVariants(slug: string): Promise<ProductWithV
   const rows = await db
     .select()
     .from(products)
-    .where(eq(products.slug, slug))
+    .where(and(eq(products.slug, slug), isNull(products.deletedAt), eq(products.active, true)))
     .limit(1);
   const product = rows[0];
   if (!product) return undefined;
