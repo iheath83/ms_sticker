@@ -105,6 +105,12 @@ export function StickerConfigTab({
 
   const [enabledShapeIds, setEnabledShapeIds] = useState<string[]>(initialConfig?.enabledShapeIds ?? []);
   const [enabledSizeIds, setEnabledSizeIds] = useState<string[]>(initialConfig?.enabledSizeIds ?? []);
+  const [sizePriceOverrides, setSizePriceOverrides] = useState<Record<string, string>>(
+    Object.fromEntries(
+      Object.entries((initialConfig?.sizePriceOverrides as Record<string, number> | undefined) ?? {})
+        .map(([id, cents]) => [id, (cents / 100).toFixed(2)])
+    )
+  );
   const [enabledMaterialIds, setEnabledMaterialIds] = useState<string[]>(initialConfig?.enabledMaterialIds ?? []);
   const [enabledLaminationIds, setEnabledLaminationIds] = useState<string[]>(initialConfig?.enabledLaminationIds ?? []);
   const [allowCustomWidth, setAllowCustomWidth] = useState(initialConfig?.allowCustomWidth ?? false);
@@ -156,6 +162,12 @@ export function StickerConfigTab({
       await upsertProductStickerConfig(productId, {
         enabledShapeIds,
         enabledSizeIds,
+        sizePriceOverrides: Object.fromEntries(
+          Object.entries(sizePriceOverrides)
+            .filter(([id, val]) => enabledSizeIds.includes(id) && val.trim() !== "")
+            .map(([id, val]) => [id, Math.round(parseFloat(val) * 100)])
+            .filter(([, cents]) => !isNaN(cents as number))
+        ),
         enabledMaterialIds,
         enabledLaminationIds,
         allowCustomWidth,
@@ -375,16 +387,63 @@ export function StickerConfigTab({
         {allSizes.length === 0 ? (
           <p style={{ fontSize: 13, color: "#9CA3AF" }}>Aucune taille dans le catalogue. <a href="/admin/sticker" style={{ color: "#0A0E27" }}>Configurer →</a></p>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {allSizes.map((size) => (
-              <ToggleChip
-                key={size.id}
-                active={enabledSizeIds.includes(size.id)}
-                label={size.label}
-                sublabel={`${size.widthMm}×${size.heightMm}mm`}
-                onClick={() => toggle(size.id, enabledSizeIds, setEnabledSizeIds)}
-              />
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+            {allSizes.map((size) => {
+              const active = enabledSizeIds.includes(size.id);
+              return (
+                <div
+                  key={size.id}
+                  style={{
+                    border: `2px solid ${active ? "#0A0E27" : "#E5E7EB"}`,
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    background: active ? "#F8F9FF" : "#fff",
+                    cursor: "pointer",
+                    transition: "border-color 0.15s",
+                  }}
+                >
+                  <div
+                    onClick={() => toggle(size.id, enabledSizeIds, setEnabledSizeIds)}
+                    style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: active ? 10 : 0 }}
+                  >
+                    <div style={{
+                      width: 16, height: 16, borderRadius: 4,
+                      border: `2px solid ${active ? "#0A0E27" : "#D1D5DB"}`,
+                      background: active ? "#0A0E27" : "#fff",
+                      flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      {active && <span style={{ color: "#fff", fontSize: 10, fontWeight: 900 }}>✓</span>}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27" }}>{size.label}</div>
+                      <div style={{ fontSize: 11, color: "#6B7280" }}>{size.widthMm} × {size.heightMm} mm</div>
+                    </div>
+                  </div>
+                  {active && (
+                    <div>
+                      <label style={{ ...labelStyle, marginBottom: 4 }}>Prix HT pour ce produit (€)</label>
+                      <div style={{ position: "relative" }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={sizePriceOverrides[size.id] ?? ""}
+                          onChange={(e) => setSizePriceOverrides((prev) => ({ ...prev, [size.id]: e.target.value }))}
+                          placeholder="Calcul auto (cm² ou unitaire)"
+                          style={{ ...inputStyle, paddingRight: 28, fontSize: 13 }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#9CA3AF" }}>€</span>
+                      </div>
+                      <p style={{ fontSize: 10, color: "#9CA3AF", margin: "3px 0 0" }}>
+                        Laissez vide pour utiliser le mode de tarification global
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
         <div style={{ marginTop: 16, display: "flex", gap: 16 }}>
