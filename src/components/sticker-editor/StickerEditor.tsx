@@ -15,7 +15,6 @@ import { validateEditor, detectTransparency } from "@/lib/sticker-editor/validat
 import { fitImageToCanvas, computeDpi, mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
 import { generateAlphaCutline } from "@/lib/sticker-editor/cutline.service";
 import type { EditorValidationOutput, CutType, CutlineMethod, EditorImage } from "@/lib/sticker-editor/editor.types";
-
 // Konva chargé côté client uniquement (pas de SSR)
 const EditorCanvasClient = dynamic(() => import("./EditorCanvasClient"), {
   ssr: false,
@@ -58,6 +57,7 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingCutline, setIsGeneratingCutline] = useState(false);
+  const [cutlineGenError, setCutlineGenError] = useState<string | null>(null);
 
   // Mesure la largeur réelle du conteneur canvas
   useEffect(() => {
@@ -132,6 +132,7 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
   const handleGenerateCutline = useCallback(async () => {
     if (!state.image) return;
     dispatch({ type: "SET_CUTLINE_PATH", path: undefined, status: "generating" });
+    setCutlineGenError(null);
     setIsGeneratingCutline(true);
     try {
       const scale = computeScale(containerWidth, widthMm);
@@ -139,20 +140,21 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
       const displayH = mmToPx(state.image.heightMm, scale);
       const offsetPx = mmToPx(state.settings.cutline.offsetMm, scale);
 
-      const result = await generateAlphaCutline(
-        state.image.url,
-        displayW,
-        displayH,
-        offsetPx,
-      );
+      const outcome = await generateAlphaCutline(state.image.url, displayW, displayH, offsetPx);
 
-      if (result) {
-        dispatch({ type: "SET_CUTLINE_PATH", path: result.pathData, status: "generated" });
+      if (outcome.ok) {
+        dispatch({ type: "SET_CUTLINE_PATH", path: outcome.result.pathData, status: "generated" });
       } else {
         dispatch({ type: "SET_CUTLINE_PATH", path: undefined, status: "error" });
+        setCutlineGenError(outcome.message);
+        // Si pas de transparence → revenir automatiquement en bounding_box
+        if (outcome.error === "no_transparency") {
+          dispatch({ type: "SET_CUTLINE_METHOD", method: "bounding_box" });
+        }
       }
     } catch {
       dispatch({ type: "SET_CUTLINE_PATH", path: undefined, status: "error" });
+      setCutlineGenError("Erreur lors de la génération du contour.");
     } finally {
       setIsGeneratingCutline(false);
     }
@@ -424,6 +426,7 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
                   status={settings.cutline.status}
                   isGenerating={isGeneratingCutline}
                   hasTransparency={image.hasTransparency}
+                  genError={cutlineGenError}
                   onChangeMethod={(m) => dispatch({ type: "SET_CUTLINE_METHOD", method: m })}
                   onRegenerate={handleGenerateCutline}
                 />
@@ -712,6 +715,7 @@ function CutlineMethodSelector({
   status,
   isGenerating,
   hasTransparency,
+  genError,
   onChangeMethod,
   onRegenerate,
 }: {
@@ -719,6 +723,7 @@ function CutlineMethodSelector({
   status: import("@/lib/sticker-editor/editor.types").CutlineStatus;
   isGenerating: boolean;
   hasTransparency: boolean;
+  genError: string | null;
   onChangeMethod: (m: CutlineMethod) => void;
   onRegenerate: () => void;
 }) {
@@ -780,19 +785,29 @@ function CutlineMethodSelector({
         );
       })}
 
-      {/* Bouton régénérer */}
+      {/* Erreur de génération + bouton régénérer */}
       {method === "alpha" && (
-        <button
-          type="button"
-          onClick={onRegenerate}
-          disabled={isGenerating}
-          style={{
-            ...btnStyle(isGenerating ? "#E5E7EB" : "#EFF6FF", isGenerating ? "#9CA3AF" : "#1D4ED8"),
-            fontSize: 12, padding: "8px 14px",
-          }}
-        >
-          {isGenerating ? "⏳ Calcul en cours…" : "↺ Régénérer le contour"}
-        </button>
+        <>
+          {genError && (
+            <div style={{
+              padding: "8px 10px", borderRadius: 8, fontSize: 12,
+              background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626",
+            }}>
+              {genError}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onRegenerate}
+            disabled={isGenerating}
+            style={{
+              ...btnStyle(isGenerating ? "#E5E7EB" : "#EFF6FF", isGenerating ? "#9CA3AF" : "#1D4ED8"),
+              fontSize: 12, padding: "8px 14px",
+            }}
+          >
+            {isGenerating ? "⏳ Calcul en cours…" : "↺ Régénérer le contour"}
+          </button>
+        </>
       )}
     </div>
   );
