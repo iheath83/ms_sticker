@@ -203,8 +203,8 @@ export default function EditorCanvasClient({
           </Layer>
         )}
 
-      {/* ── Zone de sécurité ── */}
-      {settings.showSafety && bbGuides?.safety && (
+      {/* ── Zone de sécurité (bounding box seulement — masquée en mode alpha) ── */}
+      {settings.showSafety && bbGuides?.safety && settings.cutline.method === "bounding_box" && (
         <Layer listening={false}>
           <Rect
             {...bbGuides.safety}
