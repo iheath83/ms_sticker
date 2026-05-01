@@ -784,6 +784,9 @@ function VariantEditor({
   const [enableFinishChoice, setEnableFinishChoice] = useState(variant.availableFinishes.length > 1);
   const [enableShapeChoice, setEnableShapeChoice] = useState(variant.shapes.length > 1);
   const [enableTiers, setEnableTiers] = useState(variant.tiers != null && variant.tiers.length > 0);
+  const [enableSizeChoice, setEnableSizeChoice] = useState(
+    (variant.customPresets?.length ?? 0) > 0 || Object.keys(variant.sizePrices ?? {}).length > 0,
+  );
   const [tiers, setTiers] = useState<PricingTier[]>(
     variant.tiers?.length
       ? (variant.tiers as PricingTier[])
@@ -831,12 +834,16 @@ function VariantEditor({
         minHeightMm: parseInt(minH) || 20,
         maxHeightMm: parseInt(maxH) || 300,
         tiers: finalTiers,
-        sizePrices: Object.fromEntries(
-          Object.entries(sizePrices)
-            .filter(([, v]) => v.trim() !== "" && parseFloat(v) > 0)
-            .map(([k, v]) => [k, Math.round(parseFloat(v) * 50 * 100)]),
-        ),
-        customPresets: customPresets.filter((p) => p.id && p.label && p.widthMm > 0 && p.heightMm > 0),
+        sizePrices: enableSizeChoice
+          ? Object.fromEntries(
+              Object.entries(sizePrices)
+                .filter(([, v]) => v.trim() !== "" && parseFloat(v) > 0)
+                .map(([k, v]) => [k, Math.round(parseFloat(v) * 50 * 100)]),
+            )
+          : {},
+        customPresets: enableSizeChoice
+          ? customPresets.filter((p) => p.id && p.label && p.widthMm > 0 && p.heightMm > 0)
+          : [],
         imageUrl: imageUrl || null,
         images,
         active,
@@ -991,6 +998,40 @@ function VariantEditor({
                     </div>
                   )}
                 </div>
+
+                {/* Size toggle */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: enableSizeChoice ? 10 : 0 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Choix de taille</label>
+                    <Toggle value={enableSizeChoice} onChange={(v) => { setEnableSizeChoice(v); if (v && customPresets.length === 0) setCustomPresets([{ id: "s", label: "S", widthMm: 50, heightMm: 50 }, { id: "m", label: "M", widthMm: 100, heightMm: 100 }]); }} labelOn="Oui" labelOff="Non" />
+                  </div>
+                  {!enableSizeChoice && (
+                    <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>Taille unique — pas de sélecteur affiché</div>
+                  )}
+                  {enableSizeChoice && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 55px 55px 80px 28px", gap: 5 }}>
+                        {["Libellé", "ID", "L (mm)", "H (mm)", "Prix HT €", ""].map((h) => (
+                          <span key={h} style={{ fontSize: 9, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>{h}</span>
+                        ))}
+                      </div>
+                      {customPresets.map((p, i) => (
+                        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 80px 55px 55px 80px 28px", gap: 5, alignItems: "center" }}>
+                          <input value={p.label} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, label: e.target.value }; setCustomPresets(n); }} style={{ ...inputStyle, fontSize: 12 }} placeholder="Petit / S…" />
+                          <input value={p.id} onChange={(e) => { const id = e.target.value.replace(/\s+/g, "-").toLowerCase(); const n = [...customPresets]; const oldId = n[i]!.id; n[i] = { ...n[i]!, id }; setCustomPresets(n); setSizePrices((prev) => { const next = { ...prev }; if (oldId in next) { next[id] = next[oldId]!; delete next[oldId]; } return next; }); }} style={{ ...inputStyle, fontFamily: "monospace", fontSize: 11 }} />
+                          <input type="number" min="5" value={p.widthMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, widthMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={{ ...inputStyle, fontSize: 12 }} />
+                          <input type="number" min="5" value={p.heightMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, heightMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={{ ...inputStyle, fontSize: 12 }} />
+                          <div style={{ position: "relative" }}>
+                            <input type="number" step="0.01" min="0" placeholder="auto" value={sizePrices[p.id] ?? ""} onChange={(e) => { const v = e.target.value; setSizePrices((prev) => { const next = { ...prev }; if (v === "") delete next[p.id]; else next[p.id] = v; return next; }); }} style={{ ...inputStyle, paddingRight: 20, fontSize: 12 }} />
+                            <span style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", fontSize: 10, color: "#9CA3AF" }}>€</span>
+                          </div>
+                          <button type="button" onClick={() => { setCustomPresets(customPresets.filter((_, j) => j !== i)); setSizePrices((prev) => { const next = { ...prev }; delete next[p.id]; return next; }); }} style={{ padding: "5px", borderRadius: 5, border: "1px solid #E5E7EB", background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontSize: 11 }}>✕</button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => { const id = `taille-${Date.now()}`; setCustomPresets([...customPresets, { id, label: "", widthMm: 50, heightMm: 50 }]); }} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 700, alignSelf: "flex-start" }}>+ Taille</button>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               /* Customizable product: standard multi-select */
@@ -1094,52 +1135,59 @@ function VariantEditor({
               )}
             </div>
 
-            {/* Size prices */}
-            <div>
-              <FieldLabel>Prix unitaire HT par taille (€)</FieldLabel>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 8 }}>
-                {ALL_SIZES.filter((s) => s !== "custom").map((s) => (
-                  <div key={s}>
-                    <label style={{ fontSize: 10, color: "#9CA3AF", display: "block", marginBottom: 4 }}>{SIZE_LABELS[s]}</label>
-                    <div style={{ position: "relative" }}>
-                      <input type="number" step="0.01" min="0" placeholder="auto" value={sizePrices[s] ?? ""} onChange={(e) => { const v = e.target.value; setSizePrices((prev) => { const n = { ...prev }; if (v === "") delete n[s]; else n[s] = v; return n; }); }} style={{ ...inputStyle, paddingRight: 24, fontSize: 12 }} />
-                      <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
+            {/* Size prices + presets — only for customizable products (direct products handle this in the Options panel) */}
+            {!isDirectProduct && (
+              <div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: enableSizeChoice ? 12 : 0 }}>
+                  <FieldLabel>Tailles proposées au client</FieldLabel>
+                  <Toggle value={enableSizeChoice} onChange={(v) => { setEnableSizeChoice(v); if (v && customPresets.length === 0) setCustomPresets([{ id: "preset-1", label: "", widthMm: 50, heightMm: 50 }]); }} labelOn="Actives" labelOff="Inactives" />
+                </div>
+                {enableSizeChoice && (
+                  <>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 12 }}>
+                      {ALL_SIZES.filter((s) => s !== "custom").map((s) => (
+                        <div key={s}>
+                          <label style={{ fontSize: 10, color: "#9CA3AF", display: "block", marginBottom: 4 }}>{SIZE_LABELS[s]}</label>
+                          <div style={{ position: "relative" }}>
+                            <input type="number" step="0.01" min="0" placeholder="auto" value={sizePrices[s] ?? ""} onChange={(e) => { const v = e.target.value; setSizePrices((prev) => { const n = { ...prev }; if (v === "") delete n[s]; else n[s] = v; return n; }); }} style={{ ...inputStyle, paddingRight: 24, fontSize: 12 }} />
+                            <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
+                    {customPresets.filter((p) => p.id).map((preset) => (
+                      <div key={`cp-${preset.id}`} style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10, marginBottom: 8, alignItems: "end" }}>
+                        <div style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{preset.label || preset.id} ({preset.widthMm}×{preset.heightMm}mm)</div>
+                        <div style={{ position: "relative" }}>
+                          <input type="number" step="0.01" min="0" placeholder="auto" value={sizePrices[preset.id] ?? ""} onChange={(e) => { const v = e.target.value; setSizePrices((prev) => { const n = { ...prev }; if (v === "") delete n[preset.id]; else n[preset.id] = v; return n; }); }} style={{ ...inputStyle, paddingRight: 24, fontSize: 12 }} />
+                          <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
+                        </div>
+                      </div>
+                    ))}
+                    <div style={{ borderTop: "1px solid #E5E7EB", paddingTop: 12, marginTop: 8 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Présets personnalisés</div>
+                      {customPresets.length > 0 && (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 70px 70px 32px", gap: 8 }}>
+                            {["Libellé", "ID", "L.", "H.", ""].map((h) => <span key={h} style={{ fontSize: 9, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>{h}</span>)}
+                          </div>
+                          {customPresets.map((p, i) => (
+                            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 70px 70px 32px", gap: 8, alignItems: "center" }}>
+                              <input value={p.label} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, label: e.target.value }; setCustomPresets(n); }} style={inputStyle} placeholder="Carte postale" />
+                              <input value={p.id} onChange={(e) => { const id = e.target.value.replace(/\s+/g, "-").toLowerCase(); const n = [...customPresets]; const oldId = n[i]!.id; n[i] = { ...n[i]!, id }; setCustomPresets(n); setSizePrices((prev) => { const next = { ...prev }; if (oldId in next) { next[id] = next[oldId]!; delete next[oldId]; } return next; }); }} style={{ ...inputStyle, fontFamily: "monospace" }} />
+                              <input type="number" min="5" value={p.widthMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, widthMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={inputStyle} />
+                              <input type="number" min="5" value={p.heightMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, heightMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={inputStyle} />
+                              <button type="button" onClick={() => { setCustomPresets(customPresets.filter((_, j) => j !== i)); setSizePrices((prev) => { const next = { ...prev }; delete next[p.id]; return next; }); }} style={{ padding: "6px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontSize: 12 }}>✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button type="button" onClick={() => setCustomPresets([...customPresets, { id: `preset-${Date.now()}`, label: "", widthMm: 50, heightMm: 50 }])} style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>+ Préset</button>
+                    </div>
+                  </>
+                )}
               </div>
-              {customPresets.filter((p) => p.id).map((preset) => (
-                <div key={`cp-${preset.id}`} style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 10, marginBottom: 8, alignItems: "end" }}>
-                  <div style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>{preset.label || preset.id} ({preset.widthMm}×{preset.heightMm}mm)</div>
-                  <div style={{ position: "relative" }}>
-                    <input type="number" step="0.01" min="0" placeholder="auto" value={sizePrices[preset.id] ?? ""} onChange={(e) => { const v = e.target.value; setSizePrices((prev) => { const n = { ...prev }; if (v === "") delete n[preset.id]; else n[preset.id] = v; return n; }); }} style={{ ...inputStyle, paddingRight: 24, fontSize: 12 }} />
-                    <span style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Custom presets */}
-            <div>
-              <FieldLabel>Présets de taille personnalisés</FieldLabel>
-              {customPresets.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 70px 70px 32px", gap: 8 }}>
-                    {["Libellé", "ID", "Larg.", "Haut.", ""].map((h) => <span key={h} style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>{h}</span>)}
-                  </div>
-                  {customPresets.map((p, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 70px 70px 32px", gap: 8, alignItems: "center" }}>
-                      <input value={p.label} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, label: e.target.value }; setCustomPresets(n); }} style={inputStyle} placeholder="Carte postale" />
-                      <input value={p.id} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, id: e.target.value.replace(/\s+/g, "-").toLowerCase() }; setCustomPresets(n); }} style={{ ...inputStyle, fontFamily: "monospace" }} />
-                      <input type="number" min="5" value={p.widthMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, widthMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={inputStyle} />
-                      <input type="number" min="5" value={p.heightMm} onChange={(e) => { const n = [...customPresets]; n[i] = { ...n[i]!, heightMm: parseInt(e.target.value) || 10 }; setCustomPresets(n); }} style={inputStyle} />
-                      <button type="button" onClick={() => setCustomPresets(customPresets.filter((_, j) => j !== i))} style={{ padding: "6px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#FEE2E2", color: "#991B1B", cursor: "pointer", fontSize: 12 }}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <button type="button" onClick={() => setCustomPresets([...customPresets, { id: `preset-${Date.now()}`, label: "", widthMm: 50, heightMm: 50 }])} style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>+ Préset</button>
-            </div>
+            )}
 
             {/* Variant image */}
             <div>
