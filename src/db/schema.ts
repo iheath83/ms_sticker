@@ -58,6 +58,8 @@ export const users = pgTable(
     name: varchar("name", { length: 255 }),
     phone: varchar("phone", { length: 30 }),
     role: userRoleEnum("role").notNull().default("customer"),
+    tags: text("tags").array().notNull().default([]),
+    notes: text("notes"),
     // Better-Auth fields
     emailVerified: boolean("email_verified").notNull().default(false),
     image: text("image"), // profile picture URL (Better-Auth compatible)
