@@ -24,9 +24,9 @@ const INNER_SIZE      = 200;   // zone d'analyse réelle
 const PAD             = 10;    // bordure transparente garantie
 const GRID_SIZE       = INNER_SIZE + 2 * PAD;
 const ALPHA_THRESHOLD = 15;
-const CLOSE_RADIUS    = 8;     // fermeture modeste (logo + texte presque connectés)
-const SIMPLIFY_TOL    = 0.8;
-const SMOOTH_PASSES   = 3;
+const CLOSE_RADIUS    = 14;    // fusionne les concavités entre lettres
+const SIMPLIFY_TOL    = 1.2;   // plus de simplification = moins de bumps
+const SMOOTH_PASSES   = 6;     // plus de lissage = aspect blob kiss cut
 const BEVEL_THRESHOLD = 1.4;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
