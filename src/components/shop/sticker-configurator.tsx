@@ -6,7 +6,6 @@ import type {
   StickerSize,
   StickerMaterial,
   StickerLamination,
-  StickerCutType,
   ProductStickerConfig,
 } from "@/db/schema";
 import { addToCart } from "@/lib/cart-actions";
@@ -17,6 +16,9 @@ import { useRouter } from "next/navigation";
 interface PriceResult {
   surfaceCm2: number;
   quantityDiscountPct: number;
+  materialMultiplier: number;
+  laminationMultiplier: number;
+  shapeMultiplier: number;
   unitPriceCents: number;
   subtotalCents: number;
   vatAmountCents: number;
@@ -25,7 +27,6 @@ interface PriceResult {
   shape: { id: string; name: string; code: string };
   material: { id: string; name: string };
   lamination: { id: string; name: string } | null;
-  cutType: { id: string; name: string };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -119,7 +120,6 @@ export function StickerConfigurator({
   sizes,
   materials,
   laminations,
-  cutTypes,
 }: {
   productId: string;
   productName: string;
@@ -129,7 +129,6 @@ export function StickerConfigurator({
   sizes: StickerSize[];
   materials: StickerMaterial[];
   laminations: StickerLamination[];
-  cutTypes: StickerCutType[];
 }) {
   const router = useRouter();
   const [addPending, startAddTransition] = useTransition();
@@ -146,7 +145,6 @@ export function StickerConfigurator({
   const [selectedLaminationId, setSelectedLaminationId] = useState<string | null>(
     laminations.find((l) => l.isDefault)?.id ?? laminations[0]?.id ?? null
   );
-  const [selectedCutTypeId, setSelectedCutTypeId] = useState<string>(cutTypes[0]?.id ?? "");
   const [customerNote, setCustomerNote] = useState("");
 
   const [priceResult, setPriceResult] = useState<PriceResult | null>(null);
@@ -170,7 +168,7 @@ export function StickerConfigurator({
   });
 
   const calculatePrice = useCallback(async () => {
-    if (!selectedShapeId || !selectedMaterialId || !selectedCutTypeId) return;
+    if (!selectedShapeId || !selectedMaterialId) return;
     if (currentQty < 1) return;
 
     setPriceLoading(true);
@@ -186,7 +184,6 @@ export function StickerConfigurator({
           quantity: currentQty,
           materialId: selectedMaterialId,
           laminationId: selectedLaminationId,
-          cutTypeId: selectedCutTypeId,
         }),
       });
       if (res.ok) {
@@ -196,7 +193,7 @@ export function StickerConfigurator({
     } finally {
       setPriceLoading(false);
     }
-  }, [productId, selectedShapeId, widthMm, heightMm, currentQty, selectedMaterialId, selectedLaminationId, selectedCutTypeId]);
+  }, [productId, selectedShapeId, widthMm, heightMm, currentQty, selectedMaterialId, selectedLaminationId]);
 
   useEffect(() => {
     if (priceTimeout.current) clearTimeout(priceTimeout.current);
@@ -205,13 +202,12 @@ export function StickerConfigurator({
   }, [calculatePrice]);
 
   async function handleAddToCart() {
-    if (!priceResult || !selectedShapeId || !selectedMaterialId || !selectedCutTypeId) return;
+    if (!priceResult || !selectedShapeId || !selectedMaterialId) return;
 
     startAddTransition(async () => {
       const shape = shapes.find((s) => s.id === selectedShapeId)!;
       const material = materials.find((m) => m.id === selectedMaterialId)!;
       const lamination = selectedLaminationId ? laminations.find((l) => l.id === selectedLaminationId) : null;
-      const cutType = cutTypes.find((c) => c.id === selectedCutTypeId)!;
 
       await addToCart({
         productId,
@@ -229,16 +225,14 @@ export function StickerConfigurator({
           materialId: material.id,
           materialName: material.name,
           ...(lamination ? { laminationId: lamination.id, laminationName: lamination.name } : {}),
-          cutTypeId: cutType.id,
-          cutTypeName: cutType.name,
           ...(customerNote ? { customerNote } : {}),
           pricingSnapshot: {
             pricePerCm2Cents: config.pricePerCm2Cents,
             surfaceCm2: priceResult.surfaceCm2,
             quantityDiscountPct: priceResult.quantityDiscountPct,
-            materialMultiplier: 1,
-            laminationMultiplier: 1,
-            cutTypeMultiplier: 1,
+            materialMultiplier: priceResult.materialMultiplier,
+            laminationMultiplier: priceResult.laminationMultiplier,
+            shapeMultiplier: priceResult.shapeMultiplier,
             setupFeeCents: priceResult.setupFeeCents,
             unitPriceCents: priceResult.unitPriceCents,
             subtotalCents: priceResult.subtotalCents,
@@ -463,28 +457,6 @@ export function StickerConfigurator({
                   Certaines finitions ne sont pas compatibles avec la matière sélectionnée.
                 </p>
               )}
-            </div>
-          </section>
-        )}
-
-        {/* Step 6 — Type de découpe */}
-        {cutTypes.length > 0 && (
-          <section style={{ background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 16, padding: "24px 28px" }}>
-            <StepHeader
-              number={laminations.length > 0 ? "06" : "05"}
-              title="Type de découpe"
-              current={cutTypes.find((c) => c.id === selectedCutTypeId)?.name ?? ""}
-            />
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {cutTypes.map((ct) => (
-                <OptionCard
-                  key={ct.id}
-                  active={selectedCutTypeId === ct.id}
-                  label={ct.name}
-                  {...(ct.description ? { sublabel: ct.description } : {})}
-                  onClick={() => setSelectedCutTypeId(ct.id)}
-                />
-              ))}
             </div>
           </section>
         )}

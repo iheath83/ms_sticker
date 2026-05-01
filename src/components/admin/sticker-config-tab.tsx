@@ -8,7 +8,6 @@ import type {
   StickerSize,
   StickerMaterial,
   StickerLamination,
-  StickerCutType,
   ProductStickerConfig,
   StickerQuantityTier,
 } from "@/db/schema";
@@ -92,7 +91,6 @@ export function StickerConfigTab({
   sizes: allSizes,
   materials: allMaterials,
   laminations: allLaminations,
-  cutTypes: allCutTypes,
 }: {
   productId: string;
   config: ProductStickerConfig | null;
@@ -100,7 +98,6 @@ export function StickerConfigTab({
   sizes: StickerSize[];
   materials: StickerMaterial[];
   laminations: StickerLamination[];
-  cutTypes: StickerCutType[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -110,8 +107,6 @@ export function StickerConfigTab({
   const [enabledSizeIds, setEnabledSizeIds] = useState<string[]>(initialConfig?.enabledSizeIds ?? []);
   const [enabledMaterialIds, setEnabledMaterialIds] = useState<string[]>(initialConfig?.enabledMaterialIds ?? []);
   const [enabledLaminationIds, setEnabledLaminationIds] = useState<string[]>(initialConfig?.enabledLaminationIds ?? []);
-  const [enabledCutTypeIds, setEnabledCutTypeIds] = useState<string[]>(initialConfig?.enabledCutTypeIds ?? []);
-
   const [allowCustomWidth, setAllowCustomWidth] = useState(initialConfig?.allowCustomWidth ?? false);
   const [allowCustomHeight, setAllowCustomHeight] = useState(initialConfig?.allowCustomHeight ?? false);
   const [minWidthMm, setMinWidthMm] = useState(initialConfig?.minWidthMm ?? 20);
@@ -157,7 +152,6 @@ export function StickerConfigTab({
         enabledSizeIds,
         enabledMaterialIds,
         enabledLaminationIds,
-        enabledCutTypeIds,
         allowCustomWidth,
         allowCustomHeight,
         minWidthMm,
@@ -170,7 +164,6 @@ export function StickerConfigTab({
         defaultShapeId: null,
         defaultMaterialId: null,
         defaultLaminationId: null,
-        defaultCutTypeId: null,
         pricePerCm2Cents: Math.round(parseFloat(pricePerCm2) * 100),
         quantityTiers: tiers,
         setupFeeCents: Math.round(parseFloat(setupFee) * 100),
@@ -380,26 +373,6 @@ export function StickerConfigTab({
                 label={lam.name}
                 {...(lam.priceModifierValue !== 1 ? { sublabel: `×${lam.priceModifierValue}` } : {})}
                 onClick={() => toggle(lam.id, enabledLaminationIds, setEnabledLaminationIds)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Types de découpe */}
-      <div style={sectionStyle}>
-        <SectionTitle>Types de découpe</SectionTitle>
-        {allCutTypes.length === 0 ? (
-          <p style={{ fontSize: 13, color: "#9CA3AF" }}>Aucun type de découpe dans le catalogue. <a href="/admin/sticker" style={{ color: "#0A0E27" }}>Configurer →</a></p>
-        ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {allCutTypes.map((ct) => (
-              <ToggleChip
-                key={ct.id}
-                active={enabledCutTypeIds.includes(ct.id)}
-                label={ct.name}
-                {...(ct.requiresCutPath ? { sublabel: "tracé requis" } : ct.priceModifierValue !== 1 ? { sublabel: `×${ct.priceModifierValue}` } : {})}
-                onClick={() => toggle(ct.id, enabledCutTypeIds, setEnabledCutTypeIds)}
               />
             ))}
           </div>

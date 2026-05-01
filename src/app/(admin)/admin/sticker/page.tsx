@@ -3,19 +3,17 @@ import {
   getAllStickerSizes,
   getAllStickerMaterials,
   getAllStickerLaminations,
-  getAllStickerCutTypes,
 } from "@/lib/sticker-catalog-actions";
 import { StickerCatalogClient } from "./sticker-catalog-client";
 
 export const metadata = { title: "Catalogue sticker — Admin" };
 
 export default async function StickerCatalogPage() {
-  const [shapes, sizes, materials, laminations, cutTypes] = await Promise.all([
+  const [shapes, sizes, materials, laminations] = await Promise.all([
     getAllStickerShapes(),
     getAllStickerSizes(),
     getAllStickerMaterials(),
     getAllStickerLaminations(),
-    getAllStickerCutTypes(),
   ]);
 
   return (
@@ -24,7 +22,6 @@ export default async function StickerCatalogPage() {
       sizes={sizes}
       materials={materials}
       laminations={laminations}
-      cutTypes={cutTypes}
     />
   );
 }

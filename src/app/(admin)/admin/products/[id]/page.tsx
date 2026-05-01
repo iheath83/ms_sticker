@@ -8,7 +8,6 @@ import {
   getAllStickerSizes,
   getAllStickerMaterials,
   getAllStickerLaminations,
-  getAllStickerCutTypes,
 } from "@/lib/sticker-catalog-actions";
 import { getActiveProductFamilies } from "@/lib/product-family-actions";
 import { ProductEditClient } from "@/components/admin/product-edit-client";
@@ -21,7 +20,7 @@ export default async function AdminProductEditPage({
 }) {
   const { id } = await params;
 
-  const [productRows, cats, families, stickerConfig, stickerShapes, stickerSizes, stickerMaterials, stickerLaminations, stickerCutTypes] = await Promise.all([
+  const [productRows, cats, families, stickerConfig, stickerShapes, stickerSizes, stickerMaterials, stickerLaminations] = await Promise.all([
     db.select().from(products).where(eq(products.id, id)).limit(1),
     db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name)),
     getActiveProductFamilies(),
@@ -30,7 +29,6 @@ export default async function AdminProductEditPage({
     getAllStickerSizes(),
     getAllStickerMaterials(),
     getAllStickerLaminations(),
-    getAllStickerCutTypes(),
   ]);
 
   const product = productRows[0];
@@ -49,7 +47,6 @@ export default async function AdminProductEditPage({
           sizes={stickerSizes}
           materials={stickerMaterials}
           laminations={stickerLaminations}
-          cutTypes={stickerCutTypes}
         />
       }
     />

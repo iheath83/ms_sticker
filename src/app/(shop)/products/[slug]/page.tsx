@@ -111,7 +111,6 @@ export default async function ProductPage({ params }: Props) {
             sizes={stickerCatalog.sizes}
             materials={stickerCatalog.materials}
             laminations={stickerCatalog.laminations}
-            cutTypes={stickerCatalog.cutTypes}
           />
         </>
       ) : (

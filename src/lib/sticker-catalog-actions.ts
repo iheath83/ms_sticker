@@ -6,13 +6,11 @@ import {
   stickerSizes,
   stickerMaterials,
   stickerLaminations,
-  stickerCutTypes,
   productStickerConfigs,
   type StickerShape,
   type StickerSize,
   type StickerMaterial,
   type StickerLamination,
-  type StickerCutType,
   type ProductStickerConfig,
   type StickerQuantityTier,
 } from "@/db/schema";
@@ -68,18 +66,6 @@ export async function getActiveStickerLaminations(): Promise<StickerLamination[]
     .from(stickerLaminations)
     .where(eq(stickerLaminations.isActive, true))
     .orderBy(asc(stickerLaminations.position), asc(stickerLaminations.name));
-}
-
-export async function getAllStickerCutTypes(): Promise<StickerCutType[]> {
-  return db.select().from(stickerCutTypes).orderBy(asc(stickerCutTypes.position), asc(stickerCutTypes.name));
-}
-
-export async function getActiveStickerCutTypes(): Promise<StickerCutType[]> {
-  return db
-    .select()
-    .from(stickerCutTypes)
-    .where(eq(stickerCutTypes.isActive, true))
-    .orderBy(asc(stickerCutTypes.position), asc(stickerCutTypes.name));
 }
 
 export async function getProductStickerConfig(productId: string): Promise<ProductStickerConfig | null> {
@@ -226,38 +212,6 @@ export async function deleteStickerLamination(id: string) {
   revalidatePath("/admin/sticker");
 }
 
-// ─── Cut Type CRUD ───────────────────────────────────────────────────────────
-
-const cutTypeSchema = z.object({
-  code: z.string().min(1).max(50).regex(/^[a-z_]+$/),
-  name: z.string().min(1).max(255),
-  description: z.string().optional().nullable(),
-  requiresCutPath: z.boolean().default(false),
-  priceModifierType: z.enum(["none", "fixed", "percentage", "multiplier"]).default("multiplier"),
-  priceModifierValue: z.number().min(0).default(1),
-  isActive: z.boolean().default(true),
-  position: z.number().int().default(0),
-});
-
-export async function createStickerCutType(data: z.infer<typeof cutTypeSchema>) {
-  const parsed = cutTypeSchema.parse(data);
-  const [row] = await db.insert(stickerCutTypes).values(parsed).returning();
-  revalidatePath("/admin/sticker");
-  return row;
-}
-
-export async function updateStickerCutType(id: string, data: Partial<z.infer<typeof cutTypeSchema>>) {
-  const parsed = cutTypeSchema.partial().parse(data);
-  const [row] = await db.update(stickerCutTypes).set({ ...parsed, updatedAt: new Date() }).where(eq(stickerCutTypes.id, id)).returning();
-  revalidatePath("/admin/sticker");
-  return row;
-}
-
-export async function deleteStickerCutType(id: string) {
-  await db.delete(stickerCutTypes).where(eq(stickerCutTypes.id, id));
-  revalidatePath("/admin/sticker");
-}
-
 // ─── Product Sticker Config CRUD ─────────────────────────────────────────────
 
 const stickerConfigSchema = z.object({
@@ -265,7 +219,6 @@ const stickerConfigSchema = z.object({
   enabledSizeIds: z.array(z.string().uuid()).default([]),
   enabledMaterialIds: z.array(z.string().uuid()).default([]),
   enabledLaminationIds: z.array(z.string().uuid()).default([]),
-  enabledCutTypeIds: z.array(z.string().uuid()).default([]),
   allowCustomWidth: z.boolean().default(false),
   allowCustomHeight: z.boolean().default(false),
   minWidthMm: z.number().int().min(1).default(20),
@@ -278,7 +231,6 @@ const stickerConfigSchema = z.object({
   defaultShapeId: z.string().uuid().optional().nullable(),
   defaultMaterialId: z.string().uuid().optional().nullable(),
   defaultLaminationId: z.string().uuid().optional().nullable(),
-  defaultCutTypeId: z.string().uuid().optional().nullable(),
   pricePerCm2Cents: z.number().int().min(0).default(150),
   quantityTiers: z.array(z.object({ minQty: z.number().int(), discountPct: z.number() })).default([]),
   setupFeeCents: z.number().int().min(0).default(0),
@@ -318,26 +270,23 @@ export interface StickerCatalogForProduct {
   sizes: StickerSize[];
   materials: StickerMaterial[];
   laminations: StickerLamination[];
-  cutTypes: StickerCutType[];
 }
 
 export async function getStickerCatalogForProduct(productId: string): Promise<StickerCatalogForProduct | null> {
   const config = await getProductStickerConfig(productId);
   if (!config) return null;
 
-  const [allShapes, allSizes, allMaterials, allLaminations, allCutTypes] = await Promise.all([
+  const [allShapes, allSizes, allMaterials, allLaminations] = await Promise.all([
     getActiveStickerShapes(),
     getActiveStickerSizes(),
     getActiveStickerMaterials(),
     getActiveStickerLaminations(),
-    getActiveStickerCutTypes(),
   ]);
 
   const shapes = allShapes.filter((s) => config.enabledShapeIds.includes(s.id));
   const sizes = allSizes.filter((s) => config.enabledSizeIds.includes(s.id));
   const materials = allMaterials.filter((m) => config.enabledMaterialIds.includes(m.id));
   const laminations = allLaminations.filter((l) => config.enabledLaminationIds.includes(l.id));
-  const cutTypes = allCutTypes.filter((c) => config.enabledCutTypeIds.includes(c.id));
 
-  return { config, shapes, sizes, materials, laminations, cutTypes };
+  return { config, shapes, sizes, materials, laminations };
 }

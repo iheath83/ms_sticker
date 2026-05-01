@@ -2,24 +2,22 @@
 
 import { useState, useTransition } from "react";
 import { AdminTopbar, AdminCard, T } from "@/components/admin/admin-ui";
-import type { StickerShape, StickerSize, StickerMaterial, StickerLamination, StickerCutType } from "@/db/schema";
+import type { StickerShape, StickerSize, StickerMaterial, StickerLamination } from "@/db/schema";
 import {
   createStickerShape, updateStickerShape, deleteStickerShape,
   createStickerSize, updateStickerSize, deleteStickerSize,
   createStickerMaterial, updateStickerMaterial, deleteStickerMaterial,
   createStickerLamination, updateStickerLamination, deleteStickerLamination,
-  createStickerCutType, updateStickerCutType, deleteStickerCutType,
 } from "@/lib/sticker-catalog-actions";
 import { useRouter } from "next/navigation";
 
-type Tab = "shapes" | "sizes" | "materials" | "laminations" | "cut_types";
+type Tab = "shapes" | "sizes" | "materials" | "laminations";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "shapes",     label: "Formes" },
   { id: "sizes",      label: "Tailles" },
   { id: "materials",  label: "Matières" },
   { id: "laminations",label: "Laminations" },
-  { id: "cut_types",  label: "Types de découpe" },
 ];
 
 const iS: React.CSSProperties = {
@@ -558,9 +556,9 @@ function GenericCatalogTab<T extends GenericItem>({
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-export function StickerCatalogClient({ shapes, sizes, materials, laminations, cutTypes }: {
+export function StickerCatalogClient({ shapes, sizes, materials, laminations }: {
   shapes: StickerShape[]; sizes: StickerSize[];
-  materials: StickerMaterial[]; laminations: StickerLamination[]; cutTypes: StickerCutType[];
+  materials: StickerMaterial[]; laminations: StickerLamination[];
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("shapes");
   const router = useRouter();
@@ -631,27 +629,6 @@ export function StickerCatalogClient({ shapes, sizes, materials, laminations, cu
           />
         )}
 
-        {activeTab === "cut_types" && (
-          <GenericCatalogTab
-            items={cutTypes} entityLabel="un type de découpe"
-            codePlaceholder="die_cut" namePlaceholder="Découpe à la forme"
-            onCreate={(data) => wrap((d: typeof data) =>
-              createStickerCutType(d as Parameters<typeof createStickerCutType>[0]))(data)}
-            onUpdate={(id, data) => wrap(([i, d]: [string, typeof data]) =>
-              updateStickerCutType(i, d as Parameters<typeof updateStickerCutType>[1]))([id, data])}
-            onDelete={wrap((id: string) => deleteStickerCutType(id))}
-            pending={pending}
-            extraFields={(form, setForm) => (
-              <div style={{ gridColumn: "span 2" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                  <input type="checkbox" checked={!!form.requiresCutPath}
-                    onChange={(e) => setForm((f) => ({ ...f, requiresCutPath: e.target.checked }))} />
-                  Nécessite tracé de découpe
-                </label>
-              </div>
-            )}
-          />
-        )}
       </div>
     </div>
   );

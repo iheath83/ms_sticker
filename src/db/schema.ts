@@ -1042,23 +1042,6 @@ export const stickerLaminations = pgTable(
   (t) => [uniqueIndex("sticker_laminations_code_idx").on(t.code)],
 );
 
-export const stickerCutTypes = pgTable(
-  "sticker_cut_types",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    code: varchar("code", { length: 50 }).notNull().unique(),
-    name: varchar("name", { length: 255 }).notNull(),
-    description: text("description"),
-    requiresCutPath: boolean("requires_cut_path").notNull().default(false),
-    priceModifierType: varchar("price_modifier_type", { length: 20 }).notNull().$type<StickerPriceModifierType>().default("multiplier"),
-    priceModifierValue: real("price_modifier_value").notNull().default(1),
-    isActive: boolean("is_active").notNull().default(true),
-    position: integer("position").notNull().default(0),
-    ...timestamps,
-  },
-  (t) => [uniqueIndex("sticker_cut_types_code_idx").on(t.code)],
-);
-
 export type StickerQuantityTier = { minQty: number; discountPct: number };
 export type StickerConfigSnapshot = {
   shapeId: string;
@@ -1071,8 +1054,6 @@ export type StickerConfigSnapshot = {
   materialName: string;
   laminationId?: string;
   laminationName?: string;
-  cutTypeId: string;
-  cutTypeName: string;
   customerNote?: string;
   pricingSnapshot: {
     pricePerCm2Cents: number;
@@ -1080,7 +1061,7 @@ export type StickerConfigSnapshot = {
     quantityDiscountPct: number;
     materialMultiplier: number;
     laminationMultiplier: number;
-    cutTypeMultiplier: number;
+    shapeMultiplier: number;
     setupFeeCents: number;
     unitPriceCents: number;
     subtotalCents: number;
@@ -1099,7 +1080,6 @@ export const productStickerConfigs = pgTable(
     enabledSizeIds: jsonb("enabled_size_ids").$type<string[]>().notNull().default([]),
     enabledMaterialIds: jsonb("enabled_material_ids").$type<string[]>().notNull().default([]),
     enabledLaminationIds: jsonb("enabled_lamination_ids").$type<string[]>().notNull().default([]),
-    enabledCutTypeIds: jsonb("enabled_cut_type_ids").$type<string[]>().notNull().default([]),
     allowCustomWidth: boolean("allow_custom_width").notNull().default(false),
     allowCustomHeight: boolean("allow_custom_height").notNull().default(false),
     minWidthMm: integer("min_width_mm").notNull().default(20),
@@ -1112,7 +1092,6 @@ export const productStickerConfigs = pgTable(
     defaultShapeId: uuid("default_shape_id"),
     defaultMaterialId: uuid("default_material_id"),
     defaultLaminationId: uuid("default_lamination_id"),
-    defaultCutTypeId: uuid("default_cut_type_id"),
     pricePerCm2Cents: integer("price_per_cm2_cents").notNull().default(150),
     quantityTiers: jsonb("quantity_tiers").$type<StickerQuantityTier[]>().notNull().default([]),
     setupFeeCents: integer("setup_fee_cents").notNull().default(0),
@@ -1130,7 +1109,5 @@ export type StickerMaterial = typeof stickerMaterials.$inferSelect;
 export type NewStickerMaterial = typeof stickerMaterials.$inferInsert;
 export type StickerLamination = typeof stickerLaminations.$inferSelect;
 export type NewStickerLamination = typeof stickerLaminations.$inferInsert;
-export type StickerCutType = typeof stickerCutTypes.$inferSelect;
-export type NewStickerCutType = typeof stickerCutTypes.$inferInsert;
 export type ProductStickerConfig = typeof productStickerConfigs.$inferSelect;
 export type NewProductStickerConfig = typeof productStickerConfigs.$inferInsert;
