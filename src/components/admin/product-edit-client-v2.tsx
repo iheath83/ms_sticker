@@ -123,6 +123,7 @@ export function ProductEditClientV2({
   finishes,
   materials,
   sizes,
+  stickerConfigTab,
 }: {
   product: ProductData;
   variants: VariantData[];
@@ -131,9 +132,10 @@ export function ProductEditClientV2({
   finishes: OptionItem[];
   materials: OptionItem[];
   sizes: SizeItem[];
+  stickerConfigTab?: React.ReactNode;
 }) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"general" | "variants" | "preview">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "variants" | "configurateur" | "preview">("general");
   const [variants, setVariants] = useState<VariantData[]>(initialVariants);
 
   return (
@@ -170,6 +172,7 @@ export function ProductEditClientV2({
         {([
           { id: "general", label: "Général" },
           { id: "variants", label: `Déclinaisons (${variants.length})` },
+          { id: "configurateur", label: "Configurateur sticker" },
           { id: "preview", label: "Aperçu" },
         ] as const).map((tab) => (
           <button
@@ -214,6 +217,13 @@ export function ProductEditClientV2({
           sizes={sizes}
           onVariantsChange={setVariants}
         />
+      )}
+      {activeTab === "configurateur" && (
+        stickerConfigTab ?? (
+          <div style={{ padding: "24px", color: "#9CA3AF", fontSize: 14 }}>
+            Pas de configuration sticker pour ce produit.
+          </div>
+        )
       )}
       {activeTab === "preview" && (
         <PreviewTab product={initialProduct} variants={variants} />

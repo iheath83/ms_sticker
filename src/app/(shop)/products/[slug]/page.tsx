@@ -3,9 +3,11 @@ import { getActiveProductsWithVariants, getProductWithVariants } from "@/lib/pro
 import { materialToPreview } from "@/lib/product-utils";
 import { ProductConfigurator } from "@/components/shop/configurator/product-configurator";
 import { ProductDirectTemplate } from "@/components/shop/product-direct-template";
+import { StickerConfigurator } from "@/components/shop/sticker-configurator";
 import { QUANTITY_TIERS, type PricingTier, type PricingFinish, type PricingSize, type CustomPreset } from "@/lib/pricing";
 import { ProductRatingSummary } from "@/components/reviews/ProductRatingSummary";
 import { ProductReviews } from "@/components/reviews/ProductReviews";
+import { getStickerCatalogForProduct } from "@/lib/sticker-catalog-actions";
 import { db } from "@/db";
 import { reviewAggregates } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -91,6 +93,42 @@ export default async function ProductPage({ params }: Props) {
       : {}),
   };
   const jsonLd = JSON.stringify(productSchema);
+
+  // ── New sticker configurator system ───────────────────────────────────────
+  const stickerCatalog = await getStickerCatalogForProduct(product.id);
+  if (stickerCatalog) {
+    const { config, shapes, sizes, materials, laminations, cutTypes } = stickerCatalog;
+    return (
+      <>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 0" }}>
+          <h1 style={{ fontFamily: "var(--font-archivo, system-ui)", fontSize: 36, fontWeight: 900, color: "#0A0E27", margin: "0 0 8px" }}>
+            {product.name}
+          </h1>
+          {product.tagline && (
+            <p style={{ fontSize: 16, color: "#6B7280", margin: "0 0 24px" }}>{product.tagline}</p>
+          )}
+        </div>
+        <StickerConfigurator
+          productId={product.id}
+          productName={product.name}
+          {...(product.imageUrl ? { imageUrl: product.imageUrl } : {})}
+          config={config}
+          shapes={shapes}
+          sizes={sizes}
+          materials={materials}
+          laminations={laminations}
+          cutTypes={cutTypes}
+        />
+        {product.reviewsEnabled && (
+          <div className="max-w-4xl mx-auto px-4 pb-16">
+            <ProductRatingSummary productId={product.id} />
+            <ProductReviews productId={product.id} />
+          </div>
+        )}
+      </>
+    );
+  }
 
   // ── Non-customizable products get a simpler template ──────────────────────
   if (!product.requiresCustomization) {

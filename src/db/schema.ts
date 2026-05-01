@@ -210,6 +210,7 @@ export const products = pgTable(
     features: text("features").array(),
     images: jsonb("images").$type<string[]>().default([]),
     requiresCustomization: boolean("requires_customization").notNull().default(true),
+    productFamily: varchar("product_family", { length: 50 }).notNull().default("sticker"),
     // Original fields (kept for backward compat during migration)
     slug: varchar("slug", { length: 100 }).notNull().unique(),
     name: varchar("name", { length: 255 }).notNull(),
@@ -352,6 +353,7 @@ export const orderItems = pgTable(
     unitPriceCents: integer("unit_price_cents").notNull(),
     lineTotalCents: integer("line_total_cents").notNull(),
     customizationNote: text("customization_note"),
+    stickerConfig: jsonb("sticker_config").$type<StickerConfigSnapshot>(),
     ...timestamps,
   },
   (t) => [
@@ -1016,3 +1018,174 @@ export type OrderShippingSnapshot = typeof orderShippingSnapshots.$inferSelect;
 export type ShippingPickupLocation = typeof shippingPickupLocations.$inferSelect;
 export type ShippingTimeSlot = typeof shippingTimeSlots.$inferSelect;
 export type ShippingBlackoutDate = typeof shippingBlackoutDates.$inferSelect;
+
+// ─── Sticker Catalog ──────────────────────────────────────────────────────────
+
+export type StickerPriceModifierType = "none" | "fixed" | "percentage" | "multiplier";
+
+export const stickerShapes = pgTable(
+  "sticker_shapes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    isStandardShape: boolean("is_standard_shape").notNull().default(true),
+    requiresCutPath: boolean("requires_cut_path").notNull().default(false),
+    priceModifierType: varchar("price_modifier_type", { length: 20 }).notNull().$type<StickerPriceModifierType>().default("none"),
+    priceModifierValue: real("price_modifier_value").notNull().default(1),
+    iconSvg: text("icon_svg"),
+    isActive: boolean("is_active").notNull().default(true),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("sticker_shapes_code_idx").on(t.code)],
+);
+
+export const stickerSizes = pgTable(
+  "sticker_sizes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    label: varchar("label", { length: 100 }).notNull(),
+    widthMm: integer("width_mm").notNull(),
+    heightMm: integer("height_mm").notNull(),
+    isPreset: boolean("is_preset").notNull().default(true),
+    isActive: boolean("is_active").notNull().default(true),
+    minQuantity: integer("min_quantity"),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+);
+
+export const stickerMaterials = pgTable(
+  "sticker_materials",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    isWaterproof: boolean("is_waterproof").notNull().default(true),
+    isOutdoorCompatible: boolean("is_outdoor_compatible").notNull().default(false),
+    isTransparent: boolean("is_transparent").notNull().default(false),
+    isPremium: boolean("is_premium").notNull().default(false),
+    priceModifierType: varchar("price_modifier_type", { length: 20 }).notNull().$type<StickerPriceModifierType>().default("multiplier"),
+    priceModifierValue: real("price_modifier_value").notNull().default(1),
+    compatibleLaminationCodes: text("compatible_lamination_codes").array().notNull().default([]),
+    previewImageUrl: text("preview_image_url"),
+    isActive: boolean("is_active").notNull().default(true),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("sticker_materials_code_idx").on(t.code)],
+);
+
+export const stickerLaminations = pgTable(
+  "sticker_laminations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    priceModifierType: varchar("price_modifier_type", { length: 20 }).notNull().$type<StickerPriceModifierType>().default("multiplier"),
+    priceModifierValue: real("price_modifier_value").notNull().default(1),
+    compatibleMaterialCodes: text("compatible_material_codes").array().notNull().default([]),
+    isDefault: boolean("is_default").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("sticker_laminations_code_idx").on(t.code)],
+);
+
+export const stickerCutTypes = pgTable(
+  "sticker_cut_types",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    requiresCutPath: boolean("requires_cut_path").notNull().default(false),
+    priceModifierType: varchar("price_modifier_type", { length: 20 }).notNull().$type<StickerPriceModifierType>().default("multiplier"),
+    priceModifierValue: real("price_modifier_value").notNull().default(1),
+    isActive: boolean("is_active").notNull().default(true),
+    position: integer("position").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("sticker_cut_types_code_idx").on(t.code)],
+);
+
+export type StickerQuantityTier = { minQty: number; discountPct: number };
+export type StickerConfigSnapshot = {
+  shapeId: string;
+  shapeName: string;
+  shapeCode: string;
+  widthMm: number;
+  heightMm: number;
+  quantity: number;
+  materialId: string;
+  materialName: string;
+  laminationId?: string;
+  laminationName?: string;
+  cutTypeId: string;
+  cutTypeName: string;
+  customerNote?: string;
+  pricingSnapshot: {
+    pricePerCm2Cents: number;
+    surfaceCm2: number;
+    quantityDiscountPct: number;
+    materialMultiplier: number;
+    laminationMultiplier: number;
+    cutTypeMultiplier: number;
+    setupFeeCents: number;
+    unitPriceCents: number;
+    subtotalCents: number;
+  };
+};
+
+export const productStickerConfigs = pgTable(
+  "product_sticker_configs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id")
+      .notNull()
+      .unique()
+      .references(() => products.id, { onDelete: "cascade" }),
+    enabledShapeIds: jsonb("enabled_shape_ids").$type<string[]>().notNull().default([]),
+    enabledSizeIds: jsonb("enabled_size_ids").$type<string[]>().notNull().default([]),
+    enabledMaterialIds: jsonb("enabled_material_ids").$type<string[]>().notNull().default([]),
+    enabledLaminationIds: jsonb("enabled_lamination_ids").$type<string[]>().notNull().default([]),
+    enabledCutTypeIds: jsonb("enabled_cut_type_ids").$type<string[]>().notNull().default([]),
+    allowCustomWidth: boolean("allow_custom_width").notNull().default(false),
+    allowCustomHeight: boolean("allow_custom_height").notNull().default(false),
+    minWidthMm: integer("min_width_mm").notNull().default(20),
+    maxWidthMm: integer("max_width_mm").notNull().default(1000),
+    minHeightMm: integer("min_height_mm").notNull().default(20),
+    maxHeightMm: integer("max_height_mm").notNull().default(1000),
+    requireFileUpload: boolean("require_file_upload").notNull().default(true),
+    allowedFileExtensions: text("allowed_file_extensions").array().notNull().default(["pdf", "ai", "eps", "svg", "png", "jpg", "jpeg"]),
+    maxFileSizeMb: integer("max_file_size_mb").notNull().default(100),
+    defaultShapeId: uuid("default_shape_id"),
+    defaultMaterialId: uuid("default_material_id"),
+    defaultLaminationId: uuid("default_lamination_id"),
+    defaultCutTypeId: uuid("default_cut_type_id"),
+    pricePerCm2Cents: integer("price_per_cm2_cents").notNull().default(150),
+    quantityTiers: jsonb("quantity_tiers").$type<StickerQuantityTier[]>().notNull().default([]),
+    setupFeeCents: integer("setup_fee_cents").notNull().default(0),
+    minOrderCents: integer("min_order_cents").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index("product_sticker_configs_product_id_idx").on(t.productId)],
+);
+
+export type StickerShape = typeof stickerShapes.$inferSelect;
+export type NewStickerShape = typeof stickerShapes.$inferInsert;
+export type StickerSize = typeof stickerSizes.$inferSelect;
+export type NewStickerSize = typeof stickerSizes.$inferInsert;
+export type StickerMaterial = typeof stickerMaterials.$inferSelect;
+export type NewStickerMaterial = typeof stickerMaterials.$inferInsert;
+export type StickerLamination = typeof stickerLaminations.$inferSelect;
+export type NewStickerLamination = typeof stickerLaminations.$inferInsert;
+export type StickerCutType = typeof stickerCutTypes.$inferSelect;
+export type NewStickerCutType = typeof stickerCutTypes.$inferInsert;
+export type ProductStickerConfig = typeof productStickerConfigs.$inferSelect;
+export type NewProductStickerConfig = typeof productStickerConfigs.$inferInsert;

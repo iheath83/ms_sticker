@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.git/
+graphify-out/
+dist/
+*.generated.*
+*.lock
+pnpm-lock.yaml
+package-lock.json

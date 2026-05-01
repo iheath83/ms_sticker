@@ -1,6 +1,15 @@
 import { notFound } from "next/navigation";
 import { getProductWithVariants, getCategories, getActiveOptionValues } from "@/lib/product-catalog-actions";
+import {
+  getProductStickerConfig,
+  getAllStickerShapes,
+  getAllStickerSizes,
+  getAllStickerMaterials,
+  getAllStickerLaminations,
+  getAllStickerCutTypes,
+} from "@/lib/sticker-catalog-actions";
 import { ProductEditClientV2 } from "@/components/admin/product-edit-client-v2";
+import { StickerConfigTab } from "@/components/admin/sticker-config-tab";
 
 export default async function AdminProductEditPage({
   params,
@@ -9,13 +18,19 @@ export default async function AdminProductEditPage({
 }) {
   const { id } = await params;
 
-  const [productData, cats, shapes, finishes, materials, sizes] = await Promise.all([
+  const [productData, cats, shapes, finishes, materials, sizes, stickerConfig, stickerShapes, stickerSizes, stickerMaterials, stickerLaminations, stickerCutTypes] = await Promise.all([
     getProductWithVariants(id),
     getCategories(),
     getActiveOptionValues("shape"),
     getActiveOptionValues("finish"),
     getActiveOptionValues("material"),
     getActiveOptionValues("size"),
+    getProductStickerConfig(id),
+    getAllStickerShapes(),
+    getAllStickerSizes(),
+    getAllStickerMaterials(),
+    getAllStickerLaminations(),
+    getAllStickerCutTypes(),
   ]);
 
   if (!productData) notFound();
@@ -71,6 +86,17 @@ export default async function AdminProductEditPage({
       finishes={finishes.map((f) => ({ slug: f.slug, label: f.label }))}
       materials={materials.map((m) => ({ slug: m.slug, label: m.label }))}
       sizes={sizes.map((s) => ({ slug: s.slug, label: s.label, description: s.description ?? null }))}
+      stickerConfigTab={
+        <StickerConfigTab
+          productId={id}
+          config={stickerConfig}
+          shapes={stickerShapes}
+          sizes={stickerSizes}
+          materials={stickerMaterials}
+          laminations={stickerLaminations}
+          cutTypes={stickerCutTypes}
+        />
+      }
     />
   );
 }

@@ -129,6 +129,8 @@ const addToCartSchema = z.object({
   customizationNote: z.string().optional(),
   // For non-customizable products: bypass computePrice multipliers and use this unit price directly (HT, in cents)
   directUnitPriceCents: z.number().int().positive().optional(),
+  // For new sticker configurator products: full config snapshot
+  stickerConfig: z.any().optional(),
 });
 
 export type AddToCartInput = z.infer<typeof addToCartSchema>;
@@ -186,6 +188,7 @@ export async function addToCart(input: AddToCartInput): Promise<Result<AddToCart
     unitPriceCents,
     lineTotalCents,
     customizationNote: data.customizationNote,
+    stickerConfig: data.stickerConfig ?? null,
   }).returning({ id: orderItems.id });
 
   if (!insertedItem) return { ok: false, error: "Erreur lors de l'ajout au panier" };

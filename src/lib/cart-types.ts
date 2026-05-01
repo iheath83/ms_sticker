@@ -1,5 +1,9 @@
 // Cart domain types — no "use server", safe to import in both client and server modules
 
+import type { StickerConfigSnapshot } from "@/db/schema";
+
+export type { StickerConfigSnapshot };
+
 export interface CartItemFile {
   id: string;
   key: string;
@@ -56,4 +60,6 @@ export interface AddToCartInput {
   customizationNote?: string | undefined;
   /** For non-customizable products: bypass shape/area/material multipliers from computePrice */
   directUnitPriceCents?: number | undefined;
+  /** Full sticker configuration for new-system products */
+  stickerConfig?: StickerConfigSnapshot | undefined;
 }
