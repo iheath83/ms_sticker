@@ -1061,10 +1061,13 @@ export const productStickerConfigs = pgTable(
       .unique()
       .references(() => products.id, { onDelete: "cascade" }),
     enabledShapeIds: jsonb("enabled_shape_ids").$type<string[]>().notNull().default([]),
+    shapeModifierOverrides: jsonb("shape_modifier_overrides").$type<Record<string, number>>().notNull().default({}),
     enabledSizeIds: jsonb("enabled_size_ids").$type<string[]>().notNull().default([]),
     sizePriceOverrides: jsonb("size_price_overrides").$type<Record<string, number>>().notNull().default({}),
     enabledMaterialIds: jsonb("enabled_material_ids").$type<string[]>().notNull().default([]),
+    materialModifierOverrides: jsonb("material_modifier_overrides").$type<Record<string, number>>().notNull().default({}),
     enabledLaminationIds: jsonb("enabled_lamination_ids").$type<string[]>().notNull().default([]),
+    laminationModifierOverrides: jsonb("lamination_modifier_overrides").$type<Record<string, number>>().notNull().default({}),
     allowCustomWidth: boolean("allow_custom_width").notNull().default(false),
     allowCustomHeight: boolean("allow_custom_height").notNull().default(false),
     minWidthMm: integer("min_width_mm").notNull().default(20),

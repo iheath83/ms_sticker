@@ -60,15 +60,18 @@ export async function POST(req: NextRequest) {
       quantityTiers:    config.quantityTiers,
       setupFeeCents:    config.setupFeeCents,
       minOrderCents:    config.minOrderCents,
-      shapeModifier: shape
-        ? { type: shape.priceModifierType as StickerPriceModifierType, value: shape.priceModifierValue }
-        : NONE_MODIFIER,
-      materialModifier: material
-        ? { type: material.priceModifierType as StickerPriceModifierType, value: material.priceModifierValue }
-        : NONE_MODIFIER,
-      laminationModifier: lamination
-        ? { type: lamination.priceModifierType as StickerPriceModifierType, value: lamination.priceModifierValue }
-        : null,
+      shapeModifier: shape ? {
+        type: shape.priceModifierType as StickerPriceModifierType,
+        value: (config.shapeModifierOverrides as Record<string, number> | undefined)?.[shape.id] ?? shape.priceModifierValue,
+      } : NONE_MODIFIER,
+      materialModifier: material ? {
+        type: material.priceModifierType as StickerPriceModifierType,
+        value: (config.materialModifierOverrides as Record<string, number> | undefined)?.[material.id] ?? material.priceModifierValue,
+      } : NONE_MODIFIER,
+      laminationModifier: lamination ? {
+        type: lamination.priceModifierType as StickerPriceModifierType,
+        value: (config.laminationModifierOverrides as Record<string, number> | undefined)?.[lamination.id] ?? lamination.priceModifierValue,
+      } : null,
     });
 
     return NextResponse.json({

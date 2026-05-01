@@ -217,10 +217,13 @@ export async function deleteStickerLamination(id: string) {
 
 const stickerConfigSchema = z.object({
   enabledShapeIds: z.array(z.string().uuid()).default([]),
+  shapeModifierOverrides: z.record(z.string().uuid(), z.number().min(0)).default({}),
   enabledSizeIds: z.array(z.string().uuid()).default([]),
   sizePriceOverrides: z.record(z.string().uuid(), z.number().int().min(0)).default({}),
   enabledMaterialIds: z.array(z.string().uuid()).default([]),
+  materialModifierOverrides: z.record(z.string().uuid(), z.number().min(0)).default({}),
   enabledLaminationIds: z.array(z.string().uuid()).default([]),
+  laminationModifierOverrides: z.record(z.string().uuid(), z.number().min(0)).default({}),
   allowCustomWidth: z.boolean().default(false),
   allowCustomHeight: z.boolean().default(false),
   minWidthMm: z.number().int().min(1).default(20),

@@ -84,6 +84,71 @@ function ToggleChip({
   );
 }
 
+function OptionCard({
+  active, title, subtitle, onToggle, children,
+}: {
+  active: boolean; title: string; subtitle?: string | undefined;
+  onToggle: () => void; children?: React.ReactNode;
+}) {
+  return (
+    <div style={{
+      border: `2px solid ${active ? "#0A0E27" : "#E5E7EB"}`,
+      borderRadius: 10, padding: "10px 14px",
+      background: active ? "#F8F9FF" : "#fff",
+      transition: "border-color 0.15s",
+    }}>
+      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: active && children ? 10 : 0, cursor: "pointer" }}>
+        <div style={{
+          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+          border: `2px solid ${active ? "#0A0E27" : "#D1D5DB"}`,
+          background: active ? "#0A0E27" : "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          {active && <span style={{ color: "#fff", fontSize: 10, fontWeight: 900 }}>✓</span>}
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27" }}>{title}</div>
+          {subtitle && <div style={{ fontSize: 11, color: "#6B7280" }}>{subtitle}</div>}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ModifierOverrideInput({
+  id, globalType, globalValue, overrides, setOverrides,
+}: {
+  id: string; globalType: string; globalValue: number;
+  overrides: Record<string, string>;
+  setOverrides: (fn: (prev: Record<string, string>) => Record<string, string>) => void;
+}) {
+  const label = globalType === "multiplier" ? "Multiplicateur (×)"
+    : globalType === "percentage" ? "Pourcentage (%)"
+    : globalType === "fixed" ? "Supplément fixe (€ cts)"
+    : "Modificateur";
+  const placeholder = globalType === "multiplier" ? `${globalValue} (global)`
+    : globalType === "percentage" ? `${globalValue} (global)`
+    : `${globalValue} (global)`;
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <label style={{ fontSize: 10, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" as const, letterSpacing: "0.06em", display: "block", marginBottom: 4 }}>
+        {label} — ce produit
+      </label>
+      <input
+        type="number" step="0.01" min="0"
+        value={overrides[id] ?? ""}
+        onChange={(e) => setOverrides((prev) => ({ ...prev, [id]: e.target.value }))}
+        placeholder={placeholder}
+        style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "1.5px solid #D1D5DB", fontSize: 13, boxSizing: "border-box" as const }}
+      />
+      <p style={{ fontSize: 10, color: "#9CA3AF", margin: "3px 0 0" }}>
+        Laissez vide pour utiliser la valeur du catalogue
+      </p>
+    </div>
+  );
+}
+
 export function StickerConfigTab({
   productId,
   config: initialConfig,
@@ -104,6 +169,12 @@ export function StickerConfigTab({
   const [saved, setSaved] = useState(false);
 
   const [enabledShapeIds, setEnabledShapeIds] = useState<string[]>(initialConfig?.enabledShapeIds ?? []);
+  const [shapeModifierOverrides, setShapeModifierOverrides] = useState<Record<string, string>>(
+    Object.fromEntries(
+      Object.entries((initialConfig?.shapeModifierOverrides as Record<string, number> | undefined) ?? {})
+        .map(([id, v]) => [id, String(v)])
+    )
+  );
   const [enabledSizeIds, setEnabledSizeIds] = useState<string[]>(initialConfig?.enabledSizeIds ?? []);
   const [sizePriceOverrides, setSizePriceOverrides] = useState<Record<string, string>>(
     Object.fromEntries(
@@ -112,7 +183,19 @@ export function StickerConfigTab({
     )
   );
   const [enabledMaterialIds, setEnabledMaterialIds] = useState<string[]>(initialConfig?.enabledMaterialIds ?? []);
+  const [materialModifierOverrides, setMaterialModifierOverrides] = useState<Record<string, string>>(
+    Object.fromEntries(
+      Object.entries((initialConfig?.materialModifierOverrides as Record<string, number> | undefined) ?? {})
+        .map(([id, v]) => [id, String(v)])
+    )
+  );
   const [enabledLaminationIds, setEnabledLaminationIds] = useState<string[]>(initialConfig?.enabledLaminationIds ?? []);
+  const [laminationModifierOverrides, setLaminationModifierOverrides] = useState<Record<string, string>>(
+    Object.fromEntries(
+      Object.entries((initialConfig?.laminationModifierOverrides as Record<string, number> | undefined) ?? {})
+        .map(([id, v]) => [id, String(v)])
+    )
+  );
   const [allowCustomWidth, setAllowCustomWidth] = useState(initialConfig?.allowCustomWidth ?? false);
   const [allowCustomHeight, setAllowCustomHeight] = useState(initialConfig?.allowCustomHeight ?? false);
   const [minWidthMm, setMinWidthMm] = useState(initialConfig?.minWidthMm ?? 20);
@@ -161,6 +244,12 @@ export function StickerConfigTab({
     startTransition(async () => {
       await upsertProductStickerConfig(productId, {
         enabledShapeIds,
+        shapeModifierOverrides: Object.fromEntries(
+          Object.entries(shapeModifierOverrides)
+            .filter(([id, val]) => enabledShapeIds.includes(id) && val.trim() !== "")
+            .map(([id, val]) => [id, parseFloat(val)])
+            .filter(([, v]) => !isNaN(v as number))
+        ),
         enabledSizeIds,
         sizePriceOverrides: Object.fromEntries(
           Object.entries(sizePriceOverrides)
@@ -169,7 +258,19 @@ export function StickerConfigTab({
             .filter(([, cents]) => !isNaN(cents as number))
         ),
         enabledMaterialIds,
+        materialModifierOverrides: Object.fromEntries(
+          Object.entries(materialModifierOverrides)
+            .filter(([id, val]) => enabledMaterialIds.includes(id) && val.trim() !== "")
+            .map(([id, val]) => [id, parseFloat(val)])
+            .filter(([, v]) => !isNaN(v as number))
+        ),
         enabledLaminationIds,
+        laminationModifierOverrides: Object.fromEntries(
+          Object.entries(laminationModifierOverrides)
+            .filter(([id, val]) => enabledLaminationIds.includes(id) && val.trim() !== "")
+            .map(([id, val]) => [id, parseFloat(val)])
+            .filter(([, v]) => !isNaN(v as number))
+        ),
         allowCustomWidth,
         allowCustomHeight,
         minWidthMm,
@@ -367,16 +468,28 @@ export function StickerConfigTab({
         {allShapes.length === 0 ? (
           <p style={{ fontSize: 13, color: "#9CA3AF" }}>Aucune forme dans le catalogue. <a href="/admin/sticker" style={{ color: "#0A0E27" }}>Configurer →</a></p>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {allShapes.map((shape) => (
-              <ToggleChip
-                key={shape.id}
-                active={enabledShapeIds.includes(shape.id)}
-                label={shape.name}
-                {...(shape.requiresCutPath ? { sublabel: "tracé requis" } : {})}
-                onClick={() => toggle(shape.id, enabledShapeIds, setEnabledShapeIds)}
-              />
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+            {allShapes.map((shape) => {
+              const active = enabledShapeIds.includes(shape.id);
+              return (
+                <OptionCard
+                  key={shape.id} active={active}
+                  title={shape.name}
+                  subtitle={shape.requiresCutPath ? "tracé requis" : undefined}
+                  onToggle={() => toggle(shape.id, enabledShapeIds, setEnabledShapeIds)}
+                >
+                  {active && (
+                    <ModifierOverrideInput
+                      id={shape.id}
+                      globalType={shape.priceModifierType}
+                      globalValue={shape.priceModifierValue}
+                      overrides={shapeModifierOverrides}
+                      setOverrides={setShapeModifierOverrides}
+                    />
+                  )}
+                </OptionCard>
+              );
+            })}
           </div>
         )}
       </div>
@@ -479,16 +592,28 @@ export function StickerConfigTab({
         {allMaterials.length === 0 ? (
           <p style={{ fontSize: 13, color: "#9CA3AF" }}>Aucune matière dans le catalogue. <a href="/admin/sticker" style={{ color: "#0A0E27" }}>Configurer →</a></p>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {allMaterials.map((mat) => (
-              <ToggleChip
-                key={mat.id}
-                active={enabledMaterialIds.includes(mat.id)}
-                label={mat.name}
-                {...(mat.isPremium ? { sublabel: "premium" } : mat.priceModifierValue !== 1 ? { sublabel: `×${mat.priceModifierValue}` } : {})}
-                onClick={() => toggle(mat.id, enabledMaterialIds, setEnabledMaterialIds)}
-              />
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+            {allMaterials.map((mat) => {
+              const active = enabledMaterialIds.includes(mat.id);
+              return (
+                <OptionCard
+                  key={mat.id} active={active}
+                  title={mat.name}
+                  subtitle={mat.isPremium ? "premium" : undefined}
+                  onToggle={() => toggle(mat.id, enabledMaterialIds, setEnabledMaterialIds)}
+                >
+                  {active && (
+                    <ModifierOverrideInput
+                      id={mat.id}
+                      globalType={mat.priceModifierType}
+                      globalValue={mat.priceModifierValue}
+                      overrides={materialModifierOverrides}
+                      setOverrides={setMaterialModifierOverrides}
+                    />
+                  )}
+                </OptionCard>
+              );
+            })}
           </div>
         )}
       </div>
@@ -499,16 +624,28 @@ export function StickerConfigTab({
         {allLaminations.length === 0 ? (
           <p style={{ fontSize: 13, color: "#9CA3AF" }}>Aucune lamination dans le catalogue. <a href="/admin/sticker" style={{ color: "#0A0E27" }}>Configurer →</a></p>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {allLaminations.map((lam) => (
-              <ToggleChip
-                key={lam.id}
-                active={enabledLaminationIds.includes(lam.id)}
-                label={lam.name}
-                {...(lam.priceModifierValue !== 1 ? { sublabel: `×${lam.priceModifierValue}` } : {})}
-                onClick={() => toggle(lam.id, enabledLaminationIds, setEnabledLaminationIds)}
-              />
-            ))}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+            {allLaminations.map((lam) => {
+              const active = enabledLaminationIds.includes(lam.id);
+              return (
+                <OptionCard
+                  key={lam.id} active={active}
+                  title={lam.name}
+                  subtitle={undefined}
+                  onToggle={() => toggle(lam.id, enabledLaminationIds, setEnabledLaminationIds)}
+                >
+                  {active && (
+                    <ModifierOverrideInput
+                      id={lam.id}
+                      globalType={lam.priceModifierType}
+                      globalValue={lam.priceModifierValue}
+                      overrides={laminationModifierOverrides}
+                      setOverrides={setLaminationModifierOverrides}
+                    />
+                  )}
+                </OptionCard>
+              );
+            })}
           </div>
         )}
       </div>
