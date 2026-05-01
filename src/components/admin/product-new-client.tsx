@@ -26,15 +26,13 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 5,
 };
 
-const FAMILY_OPTIONS = [
-  { value: "sticker", label: "Sticker personnalisé" },
-  { value: "label", label: "Étiquette" },
-  { value: "pack", label: "Pack de stickers" },
-  { value: "accessory", label: "Accessoire" },
-  { value: "other", label: "Autre" },
-] as const;
-
-export function ProductNewClient({ categories }: { categories: { id: string; name: string }[] }) {
+export function ProductNewClient({
+  categories,
+  families,
+}: {
+  categories: { id: string; name: string }[];
+  families: { slug: string; label: string }[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +40,7 @@ export function ProductNewClient({ categories }: { categories: { id: string; nam
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [tagline, setTagline] = useState("");
-  const [productFamily, setProductFamily] = useState<"sticker" | "label" | "pack" | "accessory" | "other">("sticker");
+  const [productFamily, setProductFamily] = useState(families[0]?.slug ?? "sticker");
   const [status, setStatus] = useState<"draft" | "active">("active");
   const [categoryId, setCategoryId] = useState<string>("");
 
@@ -130,8 +128,8 @@ export function ProductNewClient({ categories }: { categories: { id: string; nam
                   onChange={(e) => setProductFamily(e.target.value as typeof productFamily)}
                   style={inputStyle}
                 >
-                  {FAMILY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  {families.map((fam) => (
+                    <option key={fam.slug} value={fam.slug}>{fam.label}</option>
                   ))}
                 </select>
               </div>

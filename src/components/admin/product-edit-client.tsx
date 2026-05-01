@@ -27,14 +27,6 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 5,
 };
 
-const FAMILY_OPTIONS = [
-  { value: "sticker", label: "Sticker personnalisé" },
-  { value: "label", label: "Étiquette" },
-  { value: "pack", label: "Pack de stickers" },
-  { value: "accessory", label: "Accessoire" },
-  { value: "other", label: "Autre" },
-];
-
 const STATUS_OPTIONS = [
   { value: "active", label: "Actif" },
   { value: "draft", label: "Brouillon" },
@@ -46,10 +38,11 @@ type Tab = "general" | "configurateur" | "seo";
 interface ProductEditClientProps {
   product: Product;
   categories: { id: string; name: string }[];
+  families?: { slug: string; label: string }[];
   stickerConfigTab?: React.ReactNode;
 }
 
-export function ProductEditClient({ product, categories, stickerConfigTab }: ProductEditClientProps) {
+export function ProductEditClient({ product, categories, families = [], stickerConfigTab }: ProductEditClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as Tab) ?? "general";
@@ -217,7 +210,10 @@ export function ProductEditClient({ product, categories, stickerConfigTab }: Pro
               <div>
                 <label style={labelStyle}>Famille</label>
                 <select value={productFamily} onChange={(e) => setProductFamily(e.target.value)} style={inputStyle}>
-                  {FAMILY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  {families.length > 0
+                    ? families.map((o) => <option key={o.slug} value={o.slug}>{o.label}</option>)
+                    : <option value={product.productFamily}>{product.productFamily}</option>
+                  }
                 </select>
               </div>
               <div>

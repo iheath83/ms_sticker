@@ -10,6 +10,7 @@ import {
   getAllStickerLaminations,
   getAllStickerCutTypes,
 } from "@/lib/sticker-catalog-actions";
+import { getActiveProductFamilies } from "@/lib/product-family-actions";
 import { ProductEditClient } from "@/components/admin/product-edit-client";
 import { StickerConfigTab } from "@/components/admin/sticker-config-tab";
 
@@ -20,9 +21,10 @@ export default async function AdminProductEditPage({
 }) {
   const { id } = await params;
 
-  const [productRows, cats, stickerConfig, stickerShapes, stickerSizes, stickerMaterials, stickerLaminations, stickerCutTypes] = await Promise.all([
+  const [productRows, cats, families, stickerConfig, stickerShapes, stickerSizes, stickerMaterials, stickerLaminations, stickerCutTypes] = await Promise.all([
     db.select().from(products).where(eq(products.id, id)).limit(1),
     db.select({ id: categories.id, name: categories.name }).from(categories).orderBy(asc(categories.name)),
+    getActiveProductFamilies(),
     getProductStickerConfig(id),
     getAllStickerShapes(),
     getAllStickerSizes(),
@@ -38,6 +40,7 @@ export default async function AdminProductEditPage({
     <ProductEditClient
       product={product}
       categories={cats}
+      families={families.map((f) => ({ slug: f.slug, label: f.label }))}
       stickerConfigTab={
         <StickerConfigTab
           productId={id}

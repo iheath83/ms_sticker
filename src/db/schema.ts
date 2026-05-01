@@ -579,6 +579,25 @@ export const siteSettings = pgTable("site_settings", {
 
 export type SiteSettings = typeof siteSettings.$inferSelect;
 
+// ─── product_families ─────────────────────────────────────────────────────────
+
+export const productFamilies = pgTable(
+  "product_families",
+  {
+    id:          uuid("id").primaryKey().defaultRandom(),
+    slug:        varchar("slug", { length: 100 }).notNull().unique(),
+    label:       varchar("label", { length: 255 }).notNull(),
+    description: text("description"),
+    icon:        varchar("icon", { length: 10 }),
+    active:      boolean("active").notNull().default(true),
+    sortOrder:   integer("sort_order").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("product_families_slug_idx").on(t.slug)],
+);
+
+export type ProductFamily = typeof productFamilies.$inferSelect;
+
 // ─── Reviews ─────────────────────────────────────────────────────────────────
 
 export const reviewStatusEnum = pgEnum("review_status", ["pending", "published", "rejected", "archived"]);
