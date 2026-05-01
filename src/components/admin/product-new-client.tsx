@@ -168,7 +168,7 @@ export function ProductNewClient({
 
         <div>
           <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
-            {requiresCustomization ? "Prix de base (€ pour 50 unités 5×5cm)" : "Prix unitaire HT (€)"}
+            Prix unitaire HT (€)
           </label>
           <div style={{ position: "relative", maxWidth: 180 }}>
             <input
@@ -181,11 +181,11 @@ export function ProductNewClient({
             />
             <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#9CA3AF" }}>€</span>
           </div>
-          {!requiresCustomization && (
-            <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
-              Ce prix s&apos;affiche tel quel sur la page produit.
-            </p>
-          )}
+          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+            {requiresCustomization
+              ? "Prix de référence à 5×5 cm. Le moteur de prix applique ensuite les multiplicateurs (taille, matière, forme)."
+              : "Prix affiché tel quel sur la page produit, sans multiplicateur."}
+          </p>
         </div>
       </div>
 
