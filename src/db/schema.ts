@@ -1037,7 +1037,9 @@ export type StickerConfigSnapshot = {
   laminationName?: string;
   customerNote?: string;
   pricingSnapshot: {
+    pricingMode?: "per_cm2" | "unit_price";
     pricePerCm2Cents: number;
+    baseUnitPriceCents?: number;
     surfaceCm2: number;
     quantityDiscountPct: number;
     materialMultiplier: number;
