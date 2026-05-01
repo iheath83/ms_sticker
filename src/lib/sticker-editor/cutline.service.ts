@@ -26,8 +26,8 @@ const ALPHA_THRESHOLD = 15;
 const SIMPLIFY_TOLERANCE = 0.4;
 /** Passes de lissage (1 suffit pour adoucir les artefacts marching squares) */
 const SMOOTH_PASSES = 1;
-/** Facteur max de miter pour éviter les pointes aux angles très aigus */
-const MAX_MITER_FACTOR = 3.5;
+/** Seuil miter : si le miter dépasserait dist * ce facteur → bevel join (aplati) */
+const BEVEL_THRESHOLD = 1.5;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
 
@@ -373,10 +373,16 @@ function _applyBisectorOffset(pts: Point[], dist: number, sign: 1 | -1): Point[]
     }
 
     // Longueur miter = dist / sin(θ/2), approximée par 2*dist/bl
-    // Plafonnée pour éviter les pointes extrêmes sur les angles aigus
-    const miter = Math.min(dist * 2 / bl, dist * MAX_MITER_FACTOR);
+    const rawMiter = dist * 2 / bl;
 
-    result.push({ x: curr.x + (bx / bl) * miter, y: curr.y + (by / bl) * miter });
+    if (rawMiter > dist * BEVEL_THRESHOLD) {
+      // Bevel join : deux points aplatis au lieu d'une pointe
+      // évite les pics extrêmes sur les étoiles, coins de lettres, etc.
+      result.push({ x: curr.x + n1x * dist, y: curr.y + n1y * dist });
+      result.push({ x: curr.x + n2x * dist, y: curr.y + n2y * dist });
+    } else {
+      result.push({ x: curr.x + (bx / bl) * rawMiter, y: curr.y + (by / bl) * rawMiter });
+    }
   }
 
   return result;
