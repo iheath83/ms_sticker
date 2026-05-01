@@ -28,10 +28,8 @@ const labelStyle: React.CSSProperties = {
 
 export function ProductNewClient({
   categories,
-  families,
 }: {
   categories: { id: string; name: string }[];
-  families: { slug: string; label: string }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -40,7 +38,6 @@ export function ProductNewClient({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [tagline, setTagline] = useState("");
-  const [productFamily, setProductFamily] = useState(families[0]?.slug ?? "sticker");
   const [status, setStatus] = useState<"draft" | "active">("active");
   const [categoryId, setCategoryId] = useState<string>("");
 
@@ -54,7 +51,6 @@ export function ProductNewClient({
           name: name.trim(),
           description: description || null,
           tagline: tagline || null,
-          productFamily,
           status,
           reviewsEnabled: true,
           sortOrder: 0,
@@ -117,22 +113,10 @@ export function ProductNewClient({
             </div>
           </div>
 
-          {/* Famille & statut */}
+          {/* Statut & catégorie */}
           <div style={{ background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: T.radius, padding: "20px 24px" }}>
-            <h2 style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 800, color: T.textPrimary, textTransform: "uppercase", letterSpacing: "0.04em" }}>Type et statut</h2>
+            <h2 style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 800, color: T.textPrimary, textTransform: "uppercase", letterSpacing: "0.04em" }}>Organisation</h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>Famille de produit</label>
-                <select
-                  value={productFamily}
-                  onChange={(e) => setProductFamily(e.target.value as typeof productFamily)}
-                  style={inputStyle}
-                >
-                  {families.map((fam) => (
-                    <option key={fam.slug} value={fam.slug}>{fam.label}</option>
-                  ))}
-                </select>
-              </div>
               <div>
                 <label style={labelStyle}>Statut</label>
                 <select
@@ -145,7 +129,7 @@ export function ProductNewClient({
                 </select>
               </div>
               {categories.length > 0 && (
-                <div style={{ gridColumn: "span 2" }}>
+                <div>
                   <label style={labelStyle}>Catégorie</label>
                   <select
                     value={categoryId}

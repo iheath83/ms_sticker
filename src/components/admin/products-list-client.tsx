@@ -12,7 +12,6 @@ type ProductRow = {
   name: string;
   tagline: string | null | undefined;
   imageUrl: string | null | undefined;
-  productFamily: string;
   status: string;
   sortOrder: number;
   sku: string | null | undefined;
@@ -25,13 +24,6 @@ const STATUS_LABELS: Record<string, { label: string; bg: string; color: string }
   archived: { label: "Archivé", bg: T.dangerBg, color: T.danger },
 };
 
-const FAMILY_LABELS: Record<string, string> = {
-  sticker: "Sticker",
-  label: "Étiquette",
-  pack: "Pack",
-  accessory: "Accessoire",
-  other: "Autre",
-};
 
 export function ProductsListClient({ products }: { products: ProductRow[] }) {
   const router = useRouter();
@@ -116,7 +108,7 @@ export function ProductsListClient({ products }: { products: ProductRow[] }) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: `1.5px solid ${T.border}` }}>
-                {["Produit", "Famille", "Statut", "SKU", ""].map((h) => (
+                {["Produit", "Statut", "SKU", ""].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -170,9 +162,6 @@ export function ProductsListClient({ products }: { products: ProductRow[] }) {
                           )}
                         </div>
                       </div>
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{ fontSize: 13, color: T.textSecondary }}>{FAMILY_LABELS[product.productFamily] ?? product.productFamily}</span>
                     </td>
                     <td style={{ padding: "14px 16px" }}>
                       <span style={{ padding: "3px 10px", borderRadius: 12, fontSize: 11, fontWeight: 700, background: status.bg, color: status.color }}>

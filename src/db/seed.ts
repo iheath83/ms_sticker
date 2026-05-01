@@ -32,7 +32,6 @@ Le classique indémodable. Découpés précisément selon la forme de votre desi
 - Résistant à l'eau et aux UV
 - Colle repositionnable ou permanente au choix
 - Fond transparent ou blanc`,
-      productFamily: "sticker" as const,
       status: "active" as const,
       sortOrder: 1,
     },
@@ -50,7 +49,6 @@ Un effet wow garanti. Les stickers holographiques réfléchissent la lumière po
 - Finition ultra-brillante
 - Résistant à l'eau et aux rayures
 - Disponible en fond transparent ou argent`,
-      productFamily: "sticker" as const,
       status: "active" as const,
       sortOrder: 2,
     },
@@ -68,7 +66,6 @@ Le fameux "no-label look". Sur fond transparent, seul votre design est visible p
 - Résistant à l'eau et aux huiles
 - Encres pigmentées haute définition
 - Finition gloss ou mat`,
-      productFamily: "sticker" as const,
       status: "active" as const,
       sortOrder: 3,
     },

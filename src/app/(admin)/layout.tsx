@@ -19,10 +19,9 @@ const NAV_SECTIONS = [
   {
     label: "Catalogue",
     items: [
-      { href: "/admin/products",         label: "Produits",          icon: "🏷️" },
-      { href: "/admin/categories",       label: "Catégories",        icon: "🗂️" },
-      { href: "/admin/product-families", label: "Familles produit",  icon: "🏠" },
-      { href: "/admin/sticker",          label: "Catalogue sticker", icon: "🔖" },
+      { href: "/admin/products",   label: "Produits",          icon: "🏷️" },
+      { href: "/admin/categories", label: "Catégories",        icon: "🗂️" },
+      { href: "/admin/sticker",    label: "Catalogue sticker", icon: "🔖" },
     ],
   },
   {

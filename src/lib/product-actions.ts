@@ -16,7 +16,6 @@ const productSchema = z.object({
   imageUrl: z.string().optional().nullable(),
   images: z.array(z.string()).optional(),
   categoryId: z.string().uuid().optional().nullable(),
-  productFamily: z.string().min(1).max(100).default("sticker"),
   status: z.enum(["draft", "active", "archived"]).default("active"),
   sku: z.string().max(100).optional().nullable(),
   gtin: z.string().max(50).optional().nullable(),

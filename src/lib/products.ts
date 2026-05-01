@@ -39,7 +39,6 @@ export async function getAllProductsForAdmin() {
       name: products.name,
       tagline: products.tagline,
       imageUrl: products.imageUrl,
-      productFamily: products.productFamily,
       status: products.status,
       sortOrder: products.sortOrder,
       sku: products.sku,

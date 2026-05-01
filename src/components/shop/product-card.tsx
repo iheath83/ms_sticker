@@ -62,20 +62,6 @@ export function ProductCard({ product, index }: ProductCardProps) {
           ) : (
             <div style={{ fontSize: 64 }}>🏷️</div>
           )}
-          <div style={{ position: "absolute", top: 14, left: 14 }}>
-            <span style={{
-              background: "var(--blue)",
-              color: "#fff",
-              padding: "4px 12px",
-              borderRadius: 999,
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-            }}>
-              {product.productFamily === "sticker" ? "Sticker personnalisé" : product.productFamily}
-            </span>
-          </div>
         </div>
 
         {/* Info */}

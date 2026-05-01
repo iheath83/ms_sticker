@@ -38,11 +38,10 @@ type Tab = "general" | "configurateur" | "seo";
 interface ProductEditClientProps {
   product: Product;
   categories: { id: string; name: string }[];
-  families?: { slug: string; label: string }[];
   stickerConfigTab?: React.ReactNode;
 }
 
-export function ProductEditClient({ product, categories, families = [], stickerConfigTab }: ProductEditClientProps) {
+export function ProductEditClient({ product, categories, stickerConfigTab }: ProductEditClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get("tab") as Tab) ?? "general";
@@ -56,7 +55,6 @@ export function ProductEditClient({ product, categories, families = [], stickerC
   const [description, setDescription] = useState(product.description ?? "");
   const [tagline, setTagline] = useState(product.tagline ?? "");
   const [imageUrl, setImageUrl] = useState(product.imageUrl ?? "");
-  const [productFamily, setProductFamily] = useState(product.productFamily);
   const [status, setStatus] = useState(product.status);
   const [categoryId, setCategoryId] = useState(product.categoryId ?? "");
   const [sku, setSku] = useState(product.sku ?? "");
@@ -76,7 +74,6 @@ export function ProductEditClient({ product, categories, families = [], stickerC
           description: description || null,
           tagline: tagline || null,
           imageUrl: imageUrl || null,
-          productFamily: productFamily as "sticker" | "label" | "pack" | "accessory" | "other",
           status: status as "draft" | "active" | "archived",
           ...(categoryId ? { categoryId } : { categoryId: null }),
           sku: sku || null,
@@ -207,15 +204,6 @@ export function ProductEditClient({ product, categories, families = [], stickerC
           <div style={{ background: T.surface, border: `1.5px solid ${T.border}`, borderRadius: T.radius, padding: "20px 24px" }}>
             <h2 style={{ margin: "0 0 16px", fontSize: 13, fontWeight: 800, color: T.textPrimary, textTransform: "uppercase", letterSpacing: "0.04em" }}>Organisation</h2>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div>
-                <label style={labelStyle}>Famille</label>
-                <select value={productFamily} onChange={(e) => setProductFamily(e.target.value)} style={inputStyle}>
-                  {families.length > 0
-                    ? families.map((o) => <option key={o.slug} value={o.slug}>{o.label}</option>)
-                    : <option value={product.productFamily}>{product.productFamily}</option>
-                  }
-                </select>
-              </div>
               <div>
                 <label style={labelStyle}>Statut</label>
                 <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
