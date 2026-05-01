@@ -9,12 +9,13 @@ import {
 } from "@/lib/product-catalog-actions";
 import type { ProductOptionValue } from "@/db/schema";
 
-type Tab = "shape" | "finish" | "material";
+type Tab = "shape" | "finish" | "material" | "size";
 
 const TAB_CONFIG: Record<Tab, { label: string; addLabel: string; hint: string }> = {
   shape: { label: "Formes de découpe", addLabel: "Nouvelle forme", hint: "Ex : die-cut, kiss-cut, cercle…" },
   finish: { label: "Types de lamination", addLabel: "Nouvelle finition", hint: "Ex : brillant, mat, UV laminé…" },
   material: { label: "Matières", addLabel: "Nouvelle matière", hint: "Ex : vinyle, holographique, kraft…" },
+  size: { label: "Tailles", addLabel: "Nouvelle taille", hint: "Ex : S, M, Carte postale…" },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -56,27 +57,46 @@ function AddOptionForm({
   const [label, setLabel] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
+  const [widthMm, setWidthMm] = useState("");
+  const [heightMm, setHeightMm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+
+  const isSize = type === "size";
 
   function handleLabelChange(v: string) {
     setLabel(v);
     if (!slug || slug === slugify(label)) setSlug(slugify(v));
   }
 
+  function handleDimensionChange(w: string, h: string) {
+    setWidthMm(w);
+    setHeightMm(h);
+    const wNum = parseInt(w);
+    const hNum = parseInt(h);
+    if (wNum > 0 && hNum > 0) {
+      const dim = `${wNum}x${hNum}`;
+      if (!slug || /^\d+x\d+$/.test(slug)) setSlug(dim);
+      if (!description || /^\d+×\d+ mm$/.test(description)) setDescription(`${wNum}×${hNum} mm`);
+    }
+  }
+
   function handleSubmit() {
     setError(null);
     startTransition(async () => {
+      const finalDescription = isSize && widthMm && heightMm
+        ? `${widthMm}×${heightMm} mm`
+        : description.trim() || null;
       const res = await createOptionValue({
         type,
         slug: slug.trim(),
         label: label.trim(),
-        description: description.trim() || null,
+        description: finalDescription,
         active: true,
         sortOrder: 99,
       });
       if (res.ok) {
-        setLabel(""); setSlug(""); setDescription("");
+        setLabel(""); setSlug(""); setDescription(""); setWidthMm(""); setHeightMm("");
         setOpen(false);
         onAdded();
       } else {
@@ -111,6 +131,20 @@ function AddOptionForm({
   return (
     <div style={{ marginTop: 12, padding: "16px 20px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 10 }}>
       {error && <div style={{ background: "#FEE2E2", borderRadius: 6, padding: "8px 12px", fontSize: 12, color: "#991B1B", marginBottom: 12 }}>{error}</div>}
+
+      {isSize && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>Largeur (mm)</label>
+            <input type="number" min="1" value={widthMm} onChange={(e) => handleDimensionChange(e.target.value, heightMm)} placeholder="Ex : 50" style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>Hauteur (mm)</label>
+            <input type="number" min="1" value={heightMm} onChange={(e) => handleDimensionChange(widthMm, e.target.value)} placeholder="Ex : 50" style={inputStyle} />
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
         <div>
           <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
@@ -119,33 +153,37 @@ function AddOptionForm({
           <input
             value={label}
             onChange={(e) => handleLabelChange(e.target.value)}
-            placeholder={hint}
+            placeholder={isSize ? "Ex : S, M, Carte postale…" : hint}
             style={inputStyle}
           />
         </div>
         <div>
           <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
-            Slug (URL)
+            Slug (ID unique)
           </label>
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value.replace(/[^a-z0-9-]/g, ""))}
-            placeholder="ex: die-cut"
+            placeholder={isSize ? "ex: 50x50" : "ex: die-cut"}
             style={{ ...inputStyle, fontFamily: "monospace" }}
           />
         </div>
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
-          Description (optionnel)
-        </label>
-        <input
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Description courte…"
-          style={inputStyle}
-        />
-      </div>
+
+      {!isSize && (
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 5 }}>
+            Description (optionnel)
+          </label>
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description courte…"
+            style={inputStyle}
+          />
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 8 }}>
         <button
           type="button"
@@ -391,10 +429,12 @@ export function OptionsClient({
   shapes: initialShapes,
   finishes: initialFinishes,
   materials: initialMaterials,
+  sizes: initialSizes,
 }: {
   shapes: ProductOptionValue[];
   finishes: ProductOptionValue[];
   materials: ProductOptionValue[];
+  sizes: ProductOptionValue[];
 }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("shape");
@@ -403,6 +443,7 @@ export function OptionsClient({
     shape: initialShapes,
     finish: initialFinishes,
     material: initialMaterials,
+    size: initialSizes,
   };
 
   function refresh() {
@@ -416,7 +457,7 @@ export function OptionsClient({
           Options produit
         </h1>
         <p style={{ fontSize: 13, color: "#6B7280", margin: 0 }}>
-          Gérez les formes de découpe, types de lamination et matières disponibles pour vos déclinaisons.
+          Gérez les formes de découpe, types de lamination, matières et tailles disponibles pour vos déclinaisons.
         </p>
       </div>
 

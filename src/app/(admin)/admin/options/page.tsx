@@ -11,11 +11,12 @@ export default async function OptionsPage() {
   // Seed on first visit if table is empty
   await seedOptionValues();
 
-  const [shapes, finishes, materials] = await Promise.all([
+  const [shapes, finishes, materials, sizes] = await Promise.all([
     getOptionValues("shape"),
     getOptionValues("finish"),
     getOptionValues("material"),
+    getOptionValues("size"),
   ]);
 
-  return <OptionsClient shapes={shapes} finishes={finishes} materials={materials} />;
+  return <OptionsClient shapes={shapes} finishes={finishes} materials={materials} sizes={sizes} />;
 }

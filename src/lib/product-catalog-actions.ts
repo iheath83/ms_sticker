@@ -621,7 +621,7 @@ export async function getActiveOptionValues(type: string): Promise<ProductOption
 }
 
 const optionValueSchema = z.object({
-  type: z.enum(["shape", "finish", "material"]),
+  type: z.enum(["shape", "finish", "material", "size"]),
   slug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug : lettres minuscules, chiffres et tirets"),
   label: z.string().min(1).max(255),
   description: z.string().optional().nullable(),
