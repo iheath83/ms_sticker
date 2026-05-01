@@ -218,48 +218,73 @@ function marchingSquares(mask: Uint8Array, w: number, h: number): [Point, Point]
 
 // ─── Connexion en polygone ────────────────────────────────────────────────────
 
-const ptKey = (p: Point) => `${Math.round(p.x * 8)},${Math.round(p.y * 8)}`;
+/**
+ * Clé entière pour un point (toutes les coordonnées sont multiples de 0.5).
+ * On multiplie par 2 pour obtenir des entiers.
+ */
+const ptKey = (p: Point) => `${Math.round(p.x * 2)},${Math.round(p.y * 2)}`;
 
-function connectSegments(segments: [Point, Point][]): Point[][] {
-  const adj = new Map<string, { p: Point; to: Point[] }>();
+/**
+ * Connecte les segments de marching squares en polygones fermés.
+ *
+ * On trace par SEGMENT (index) et non par point — chaque segment ne peut
+ * être traversé qu'une seule fois. Cela évite les fragments et croisements
+ * qui surviennent quand on trace par point visité sur des formes complexes.
+ */
+function connectSegments(segs: [Point, Point][]): Point[][] {
+  if (!segs.length) return [];
 
-  for (const [a, b] of segments) {
+  // adjacency : clé-point → liste de { index de segment, point opposé }
+  type Entry = { segIdx: number; other: Point };
+  const adj = new Map<string, Entry[]>();
+
+  for (let i = 0; i < segs.length; i++) {
+    const [a, b] = segs[i]!;
     const ka = ptKey(a), kb = ptKey(b);
-    if (!adj.has(ka)) adj.set(ka, { p: a, to: [] });
-    if (!adj.has(kb)) adj.set(kb, { p: b, to: [] });
-    adj.get(ka)!.to.push(b);
-    adj.get(kb)!.to.push(a);
+    if (!adj.has(ka)) adj.set(ka, []);
+    if (!adj.has(kb)) adj.set(kb, []);
+    adj.get(ka)!.push({ segIdx: i, other: b });
+    adj.get(kb)!.push({ segIdx: i, other: a });
   }
 
-  const visited = new Set<string>();
+  const usedSegs = new Uint8Array(segs.length);
   const polygons: Point[][] = [];
 
-  for (const [startKey, { p: startPt }] of adj) {
-    if (visited.has(startKey)) continue;
-    void startPt; // used implicitly
+  for (let startIdx = 0; startIdx < segs.length; startIdx++) {
+    if (usedSegs[startIdx]) continue;
 
     const poly: Point[] = [];
-    let curKey = startKey;
-    let prevKey = "";
+    let segIdx = startIdx;
+    let curPt = segs[startIdx]![0]!;
 
-    for (let guard = 0; guard < 80_000; guard++) {
-      if (visited.has(curKey)) {
-        if (curKey === startKey && poly.length > 2) break;
+    for (let guard = 0; guard < 120_000; guard++) {
+      if (usedSegs[segIdx]) break;
+      usedSegs[segIdx] = 1;
+
+      poly.push(curPt);
+
+      // Avancer vers l'autre extrémité du segment courant
+      const [sa, sb] = segs[segIdx]!;
+      const nextPt = ptKey(sa!) === ptKey(curPt) ? sb! : sa!;
+      const nextKey = ptKey(nextPt);
+
+      // Trouver le prochain segment non utilisé depuis nextPt
+      const neighbors = adj.get(nextKey);
+      const nextEntry = neighbors?.find((e) => !usedSegs[e.segIdx]);
+
+      if (!nextEntry) {
+        poly.push(nextPt);
         break;
       }
-      visited.add(curKey);
-      const node = adj.get(curKey);
-      if (!node) break;
-      poly.push(node.p);
 
-      const next = node.to.find((n) => ptKey(n) !== prevKey);
-      if (!next) break;
-      prevKey = curKey;
-      curKey = ptKey(next);
+      segIdx = nextEntry.segIdx;
+      curPt = nextPt;
     }
 
-    if (poly.length >= 8) polygons.push(poly);
+    // Seuil minimal : au moins 6 points pour constituer un polygone valide
+    if (poly.length >= 6) polygons.push(poly);
   }
+
   return polygons;
 }
 
