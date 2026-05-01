@@ -3,6 +3,8 @@
 import { useReducer, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addToCart, prepareFileUpload, confirmFileUpload } from "@/lib/cart-actions";
+import { StickerEditor } from "@/components/sticker-editor/StickerEditor";
+import type { EditorValidationOutput } from "@/lib/sticker-editor/editor.types";
 // Note: file upload goes through /api/uploads/direct (same-origin proxy → MinIO)
 import { configuratorReducer, createInitialState } from "./configurator.reducer";
 import type {
@@ -609,6 +611,7 @@ export function ProductConfigurator({
 
   const priceDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showEditor, setShowEditor] = useState(false);
 
   // Derived values
   const selectedShape = shapes.find((s) => s.id === state.selectedShapeId);
@@ -776,6 +779,32 @@ export function ProductConfigurator({
     }
   }
 
+  // ── Éditeur visuel — callback validation ──
+  async function handleEditorValidate(output: EditorValidationOutput) {
+    setShowEditor(false);
+
+    // Convertir le data URL en File blob
+    const res = await fetch(output.previewDataUrl);
+    const blob = await res.blob();
+    const filename = `sticker-preview-${Date.now()}.png`;
+    const file = new File([blob], filename, { type: "image/png" });
+
+    // Injecter la config éditeur dans la note
+    const configNote = [
+      `[Éditeur] Type de coupe : ${output.editorConfig.cutType === "kiss_cut" ? "Demi-chair (Kiss cut)" : "Pleine chair"}`,
+      `Marge de coupe : ${output.editorConfig.cutlineOffsetMm} mm`,
+      `Fond perdu : ${output.editorConfig.bleedMm} mm`,
+      `Zone de sécurité : ${output.editorConfig.safetyMarginMm} mm`,
+      `Résolution : ${output.editorConfig.dpi} DPI`,
+      `Fichier original : ${output.editorConfig.originalFilename}`,
+    ].join(" · ");
+
+    dispatch({ type: "SET_NOTE", note: configNote });
+
+    // Uploader le preview comme fichier client
+    await handleFileSelect(file);
+  }
+
   const sizeLabel = state.sizeMode === "custom"
     ? `${widthMm}×${heightMm} mm (perso.)`
     : selectedSize?.label ?? "";
@@ -792,6 +821,17 @@ export function ProductConfigurator({
 
   return (
     <>
+      {/* Éditeur visuel — modal plein écran */}
+      {showEditor && (
+        <StickerEditor
+          productName={productName}
+          widthMm={widthMm}
+          heightMm={heightMm}
+          onValidate={handleEditorValidate}
+          onClose={() => setShowEditor(false)}
+        />
+      )}
+
       {/* Hero */}
       <ProductHero
         name={productName}
@@ -1004,6 +1044,66 @@ export function ProductConfigurator({
               onFileSelect={handleFileSelect}
               onRemove={() => dispatch({ type: "SET_UPLOADED_FILE", file: null })}
             />
+            {/* Bouton éditeur visuel */}
+            {!state.uploadedFile && (
+              <div style={{
+                marginTop: 12, padding: "14px 18px",
+                background: "linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)",
+                border: "1.5px solid #BFDBFE",
+                borderRadius: 14,
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 12, flexWrap: "wrap",
+              }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#1D4ED8" }}>
+                    ✏️ Créer avec l&apos;éditeur visuel
+                  </div>
+                  <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+                    Importez votre visuel, ajustez la ligne de coupe et visualisez le résultat
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditor(true)}
+                  style={{
+                    padding: "10px 18px", borderRadius: 10,
+                    background: "#1D4ED8", color: "#fff",
+                    border: "none", fontWeight: 700, fontSize: 13,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                    flexShrink: 0,
+                  }}
+                >
+                  Ouvrir l&apos;éditeur →
+                </button>
+              </div>
+            )}
+            {state.uploadedFile && state.customerNote?.includes("[Éditeur]") && (
+              <div style={{
+                marginTop: 10, padding: "10px 14px",
+                background: "#F0FDF4", border: "1px solid #BBF7D0",
+                borderRadius: 10, display: "flex", alignItems: "center",
+                justifyContent: "space-between", gap: 8,
+              }}>
+                <span style={{ fontSize: 12, color: "#15803D", fontWeight: 600 }}>
+                  ✓ Fichier créé avec l&apos;éditeur
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    dispatch({ type: "SET_UPLOADED_FILE", file: null });
+                    dispatch({ type: "SET_NOTE", note: "" });
+                    setShowEditor(true);
+                  }}
+                  style={{
+                    fontSize: 11, color: "#15803D", background: "none",
+                    border: "1px solid #BBF7D0", borderRadius: 6,
+                    padding: "3px 10px", cursor: "pointer",
+                  }}
+                >
+                  Modifier
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Instructions */}
