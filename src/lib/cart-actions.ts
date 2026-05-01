@@ -130,6 +130,8 @@ export async function addToCart(input: {
   const lineTotalCents = data.unitPriceCents * data.quantity +
     (data.stickerConfig?.pricingSnapshot?.setupFeeCents ?? 0);
 
+  const cfg: StickerConfigSnapshot | undefined = data.stickerConfig;
+
   const [insertedItem] = await db.insert(orderItems).values({
     orderId,
     productId: data.productId ?? null,
@@ -138,7 +140,11 @@ export async function addToCart(input: {
     unitPriceCents: data.unitPriceCents,
     lineTotalCents,
     customizationNote: data.customizationNote,
-    stickerConfig: data.stickerConfig,
+    stickerConfig: cfg,
+    widthMm: cfg?.widthMm ?? null,
+    heightMm: cfg?.heightMm ?? null,
+    shape: cfg?.shapeCode ?? null,
+    finish: cfg?.laminationName ?? null,
   }).returning({ id: orderItems.id });
 
   if (!insertedItem) return { ok: false, error: "Erreur lors de l'ajout au panier" };
