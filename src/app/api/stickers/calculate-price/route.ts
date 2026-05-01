@@ -52,9 +52,11 @@ export async function POST(req: NextRequest) {
       pricePerCm2Cents: config.pricePerCm2Cents,
       baseUnitPriceCents: config.baseUnitPriceCents ?? 0,
       // Priorité : override produit > prix global taille > pricingMode
-      sizePriceCents: input.sizeId && config.sizePriceOverrides?.[input.sizeId] != null
-        ? (config.sizePriceOverrides as Record<string, number>)[input.sizeId]
-        : size?.priceCents ?? null,
+      sizePriceCents: (
+        input.sizeId && (config.sizePriceOverrides as Record<string, number> | undefined)?.[input.sizeId] != null
+          ? (config.sizePriceOverrides as Record<string, number>)[input.sizeId]
+          : size?.priceCents ?? null
+      ) ?? null,
       quantityTiers:    config.quantityTiers,
       setupFeeCents:    config.setupFeeCents,
       minOrderCents:    config.minOrderCents,
