@@ -1,39 +1,32 @@
 /**
  * Génération de ligne de coupe kiss cut.
  *
- * Stratégie : blur + threshold sur le canal alpha.
+ * Stratégie : fermeture morphologique sur le canal alpha.
  *
- * 1. Image dessinée à résolution moyenne (160 px)
- * 2. Le canvas est ensuite reflouté avec un filtre Gaussian (CSS `blur()`)
- *    → fusionne automatiquement tous les éléments proches (logo + texte)
- *      en un seul blob lisse, et adoucit naturellement les contours
- * 3. Seuillage sur l'alpha flouté → masque binaire d'un blob unique
- * 4. Marching squares → un seul contour lisse qui englobe toute la forme
- * 5. Simplification + scaling + offset polygonal + lissage final
+ * Pipeline :
+ *  1. Dessin de l'image sur canvas 200×200
+ *  2. Masque binaire alpha (seuil 15)
+ *  3. DILATE de R pixels (séparable, rapide) → étale chaque pixel opaque
+ *     d'un rayon R dans toutes les directions → bridge les gaps ≤ 2R
+ *  4. ERODE de R pixels → restaure la taille originale (fermeture)
+ *  5. Le masque résultant est UN seul blob qui englobe toute la silhouette
+ *  6. Marching squares → un seul polygone de contour
+ *  7. Simplification + scaling vers display + offset polygonal + lissage
  *
- * C'est l'approche standard utilisée par les outils pro (Illustrator
- * "Object > Path > Outline" sur une vectorisation gauche, etc.).
+ *  Résultat : contour kiss cut global, fiable, qui inclut TOUS les éléments
+ *  proches (logo + texte) sans contour lettre par lettre.
  */
 
 interface Point { x: number; y: number; }
 
 // ─── Paramètres ───────────────────────────────────────────────────────────────
 
-/** Résolution d'analyse (px). 160 = bon compromis perf/qualité. */
-const GRID_SIZE       = 160;
-/** Rayon de flou Gaussian (px) appliqué à l'image avant seuillage.
- *  Plus c'est grand, plus les éléments proches fusionnent.
- *  20 px sur 160 = 12.5 % du grid → fusionne logo + texte avec un gap < 25 px. */
-const BLUR_RADIUS     = 20;
-/** Seuil sur l'alpha flouté (0–255). Plus c'est bas, plus le blob est large. */
-const BLUR_THRESHOLD  = 50;
-/** Seuillage de présence d'opacité dans l'image originale. */
+const GRID_SIZE       = 200;
 const ALPHA_THRESHOLD = 15;
-/** Tolérance Douglas-Peucker en grille (px). */
-const SIMPLIFY_TOL    = 0.6;
-/** Passes de lissage finales sur le contour. */
+/** Rayon de fermeture (px grille). 18 / 200 = 9 % → bridge gaps jusqu'à 18 % de la largeur. */
+const CLOSE_RADIUS    = 18;
+const SIMPLIFY_TOL    = 0.8;
 const SMOOTH_PASSES   = 2;
-/** Bevel join si miter > BEVEL × dist (évite les pointes sur angles aigus). */
 const BEVEL_THRESHOLD = 1.4;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
@@ -51,24 +44,26 @@ export async function generateAlphaCutline(
   offsetPx: number,
 ): Promise<CutlineOutcome> {
 
-  // 1. Charger l'image
+  // 1. Charger
   let img: HTMLImageElement;
   try { img = await loadImageElement(imageUrl); }
   catch { return { ok: false, error: "load_failed", message: "Impossible de charger l'image." }; }
 
-  // 2. Premier canvas : image originale
+  // 2. Canvas + draw
   const canvas = document.createElement("canvas");
   canvas.width = GRID_SIZE; canvas.height = GRID_SIZE;
   const ctx = canvas.getContext("2d");
   if (!ctx) return { ok: false, error: "no_contour", message: "Canvas non disponible." };
   ctx.drawImage(img, 0, 0, GRID_SIZE, GRID_SIZE);
 
-  // 3. Vérifier qu'il y a de la transparence
-  const { data: rawData } = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
+  // 3. Masque binaire
+  const { data } = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
+  const mask = new Uint8Array(GRID_SIZE * GRID_SIZE) as Uint8Array<ArrayBuffer>;
   let opaque = 0;
   for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-    if ((rawData[i * 4 + 3] ?? 0) > ALPHA_THRESHOLD) opaque++;
+    if ((data[i * 4 + 3] ?? 0) > ALPHA_THRESHOLD) { mask[i] = 1; opaque++; }
   }
+
   if (opaque / (GRID_SIZE * GRID_SIZE) > 0.96) {
     return { ok: false, error: "no_transparency",
       message: "Votre image n'a pas de fond transparent. Utilisez un PNG avec canal alpha pour la découpe à la forme." };
@@ -77,50 +72,39 @@ export async function generateAlphaCutline(
     return { ok: false, error: "no_contour", message: "Image trop peu opaque." };
   }
 
-  // 4. Second canvas : copie avec filtre blur appliqué au draw
-  const blurCanvas = document.createElement("canvas");
-  blurCanvas.width = GRID_SIZE; blurCanvas.height = GRID_SIZE;
-  const blurCtx = blurCanvas.getContext("2d");
-  if (!blurCtx) return { ok: false, error: "no_contour", message: "Canvas blur non disponible." };
-  blurCtx.filter = `blur(${BLUR_RADIUS}px)`;
-  blurCtx.drawImage(canvas, 0, 0);
-  blurCtx.filter = "none";
+  // 4. Fermeture morphologique : DILATE puis ERODE
+  //    Bridge les gaps ≤ 2 × CLOSE_RADIUS (donc 36 px en grille = 18% largeur)
+  const dilated = morphSep(mask,    GRID_SIZE, GRID_SIZE, CLOSE_RADIUS, "dilate");
+  const closed  = morphSep(dilated, GRID_SIZE, GRID_SIZE, CLOSE_RADIUS, "erode");
 
-  // 5. Seuillage sur l'alpha flouté → masque binaire
-  const { data: blurData } = blurCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
-  const mask = new Uint8Array(GRID_SIZE * GRID_SIZE) as Uint8Array<ArrayBuffer>;
-  for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-    if ((blurData[i * 4 + 3] ?? 0) > BLUR_THRESHOLD) mask[i] = 1;
-  }
-
-  // 6. Marching squares
-  const segs = marchingSquares(mask, GRID_SIZE, GRID_SIZE);
+  // 5. Marching squares
+  const segs = marchingSquares(closed, GRID_SIZE, GRID_SIZE);
   if (!segs.length) return { ok: false, error: "no_contour", message: "Aucun contour détecté." };
 
   const polys = connectSegments(segs);
   if (!polys.length) return { ok: false, error: "no_contour", message: "Impossible de construire le contour." };
 
-  // 7. Plus grand polygone = contour extérieur global (avec blur, c'est UN blob)
+  // 6. Plus grand polygone
   const raw = [...polys].sort((a, b) => polyArea(b) - polyArea(a))[0] ?? [];
   if (raw.length < 3) return { ok: false, error: "no_contour", message: "Contour trop petit." };
 
-  // 8. Simplification
+  // 7. Simplification
   const simplified = douglasPeucker(raw, SIMPLIFY_TOL);
 
-  // 9. Mise à l'échelle vers l'affichage
+  // 8. Scaling display
   const sx = displayW / GRID_SIZE, sy = displayH / GRID_SIZE;
   const scaled = simplified.map(p => ({ x: p.x * sx, y: p.y * sy }));
 
-  // 10. Offset polygonal bevel join (en display px, après scaling)
+  // 9. Offset
   const expanded = offsetPx > 0 ? normalBevelOffset(scaled, offsetPx) : scaled;
 
-  // 11. Lissage final léger
+  // 10. Lissage final
   const smoothed = smoothPolygon(expanded, SMOOTH_PASSES);
 
   return { ok: true, result: { pathData: toSvgPath(smoothed), pointCount: smoothed.length } };
 }
 
-// ─── Chargement image ─────────────────────────────────────────────────────────
+// ─── Chargement ───────────────────────────────────────────────────────────────
 
 function loadImageElement(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -130,6 +114,45 @@ function loadImageElement(url: string): Promise<HTMLImageElement> {
     img.onerror = () => reject(new Error("load_failed"));
     img.src = url;
   });
+}
+
+// ─── Morphologie séparable ────────────────────────────────────────────────────
+
+function morphSep(
+  src: Uint8Array, w: number, h: number, r: number, op: "dilate" | "erode",
+): Uint8Array {
+  const isDilate = op === "dilate";
+
+  // Passe horizontale
+  const tmp = new Uint8Array(src.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(w - 1, x + r);
+      let val = isDilate ? 0 : 1;
+      for (let nx = x0; nx <= x1; nx++) {
+        const px = src[y * w + nx] ?? 0;
+        if (isDilate) { if (px === 1) { val = 1; break; } }
+        else          { if (px !== 1) { val = 0; break; } }
+      }
+      tmp[y * w + x] = val;
+    }
+  }
+
+  // Passe verticale
+  const out = new Uint8Array(src.length) as Uint8Array<ArrayBuffer>;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(h - 1, y + r);
+      let val = isDilate ? 0 : 1;
+      for (let ny = y0; ny <= y1; ny++) {
+        const px = tmp[ny * w + x] ?? 0;
+        if (isDilate) { if (px === 1) { val = 1; break; } }
+        else          { if (px !== 1) { val = 0; break; } }
+      }
+      out[y * w + x] = val;
+    }
+  }
+  return out;
 }
 
 // ─── Marching squares ─────────────────────────────────────────────────────────
@@ -160,7 +183,7 @@ function marchingSquares(mask: Uint8Array, w: number, h: number): [Point,Point][
   return segs;
 }
 
-// ─── Connexion de segments (par index) ───────────────────────────────────────
+// ─── Connexion ────────────────────────────────────────────────────────────────
 
 const ptKey = (p: Point) => `${Math.round(p.x*2)},${Math.round(p.y*2)}`;
 
@@ -195,8 +218,6 @@ function connectSegments(segs: [Point,Point][]): Point[][] {
   return res;
 }
 
-// ─── Aire ─────────────────────────────────────────────────────────────────────
-
 function polyArea(pts: Point[]): number {
   let a = 0;
   for (let i = 0; i < pts.length; i++) {
@@ -205,8 +226,6 @@ function polyArea(pts: Point[]): number {
   }
   return Math.abs(a)/2;
 }
-
-// ─── Douglas-Peucker ──────────────────────────────────────────────────────────
 
 function douglasPeucker(pts: Point[], tol: number): Point[] {
   if (pts.length <= 2) return pts;
@@ -221,8 +240,6 @@ function pdist(p:Point, a:Point, b:Point): number {
   if(!l) return Math.hypot(p.x-a.x, p.y-a.y);
   return Math.abs(dx*(a.y-p.y)-(a.x-p.x)*dy)/l;
 }
-
-// ─── Offset bevel join ────────────────────────────────────────────────────────
 
 function normalBevelOffset(pts: Point[], dist: number): Point[] {
   const r1=_off(pts,dist,1), r2=_off(pts,dist,-1);
@@ -249,8 +266,6 @@ function _off(pts: Point[], dist: number, s: 1|-1): Point[] {
   return res;
 }
 
-// ─── Lissage ──────────────────────────────────────────────────────────────────
-
 function smoothPolygon(pts: Point[], passes: number): Point[] {
   let c=pts;
   for (let p=0;p<passes;p++) {
@@ -262,8 +277,6 @@ function smoothPolygon(pts: Point[], passes: number): Point[] {
   }
   return c;
 }
-
-// ─── SVG path ─────────────────────────────────────────────────────────────────
 
 function toSvgPath(pts: Point[]): string {
   if (!pts.length) return "";
