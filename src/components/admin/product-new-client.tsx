@@ -34,18 +34,28 @@ export function ProductNewClient({
   const [requiresCustomization, setRequiresCustomization] = useState(true);
   const [material, setMaterial] = useState(materials[0]?.slug ?? "vinyl");
   const [basePrice, setBasePrice] = useState("5.99");
+
+  function handleTypeChange(direct: boolean) {
+    setRequiresCustomization(!direct);
+    // Reset default price to something sensible for each type
+    setBasePrice(direct ? "1.00" : "5.99");
+  }
   const [error, setError] = useState<string | null>(null);
 
   function handleCreate() {
     if (!name.trim()) return;
     setError(null);
     startTransition(async () => {
+      // basePriceCents always stored as unit_price × 50 × 100 (reference-qty convention)
+      // so the variant editor (which divides by 50) and the direct template (which also divides by 50)
+      // both get the correct unit price back.
+      const basePriceCents = Math.round(parseFloat(basePrice) * 50 * 100) || 29950;
       const res = await createProduct({
         name: name.trim(),
         categoryId: categoryId || null,
         requiresCustomization,
         material,
-        basePriceCents: Math.round(parseFloat(basePrice) * 100) || 599,
+        basePriceCents,
       });
       if (res.ok) {
         router.push(`/admin/products/${res.data.id}`);
@@ -98,7 +108,7 @@ export function ProductNewClient({
           <div style={{ display: "flex", gap: 12 }}>
             <button
               type="button"
-              onClick={() => setRequiresCustomization(true)}
+              onClick={() => handleTypeChange(false)}
               style={{
                 flex: 1,
                 padding: "14px 16px",
@@ -114,7 +124,7 @@ export function ProductNewClient({
             </button>
             <button
               type="button"
-              onClick={() => setRequiresCustomization(false)}
+              onClick={() => handleTypeChange(true)}
               style={{
                 flex: 1,
                 padding: "14px 16px",
@@ -157,7 +167,9 @@ export function ProductNewClient({
         </div>
 
         <div>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>Prix de base (€ pour 50 unités 5×5cm)</label>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: 6 }}>
+            {requiresCustomization ? "Prix de base (€ pour 50 unités 5×5cm)" : "Prix unitaire HT (€)"}
+          </label>
           <div style={{ position: "relative", maxWidth: 180 }}>
             <input
               type="number"
@@ -169,6 +181,11 @@ export function ProductNewClient({
             />
             <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#9CA3AF" }}>€</span>
           </div>
+          {!requiresCustomization && (
+            <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+              Ce prix s&apos;affiche tel quel sur la page produit.
+            </p>
+          )}
         </div>
       </div>
 
