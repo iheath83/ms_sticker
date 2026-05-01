@@ -1,41 +1,28 @@
 /**
- * Génération de ligne de coupe globale (kiss cut) depuis le canal alpha.
+ * Génération de ligne de coupe kiss cut via enveloppe convexe (convex hull).
  *
- * Objectif : UN SEUL contour qui fait le tour de toute la forme, pas une
- * découpe lettre par lettre. Adapté aux stickers kiss cut sur planche.
+ * Approche délibérément grossière : pour un sticker kiss cut on veut
+ * UN SEUL contour approximatif autour de l'ensemble du design.
  *
  * Pipeline :
- *  1. Canvas offscreen BASSE résolution (80×80) — intentionnel pour obtenir
- *     un contour global sans détail de lettres
+ *  1. Canvas offscreen basse résolution (60×60)
  *  2. Masque binaire alpha
- *  3. Fermeture morphologique par CONNECT_RADIUS :
- *       dilate(r) puis erode(r)
- *       → soude les parties disjointes (emblem + texte) sans modifier la taille
- *       → remplit les trous inter-éléments
- *  4. Marching squares → UN polygone extérieur
- *  5. Douglas-Peucker (tolérance haute = courbe lisse)
- *  6. Mise à l'échelle vers la taille d'affichage
- *  7. Offset polygonal bevel join en display px
- *  8. Lissage
+ *  3. Marching squares → segments de tous les contours (y compris pièces disjointes)
+ *  4. Enveloppe convexe (convex hull) de l'ensemble des points de contour
+ *     → garantit un seul polygone qui englobe tout, logo + texte
+ *  5. Mise à l'échelle display
+ *  6. Expansion par offset polygonal bevel join
+ *  7. Lissage
  */
 
 interface Point { x: number; y: number; }
 
 // ─── Paramètres ───────────────────────────────────────────────────────────────
 
-/** Résolution volontairement basse pour un contour global. */
-const GRID_SIZE       = 80;
+const GRID_SIZE       = 60;
 const ALPHA_THRESHOLD = 15;
-/**
- * Rayon de fermeture morphologique (grid px).
- * Valeur 5 → comble les vides jusqu'à 10 px grille (~12 % du GRID_SIZE).
- * En espace affichage ≈ 10 × displayW/80 → ~75 px, suffisant pour
- * souder l'emblem MS et le texte ADHÉSIF en une seule silhouette.
- */
-const CONNECT_RADIUS      = 5;
-const SIMPLIFY_TOLERANCE  = 1.5;  // haute tolérance → courbe plus lisse
-const SMOOTH_PASSES       = 3;    // plusieurs passes → arrondi kiss-cut
-const BEVEL_THRESHOLD     = 1.4;  // bevel join si miter > 1.4 × dist
+const SMOOTH_PASSES   = 3;
+const BEVEL_THRESHOLD = 1.4;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
 
@@ -80,45 +67,37 @@ export async function generateAlphaCutline(
       message: "Votre image n'a pas de fond transparent. Utilisez un PNG avec canal alpha pour la découpe à la forme.",
     };
   }
+  if (opaquePixels < 4) {
+    return { ok: false, error: "no_contour", message: "Image trop peu opaque." };
+  }
 
-  // 4. Fermeture morphologique : dilate puis erode (même rayon)
-  //    → soude les éléments proches, bouche les trous, UN seul blob
-  const dilated = morphSep(mask,    GRID_SIZE, GRID_SIZE, CONNECT_RADIUS, "dilate");
-  const closed  = morphSep(dilated, GRID_SIZE, GRID_SIZE, CONNECT_RADIUS, "erode");
-
-  // 5. Marching squares → segments
-  const segments = marchingSquares(closed, GRID_SIZE, GRID_SIZE);
+  // 4. Marching squares sur le masque brut
+  const segments = marchingSquares(mask, GRID_SIZE, GRID_SIZE);
   if (!segments.length) {
     return { ok: false, error: "no_contour", message: "Aucun contour détecté." };
   }
 
-  // 6. Connexion → polygones
-  const polygons = connectSegments(segments);
-  if (!polygons.length) {
+  // 5. Enveloppe convexe de TOUS les points de tous les segments
+  //    → garantit un seul polygone englobant toute la forme (logo + texte)
+  const allPts: Point[] = [];
+  for (const [a, b] of segments) { allPts.push(a, b); }
+
+  const hull = convexHull(allPts);
+  if (hull.length < 3) {
     return { ok: false, error: "no_contour", message: "Impossible de construire le contour." };
   }
 
-  // 7. Prendre le plus grand polygone (contour extérieur global)
-  const raw = [...polygons].sort((a, b) => polygonArea(b) - polygonArea(a))[0] ?? [];
-  if (raw.length < 4) {
-    return { ok: false, error: "no_contour", message: "Contour trop petit." };
-  }
-
-  // 8. Douglas-Peucker
-  const simplified = douglasPeucker(raw, SIMPLIFY_TOLERANCE);
-
-  // 9. Mise à l'échelle vers la taille d'affichage
+  // 6. Mise à l'échelle vers la taille d'affichage
   const sx = displayW / GRID_SIZE, sy = displayH / GRID_SIZE;
-  const scaled = simplified.map((p) => ({ x: p.x * sx, y: p.y * sy }));
+  const scaled = hull.map((p) => ({ x: p.x * sx, y: p.y * sy }));
 
-  // 10. Offset polygonal (bevel join) en display px
+  // 7. Offset polygonal bevel join (pas de spikes sur les angles)
   const expanded = offsetPx > 0 ? normalBevelOffset(scaled, offsetPx) : scaled;
 
-  // 11. Lissage
+  // 8. Lissage (3 passes → contour bien arrondi, style kiss cut)
   const smoothed = smoothPolygon(expanded, SMOOTH_PASSES);
 
-  const pathData = toSvgPath(smoothed);
-  return { ok: true, result: { pathData, pointCount: smoothed.length } };
+  return { ok: true, result: { pathData: toSvgPath(smoothed), pointCount: smoothed.length } };
 }
 
 // ─── Chargement image ─────────────────────────────────────────────────────────
@@ -133,46 +112,7 @@ function loadImageElement(url: string): Promise<HTMLImageElement> {
   });
 }
 
-// ─── Morphologie séparable (dilate / erode) ───────────────────────────────────
-
-function morphSep(
-  src: Uint8Array, w: number, h: number, r: number, op: "dilate" | "erode",
-): Uint8Array {
-  const isDilate = op === "dilate";
-
-  // Passe horizontale
-  const tmp = new Uint8Array(src.length);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const x0 = Math.max(0, x - r), x1 = Math.min(w - 1, x + r);
-      let val = isDilate ? 0 : 1;
-      for (let nx = x0; nx <= x1; nx++) {
-        const px = src[y * w + nx] ?? 0;
-        if (isDilate) { if (px === 1) { val = 1; break; } }
-        else          { if (px !== 1) { val = 0; break; } }
-      }
-      tmp[y * w + x] = val;
-    }
-  }
-
-  // Passe verticale
-  const out = new Uint8Array(src.length) as Uint8Array<ArrayBuffer>;
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const y0 = Math.max(0, y - r), y1 = Math.min(h - 1, y + r);
-      let val = isDilate ? 0 : 1;
-      for (let ny = y0; ny <= y1; ny++) {
-        const px = tmp[ny * w + x] ?? 0;
-        if (isDilate) { if (px === 1) { val = 1; break; } }
-        else          { if (px !== 1) { val = 0; break; } }
-      }
-      out[y * w + x] = val;
-    }
-  }
-  return out;
-}
-
-// ─── Marching squares ─────────────────────────────────────────────────────────
+// ─── Marching squares (segments bruts) ───────────────────────────────────────
 
 const MS_TABLE: [0 | 1 | 2 | 3, 0 | 1 | 2 | 3][][] = [
   [], [[3,2]], [[2,1]], [[3,1]],
@@ -205,80 +145,49 @@ function marchingSquares(mask: Uint8Array, w: number, h: number): [Point, Point]
   return segs;
 }
 
-// ─── Connexion par index de segment ──────────────────────────────────────────
+// ─── Enveloppe convexe (Andrew's monotone chain) ─────────────────────────────
 
-const ptKey = (p: Point) => `${Math.round(p.x * 2)},${Math.round(p.y * 2)}`;
+function convexHull(pts: Point[]): Point[] {
+  if (pts.length < 3) return pts;
 
-function connectSegments(segs: [Point, Point][]): Point[][] {
-  if (!segs.length) return [];
+  // Dédoublonner puis trier par x (puis y)
+  const unique = dedup(pts);
+  if (unique.length < 3) return unique;
+  unique.sort((a, b) => a.x !== b.x ? a.x - b.x : a.y - b.y);
 
-  type E = { segIdx: number; other: Point };
-  const adj = new Map<string, E[]>();
-  for (let i = 0; i < segs.length; i++) {
-    const [a, b] = segs[i]!;
-    const ka = ptKey(a!), kb = ptKey(b!);
-    if (!adj.has(ka)) adj.set(ka, []);
-    if (!adj.has(kb)) adj.set(kb, []);
-    adj.get(ka)!.push({ segIdx: i, other: b! });
-    adj.get(kb)!.push({ segIdx: i, other: a! });
+  const cross = (O: Point, A: Point, B: Point) =>
+    (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x);
+
+  // Chaîne inférieure
+  const lower: Point[] = [];
+  for (const p of unique) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2]!, lower[lower.length - 1]!, p) <= 0)
+      lower.pop();
+    lower.push(p);
   }
 
-  const used = new Uint8Array(segs.length);
-  const result: Point[][] = [];
-
-  for (let si = 0; si < segs.length; si++) {
-    if (used[si]) continue;
-    const poly: Point[] = [];
-    let seg = si, cur = segs[si]![0]!;
-    for (let g = 0; g < 60_000; g++) {
-      if (used[seg]) break;
-      used[seg] = 1;
-      poly.push(cur);
-      const [a, b] = segs[seg]!;
-      const nxt  = ptKey(a!) === ptKey(cur) ? b! : a!;
-      const next = adj.get(ptKey(nxt))?.find((e) => !used[e.segIdx]);
-      if (!next) { poly.push(nxt); break; }
-      seg = next.segIdx; cur = nxt;
-    }
-    if (poly.length >= 4) result.push(poly);
+  // Chaîne supérieure
+  const upper: Point[] = [];
+  for (let i = unique.length - 1; i >= 0; i--) {
+    const p = unique[i]!;
+    while (upper.length >= 2 && cross(upper[upper.length - 2]!, upper[upper.length - 1]!, p) <= 0)
+      upper.pop();
+    upper.push(p);
   }
-  return result;
+
+  // Fusionner (enlever les points en double aux extrémités)
+  upper.pop(); lower.pop();
+  return [...lower, ...upper];
 }
 
-// ─── Aire polygonale ──────────────────────────────────────────────────────────
-
-function polygonArea(pts: Point[]): number {
-  let a = 0;
-  for (let i = 0; i < pts.length; i++) {
-    const p = pts[i]!, q = pts[(i + 1) % pts.length]!;
-    a += p.x * q.y - q.x * p.y;
-  }
-  return Math.abs(a) / 2;
-}
-
-// ─── Douglas-Peucker ──────────────────────────────────────────────────────────
-
-function douglasPeucker(pts: Point[], tol: number): Point[] {
-  if (pts.length <= 2) return pts;
-  const a = pts[0]!, b = pts[pts.length - 1]!;
-  let maxD = 0, maxI = 0;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const d = perpDist(pts[i]!, a, b);
-    if (d > maxD) { maxD = d; maxI = i; }
-  }
-  if (maxD > tol) {
-    return [
-      ...douglasPeucker(pts.slice(0, maxI + 1), tol).slice(0, -1),
-      ...douglasPeucker(pts.slice(maxI), tol),
-    ];
-  }
-  return [a, b];
-}
-
-function perpDist(p: Point, a: Point, b: Point): number {
-  const dx = b.x - a.x, dy = b.y - a.y, l = Math.hypot(dx, dy);
-  if (!l) return Math.hypot(p.x - a.x, p.y - a.y);
-  return Math.abs(dx * (a.y - p.y) - (a.x - p.x) * dy) / l;
+/** Retire les points dupliqués (à 0.5 px près) */
+function dedup(pts: Point[]): Point[] {
+  const seen = new Set<string>();
+  return pts.filter((p) => {
+    const k = `${Math.round(p.x * 2)},${Math.round(p.y * 2)}`;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
 }
 
 // ─── Offset bevel join ────────────────────────────────────────────────────────
@@ -287,7 +196,7 @@ function normalBevelOffset(pts: Point[], dist: number): Point[] {
   if (!dist || pts.length < 3) return pts;
   const r1 = _off(pts, dist,  1);
   const r2 = _off(pts, dist, -1);
-  return polygonArea(r1) >= polygonArea(r2) ? r1 : r2;
+  return polyArea(r1) >= polyArea(r2) ? r1 : r2;
 }
 
 function _off(pts: Point[], dist: number, s: 1 | -1): Point[] {
@@ -310,6 +219,15 @@ function _off(pts: Point[], dist: number, s: 1 | -1): Point[] {
     }
   }
   return res;
+}
+
+function polyArea(pts: Point[]): number {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i]!, q = pts[(i + 1) % pts.length]!;
+    a += p.x * q.y - q.x * p.y;
+  }
+  return Math.abs(a) / 2;
 }
 
 // ─── Lissage ──────────────────────────────────────────────────────────────────
