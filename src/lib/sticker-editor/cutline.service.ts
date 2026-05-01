@@ -31,9 +31,9 @@ const SMOOTH_PASSES   = 5;     // lissage généreux pour aspect blob kiss cut
 
 // Anti-fjord : détecte deux points du contour proches en distance mais
 // éloignés en index (= aller-retour dans une concavité étroite) et shortcut.
-const FJORD_CHORD_THRESH = 12;   // px grille
+const FJORD_CHORD_THRESH = 18;   // px grille
 const FJORD_MIN_LOOKAHEAD = 4;
-const FJORD_MAX_LOOKAHEAD = 80;
+const FJORD_MAX_LOOKAHEAD = 120;
 const BEVEL_THRESHOLD = 1.4;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
