@@ -280,10 +280,10 @@ function computeBoundingBoxGuides(
       height: hPx + 2 * (offsetPx + bleedPx),
     },
     safety: {
-      x: xPx + safetyPx,
-      y: yPx + safetyPx,
-      width: Math.max(0, wPx - 2 * safetyPx),
-      height: Math.max(0, hPx - 2 * safetyPx),
+      x: xPx - safetyPx,
+      y: yPx - safetyPx,
+      width: wPx + 2 * safetyPx,
+      height: hPx + 2 * safetyPx,
     },
   };
 }

@@ -1,22 +1,39 @@
 /**
  * Génération de ligne de coupe kiss cut.
  *
- * Principe : grille TRÈS basse résolution (25×25).
- * À cette résolution, les micro-gaps entre éléments du logo (emblem + texte)
- * deviennent sub-pixel et les formes fusionnent naturellement en UN seul blob.
- * Le marching squares donne directement UN seul contour qui suit la silhouette
- * globale — pas besoin de morphologie ou de convex hull.
+ * Stratégie : blur + threshold sur le canal alpha.
+ *
+ * 1. Image dessinée à résolution moyenne (160 px)
+ * 2. Le canvas est ensuite reflouté avec un filtre Gaussian (CSS `blur()`)
+ *    → fusionne automatiquement tous les éléments proches (logo + texte)
+ *      en un seul blob lisse, et adoucit naturellement les contours
+ * 3. Seuillage sur l'alpha flouté → masque binaire d'un blob unique
+ * 4. Marching squares → un seul contour lisse qui englobe toute la forme
+ * 5. Simplification + scaling + offset polygonal + lissage final
+ *
+ * C'est l'approche standard utilisée par les outils pro (Illustrator
+ * "Object > Path > Outline" sur une vectorisation gauche, etc.).
  */
 
 interface Point { x: number; y: number; }
 
 // ─── Paramètres ───────────────────────────────────────────────────────────────
 
-/** Résolution très basse : les gaps sub-pixel fusionnent naturellement. */
-const GRID_SIZE       = 25;
+/** Résolution d'analyse (px). 160 = bon compromis perf/qualité. */
+const GRID_SIZE       = 160;
+/** Rayon de flou Gaussian (px) appliqué à l'image avant seuillage.
+ *  Plus c'est grand, plus les éléments proches fusionnent.
+ *  20 px sur 160 = 12.5 % du grid → fusionne logo + texte avec un gap < 25 px. */
+const BLUR_RADIUS     = 20;
+/** Seuil sur l'alpha flouté (0–255). Plus c'est bas, plus le blob est large. */
+const BLUR_THRESHOLD  = 50;
+/** Seuillage de présence d'opacité dans l'image originale. */
 const ALPHA_THRESHOLD = 15;
-const SIMPLIFY_TOL    = 0.5;
-const SMOOTH_PASSES   = 4;  // 4 passes → contour bien arrondi kiss cut
+/** Tolérance Douglas-Peucker en grille (px). */
+const SIMPLIFY_TOL    = 0.6;
+/** Passes de lissage finales sur le contour. */
+const SMOOTH_PASSES   = 2;
+/** Bevel join si miter > BEVEL × dist (évite les pointes sur angles aigus). */
 const BEVEL_THRESHOLD = 1.4;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
@@ -34,25 +51,24 @@ export async function generateAlphaCutline(
   offsetPx: number,
 ): Promise<CutlineOutcome> {
 
+  // 1. Charger l'image
   let img: HTMLImageElement;
   try { img = await loadImageElement(imageUrl); }
   catch { return { ok: false, error: "load_failed", message: "Impossible de charger l'image." }; }
 
-  // Canvas basse résolution
+  // 2. Premier canvas : image originale
   const canvas = document.createElement("canvas");
   canvas.width = GRID_SIZE; canvas.height = GRID_SIZE;
   const ctx = canvas.getContext("2d");
   if (!ctx) return { ok: false, error: "no_contour", message: "Canvas non disponible." };
   ctx.drawImage(img, 0, 0, GRID_SIZE, GRID_SIZE);
 
-  // Masque binaire
-  const { data } = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
-  const mask = new Uint8Array(GRID_SIZE * GRID_SIZE) as Uint8Array<ArrayBuffer>;
+  // 3. Vérifier qu'il y a de la transparence
+  const { data: rawData } = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
   let opaque = 0;
   for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-    if ((data[i * 4 + 3] ?? 0) > ALPHA_THRESHOLD) { mask[i] = 1; opaque++; }
+    if ((rawData[i * 4 + 3] ?? 0) > ALPHA_THRESHOLD) opaque++;
   }
-
   if (opaque / (GRID_SIZE * GRID_SIZE) > 0.96) {
     return { ok: false, error: "no_transparency",
       message: "Votre image n'a pas de fond transparent. Utilisez un PNG avec canal alpha pour la découpe à la forme." };
@@ -61,28 +77,44 @@ export async function generateAlphaCutline(
     return { ok: false, error: "no_contour", message: "Image trop peu opaque." };
   }
 
-  // Marching squares — à 25×25 les gaps intra-logo sont sub-pixel → un seul blob
+  // 4. Second canvas : copie avec filtre blur appliqué au draw
+  const blurCanvas = document.createElement("canvas");
+  blurCanvas.width = GRID_SIZE; blurCanvas.height = GRID_SIZE;
+  const blurCtx = blurCanvas.getContext("2d");
+  if (!blurCtx) return { ok: false, error: "no_contour", message: "Canvas blur non disponible." };
+  blurCtx.filter = `blur(${BLUR_RADIUS}px)`;
+  blurCtx.drawImage(canvas, 0, 0);
+  blurCtx.filter = "none";
+
+  // 5. Seuillage sur l'alpha flouté → masque binaire
+  const { data: blurData } = blurCtx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
+  const mask = new Uint8Array(GRID_SIZE * GRID_SIZE) as Uint8Array<ArrayBuffer>;
+  for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+    if ((blurData[i * 4 + 3] ?? 0) > BLUR_THRESHOLD) mask[i] = 1;
+  }
+
+  // 6. Marching squares
   const segs = marchingSquares(mask, GRID_SIZE, GRID_SIZE);
   if (!segs.length) return { ok: false, error: "no_contour", message: "Aucun contour détecté." };
 
   const polys = connectSegments(segs);
   if (!polys.length) return { ok: false, error: "no_contour", message: "Impossible de construire le contour." };
 
-  // Plus grand polygone = contour extérieur global
+  // 7. Plus grand polygone = contour extérieur global (avec blur, c'est UN blob)
   const raw = [...polys].sort((a, b) => polyArea(b) - polyArea(a))[0] ?? [];
   if (raw.length < 3) return { ok: false, error: "no_contour", message: "Contour trop petit." };
 
-  // Simplifier
+  // 8. Simplification
   const simplified = douglasPeucker(raw, SIMPLIFY_TOL);
 
-  // Mise à l'échelle display
+  // 9. Mise à l'échelle vers l'affichage
   const sx = displayW / GRID_SIZE, sy = displayH / GRID_SIZE;
   const scaled = simplified.map(p => ({ x: p.x * sx, y: p.y * sy }));
 
-  // Offset bevel join
+  // 10. Offset polygonal bevel join (en display px, après scaling)
   const expanded = offsetPx > 0 ? normalBevelOffset(scaled, offsetPx) : scaled;
 
-  // Lissage
+  // 11. Lissage final léger
   const smoothed = smoothPolygon(expanded, SMOOTH_PASSES);
 
   return { ok: true, result: { pathData: toSvgPath(smoothed), pointCount: smoothed.length } };
@@ -128,7 +160,7 @@ function marchingSquares(mask: Uint8Array, w: number, h: number): [Point,Point][
   return segs;
 }
 
-// ─── Connexion par index de segment ──────────────────────────────────────────
+// ─── Connexion de segments (par index) ───────────────────────────────────────
 
 const ptKey = (p: Point) => `${Math.round(p.x*2)},${Math.round(p.y*2)}`;
 
@@ -149,7 +181,7 @@ function connectSegments(segs: [Point,Point][]): Point[][] {
     if (used[si]) continue;
     const poly: Point[] = [];
     let seg = si, cur = segs[si]![0]!;
-    for (let g = 0; g < 20_000; g++) {
+    for (let g = 0; g < 200_000; g++) {
       if (used[seg]) break;
       used[seg] = 1; poly.push(cur);
       const [a,b] = segs[seg]!;

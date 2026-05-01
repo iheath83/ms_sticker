@@ -453,15 +453,17 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
                   onChange={(v) => dispatch({ type: "SET_BLEED", bleedMm: v })}
                 />
               </label>
-              <label style={labelStyle}>
-                Zone de sécurité
-                <SliderWithValue
-                  min={0} max={5} step={0.5}
-                  value={settings.safetyMarginMm}
-                  unit="mm"
-                  onChange={(v) => dispatch({ type: "SET_SAFETY_MARGIN", safetyMarginMm: v })}
-                />
-              </label>
+              {settings.cutline.method === "bounding_box" && (
+                <label style={labelStyle}>
+                  Zone de sécurité
+                  <SliderWithValue
+                    min={0} max={5} step={0.5}
+                    value={settings.safetyMarginMm}
+                    unit="mm"
+                    onChange={(v) => dispatch({ type: "SET_SAFETY_MARGIN", safetyMarginMm: v })}
+                  />
+                </label>
+              )}
             </SideSection>
 
             {/* ── Affichage guides ── */}
@@ -479,12 +481,14 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
                   checked={settings.showBleed}
                   onChange={() => dispatch({ type: "TOGGLE_SHOW_BLEED" })}
                 />
-                <ToggleRow
-                  label="Zone de sécurité"
-                  color="#22C55E"
-                  checked={settings.showSafety}
-                  onChange={() => dispatch({ type: "TOGGLE_SHOW_SAFETY" })}
-                />
+                {settings.cutline.method === "bounding_box" && (
+                  <ToggleRow
+                    label="Zone de sécurité"
+                    color="#22C55E"
+                    checked={settings.showSafety}
+                    onChange={() => dispatch({ type: "TOGGLE_SHOW_SAFETY" })}
+                  />
+                )}
                 <ToggleRow
                   label="Grille"
                   color="#9CA3AF"
@@ -653,7 +657,7 @@ function Legend({ settings }: { settings: import("@/lib/sticker-editor/editor.ty
   const items = [
     { label: "Ligne de coupe", color: settings.cutline.cutType === "through_cut" ? "#00B3D8" : "#E91E8C", visible: settings.showCutline },
     { label: "Fond perdu", color: "#F87171", visible: settings.showBleed },
-    { label: "Zone de sécurité", color: "#22C55E", visible: settings.showSafety },
+    { label: "Zone de sécurité", color: "#22C55E", visible: settings.showSafety && settings.cutline.method === "bounding_box" },
   ].filter((i) => i.visible);
 
   if (!items.length) return null;
