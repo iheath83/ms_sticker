@@ -117,8 +117,14 @@ export function StickerConfigTab({
   const [requireFileUpload, setRequireFileUpload] = useState(initialConfig?.requireFileUpload ?? true);
   const [maxFileSizeMb, setMaxFileSizeMb] = useState(initialConfig?.maxFileSizeMb ?? 100);
 
+  const [pricingMode, setPricingMode] = useState<"per_cm2" | "unit_price">(
+    (initialConfig?.pricingMode as "per_cm2" | "unit_price" | undefined) ?? "per_cm2"
+  );
   const [pricePerCm2, setPricePerCm2] = useState(
     initialConfig ? (initialConfig.pricePerCm2Cents / 100).toFixed(4) : "0.0150"
+  );
+  const [baseUnitPrice, setBaseUnitPrice] = useState(
+    initialConfig ? (initialConfig.baseUnitPriceCents / 100).toFixed(2) : "1.00"
   );
   const [setupFee, setSetupFee] = useState(
     initialConfig ? (initialConfig.setupFeeCents / 100).toFixed(2) : "0.00"
@@ -164,7 +170,9 @@ export function StickerConfigTab({
         defaultShapeId: null,
         defaultMaterialId: null,
         defaultLaminationId: null,
+        pricingMode,
         pricePerCm2Cents: Math.round(parseFloat(pricePerCm2) * 100),
+        baseUnitPriceCents: Math.round(parseFloat(baseUnitPrice) * 100),
         quantityTiers: tiers,
         setupFeeCents: Math.round(parseFloat(setupFee) * 100),
         minOrderCents: Math.round(parseFloat(minOrder) * 100),
@@ -180,23 +188,90 @@ export function StickerConfigTab({
       {/* Prix de base */}
       <div style={sectionStyle}>
         <SectionTitle>Moteur de prix</SectionTitle>
+
+        {/* Sélecteur de mode */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={labelStyle}>Mode de tarification</label>
+          <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+            <button
+              type="button"
+              onClick={() => setPricingMode("per_cm2")}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 8,
+                border: `2px solid ${pricingMode === "per_cm2" ? "#0A0E27" : "#E5E7EB"}`,
+                background: pricingMode === "per_cm2" ? "#0A0E27" : "#fff",
+                color: pricingMode === "per_cm2" ? "#fff" : "#374151",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              Prix au cm²
+            </button>
+            <button
+              type="button"
+              onClick={() => setPricingMode("unit_price")}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 8,
+                border: `2px solid ${pricingMode === "unit_price" ? "#0A0E27" : "#E5E7EB"}`,
+                background: pricingMode === "unit_price" ? "#0A0E27" : "#fff",
+                color: pricingMode === "unit_price" ? "#fff" : "#374151",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              Prix unitaire fixe
+            </button>
+          </div>
+          <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>
+            {pricingMode === "per_cm2"
+              ? "Le prix dépend de la surface (largeur × hauteur). Idéal pour les stickers personnalisés en toute taille."
+              : "Un prix fixe par unité, indépendant de la taille. Idéal pour des formats standardisés."}
+          </p>
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
           <div>
-            <label style={labelStyle}>Prix / cm² HT (€)</label>
-            <div style={{ position: "relative" }}>
-              <input
-                type="number"
-                step="0.0001"
-                min="0"
-                value={pricePerCm2}
-                onChange={(e) => setPricePerCm2(e.target.value)}
-                style={{ ...inputStyle, paddingRight: 32 }}
-              />
-              <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#9CA3AF" }}>€</span>
-            </div>
-            <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
-              Ex: 0.0150 € = 1.50 € pour 100 cm² (sticker 10×10 cm)
-            </p>
+            {pricingMode === "per_cm2" ? (
+              <>
+                <label style={labelStyle}>Prix / cm² HT (€)</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0"
+                    value={pricePerCm2}
+                    onChange={(e) => setPricePerCm2(e.target.value)}
+                    style={{ ...inputStyle, paddingRight: 32 }}
+                  />
+                  <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#9CA3AF" }}>€</span>
+                </div>
+                <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+                  Ex : 0.0150 € = 1,50 € pour 100 cm² (10×10 cm)
+                </p>
+              </>
+            ) : (
+              <>
+                <label style={labelStyle}>Prix unitaire HT (€)</label>
+                <div style={{ position: "relative" }}>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={baseUnitPrice}
+                    onChange={(e) => setBaseUnitPrice(e.target.value)}
+                    style={{ ...inputStyle, paddingRight: 32 }}
+                  />
+                  <span style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: "#9CA3AF" }}>€</span>
+                </div>
+                <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+                  Prix HT par unité avant remise quantité et modificateurs
+                </p>
+              </>
+            )}
           </div>
           <div>
             <label style={labelStyle}>Frais de setup HT (€)</label>

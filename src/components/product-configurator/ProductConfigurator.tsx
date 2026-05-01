@@ -743,7 +743,9 @@ export function ProductConfigurator({
           ...(lamination ? { laminationId: lamination.id, laminationName: lamination.name } : {}),
           ...(state.customerNote ? { customerNote: state.customerNote } : {}),
           pricingSnapshot: {
+            pricingMode: (config.pricingMode ?? "per_cm2") as "per_cm2" | "unit_price",
             pricePerCm2Cents: config.pricePerCm2Cents,
+            baseUnitPriceCents: config.baseUnitPriceCents ?? 0,
             surfaceCm2: state.priceResult.surfaceCm2,
             quantityDiscountPct: state.priceResult.quantityDiscountPct,
             materialMultiplier: state.priceResult.materialMultiplier,

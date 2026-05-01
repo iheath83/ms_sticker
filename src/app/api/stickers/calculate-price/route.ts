@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getStickerCatalogForProduct } from "@/lib/sticker-catalog-actions";
 import { computeStickerPrice } from "@/lib/sticker-pricing";
+import type { StickerPriceModifierType } from "@/db/schema";
+
+const NONE_MODIFIER = { type: "none" as StickerPriceModifierType, value: 1 };
 
 const schema = z.object({
-  productId:   z.string().uuid(),
-  shapeId:     z.string().uuid(),
-  widthMm:     z.number().int().min(1).max(5000),
-  heightMm:    z.number().int().min(1).max(5000),
-  quantity:    z.number().int().min(1),
-  materialId:  z.string().uuid(),
-  laminationId:z.string().uuid().optional().nullable(),
+  productId:    z.string().uuid(),
+  shapeId:      z.string().uuid().optional().nullable(),
+  widthMm:      z.number().int().min(1).max(5000),
+  heightMm:     z.number().int().min(1).max(5000),
+  quantity:     z.number().int().min(1),
+  materialId:   z.string().uuid().optional().nullable(),
+  laminationId: z.string().uuid().optional().nullable(),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,40 +28,47 @@ export async function POST(req: NextRequest) {
 
     const { config, shapes, materials, laminations } = catalog;
 
-    const shape     = shapes.find((s) => s.id === input.shapeId);
-    const material  = materials.find((m) => m.id === input.materialId);
+    const shape     = input.shapeId     ? shapes.find((s) => s.id === input.shapeId)         : null;
+    const material  = input.materialId  ? materials.find((m) => m.id === input.materialId)   : null;
     const lamination = input.laminationId ? laminations.find((l) => l.id === input.laminationId) : null;
 
-    if (!shape)    return NextResponse.json({ error: "Forme invalide" },  { status: 400 });
-    if (!material) return NextResponse.json({ error: "Matière invalide" }, { status: 400 });
+    // Validate only if step is present in the catalog
+    if (input.shapeId && shapes.length > 0 && !shape) {
+      return NextResponse.json({ error: "Forme invalide" }, { status: 400 });
+    }
+    if (input.materialId && materials.length > 0 && !material) {
+      return NextResponse.json({ error: "Matière invalide" }, { status: 400 });
+    }
+
+    const pricingMode = (config.pricingMode ?? "per_cm2") as "per_cm2" | "unit_price";
 
     const result = computeStickerPrice({
-      widthMm:         input.widthMm,
-      heightMm:        input.heightMm,
-      quantity:        input.quantity,
-      pricePerCm2Cents:config.pricePerCm2Cents,
-      quantityTiers:   config.quantityTiers,
-      setupFeeCents:   config.setupFeeCents,
-      minOrderCents:   config.minOrderCents,
-      shapeModifier: {
-        type:  shape.priceModifierType as "none" | "fixed" | "percentage" | "multiplier",
-        value: shape.priceModifierValue,
-      },
-      materialModifier: {
-        type:  material.priceModifierType as "none" | "fixed" | "percentage" | "multiplier",
-        value: material.priceModifierValue,
-      },
+      pricingMode,
+      widthMm:          input.widthMm,
+      heightMm:         input.heightMm,
+      quantity:         input.quantity,
+      pricePerCm2Cents: config.pricePerCm2Cents,
+      baseUnitPriceCents: config.baseUnitPriceCents ?? 0,
+      quantityTiers:    config.quantityTiers,
+      setupFeeCents:    config.setupFeeCents,
+      minOrderCents:    config.minOrderCents,
+      shapeModifier: shape
+        ? { type: shape.priceModifierType as StickerPriceModifierType, value: shape.priceModifierValue }
+        : NONE_MODIFIER,
+      materialModifier: material
+        ? { type: material.priceModifierType as StickerPriceModifierType, value: material.priceModifierValue }
+        : NONE_MODIFIER,
       laminationModifier: lamination
-        ? { type: lamination.priceModifierType as "none" | "fixed" | "percentage" | "multiplier", value: lamination.priceModifierValue }
+        ? { type: lamination.priceModifierType as StickerPriceModifierType, value: lamination.priceModifierValue }
         : null,
     });
 
     return NextResponse.json({
       ok: true,
       ...result,
-      shape:     { id: shape.id,    name: shape.name,    code: shape.code },
-      material:  { id: material.id, name: material.name },
-      lamination:lamination ? { id: lamination.id, name: lamination.name } : null,
+      ...(shape     ? { shape:     { id: shape.id,     name: shape.name,     code: shape.code } } : {}),
+      ...(material  ? { material:  { id: material.id,  name: material.name  } } : {}),
+      ...(lamination ? { lamination: { id: lamination.id, name: lamination.name } } : { lamination: null }),
     });
   } catch (err) {
     if (err instanceof z.ZodError) {

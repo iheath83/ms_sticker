@@ -1,24 +1,39 @@
 /**
  * Moteur de prix pour stickers.
  *
- * Formule:
+ * Deux modes :
+ *
+ * "per_cm2"   — formule surface :
  *   surface_cm2 = (width_mm × height_mm) / 100
- *   base = surface_cm2 × pricePerCm2 × quantity
- *   after_qty_discount = base × (1 - discountPct/100)
- *   after_material = after_qty_discount × materialMultiplier
- *   after_lamination = after_material × laminationMultiplier
- *   after_shape = after_lamination × shapeMultiplier
- *   total = after_shape + setupFee
- *   if total < minOrder → total = minOrder
+ *   base_unit   = surface_cm2 × pricePerCm2
+ *
+ * "unit_price" — prix unitaire fixe :
+ *   base_unit   = baseUnitPriceCents
+ *   (la taille n'intervient pas dans le calcul de base)
+ *
+ * Dans les deux modes, la suite du calcul est identique :
+ *   after_qty_discount = base_unit × (1 - discountPct/100)
+ *   after_material     = after_qty_discount × materialMultiplier
+ *   after_lamination   = after_material    × laminationMultiplier
+ *   after_shape        = after_lamination  × shapeMultiplier
+ *   unit_price_ht      = after_shape
+ *   subtotal           = unit_price_ht × qty + setupFee
+ *   if subtotal < minOrder → subtotal = minOrder
+ *   vat                = subtotal × vatRate
+ *   total              = subtotal + vat
  */
 
 import type { StickerQuantityTier, StickerPriceModifierType } from "@/db/schema";
 
+export type PricingMode = "per_cm2" | "unit_price";
+
 export interface StickerPriceInput {
+  pricingMode?: PricingMode;
   widthMm: number;
   heightMm: number;
   quantity: number;
   pricePerCm2Cents: number;
+  baseUnitPriceCents?: number;
   quantityTiers: StickerQuantityTier[];
   setupFeeCents: number;
   minOrderCents: number;
@@ -29,6 +44,7 @@ export interface StickerPriceInput {
 }
 
 export interface StickerPriceResult {
+  pricingMode: PricingMode;
   surfaceCm2: number;
   quantityDiscountPct: number;
   materialMultiplier: number;
@@ -79,13 +95,20 @@ function getQuantityDiscount(quantity: number, tiers: StickerQuantityTier[]): nu
 
 export function computeStickerPrice(input: StickerPriceInput): StickerPriceResult {
   const {
-    widthMm, heightMm, quantity, pricePerCm2Cents, quantityTiers,
-    setupFeeCents, minOrderCents, materialModifier, laminationModifier, shapeModifier,
+    pricingMode = "per_cm2",
+    widthMm, heightMm, quantity,
+    pricePerCm2Cents, baseUnitPriceCents = 0,
+    quantityTiers, setupFeeCents, minOrderCents,
+    materialModifier, laminationModifier, shapeModifier,
     vatRate = 0.2,
   } = input;
 
   const surfaceCm2 = (widthMm * heightMm) / 100;
-  const baseUnitCents = Math.ceil(surfaceCm2 * pricePerCm2Cents);
+
+  // Base unit price depending on mode
+  const baseUnitCents = pricingMode === "unit_price"
+    ? baseUnitPriceCents
+    : Math.ceil(surfaceCm2 * pricePerCm2Cents);
 
   const quantityDiscountPct = getQuantityDiscount(quantity, quantityTiers);
   const afterQtyDiscountUnitCents = Math.ceil(baseUnitCents * (1 - quantityDiscountPct / 100));
@@ -109,6 +132,7 @@ export function computeStickerPrice(input: StickerPriceInput): StickerPriceResul
   const totalCents = subtotalCents + vatAmountCents;
 
   return {
+    pricingMode,
     surfaceCm2,
     quantityDiscountPct,
     materialMultiplier: getMultiplierValue(materialModifier.type, materialModifier.value),
