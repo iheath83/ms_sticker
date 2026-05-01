@@ -638,17 +638,21 @@ export function ProductConfigurator({
 
   // ── Price calculation ──
   const calculatePrice = useCallback(async () => {
-    if (!state.selectedShapeId || !state.selectedMaterialId || currentQty < 1) return;
+    // Only require shapeId/materialId if those steps are visible
+    if (hasShapes && !state.selectedShapeId) return;
+    if (hasMaterials && !state.selectedMaterialId) return;
+    if (currentQty < 1) return;
     dispatch({ type: "SET_PRICE", result: state.priceResult, loading: true });
     try {
       const res = await fetch("/api/stickers/calculate-price", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId, shapeId: state.selectedShapeId,
+          productId,
+          ...(state.selectedShapeId ? { shapeId: state.selectedShapeId } : {}),
           widthMm, heightMm, quantity: currentQty,
-          materialId: state.selectedMaterialId,
-          laminationId: state.selectedLaminationId,
+          ...(state.selectedMaterialId ? { materialId: state.selectedMaterialId } : {}),
+          ...(state.selectedLaminationId ? { laminationId: state.selectedLaminationId } : {}),
         }),
       });
       if (res.ok) {
@@ -724,8 +728,8 @@ export function ProductConfigurator({
 
     dispatch({ type: "SET_ADD_STATE", state: "loading" });
     try {
-      const shape = selectedShape!;
-      const material = selectedMaterial!;
+      const shape = selectedShape;
+      const material = selectedMaterial;
       const lamination = selectedLamination;
 
       const result = await addToCart({
@@ -733,9 +737,9 @@ export function ProductConfigurator({
         unitPriceCents: state.priceResult.unitPriceCents,
         ...(state.customerNote ? { customizationNote: state.customerNote } : {}),
         stickerConfig: {
-          shapeId: shape.id, shapeName: shape.name, shapeCode: shape.code,
+          ...(shape ? { shapeId: shape.id, shapeName: shape.name, shapeCode: shape.code } : {}),
           widthMm, heightMm, quantity: currentQty,
-          materialId: material.id, materialName: material.name,
+          ...(material ? { materialId: material.id, materialName: material.name } : {}),
           ...(lamination ? { laminationId: lamination.id, laminationName: lamination.name } : {}),
           ...(state.customerNote ? { customerNote: state.customerNote } : {}),
           pricingSnapshot: {
@@ -773,6 +777,16 @@ export function ProductConfigurator({
     ? `${widthMm}×${heightMm} mm (perso.)`
     : selectedSize?.label ?? "";
 
+  // Steps visible based on configured options
+  const hasShapes = shapes.length > 0;
+  const hasSizes = sizes.length > 0;
+  const hasMaterials = materials.length > 0;
+  const hasLaminations = laminations.length > 0;
+
+  // Dynamic step numbering — only count visible steps
+  let stepCounter = 0;
+  const step = () => String(++stepCounter).padStart(2, "0");
+
   return (
     <>
       {/* Hero */}
@@ -795,89 +809,95 @@ export function ProductConfigurator({
         {/* ── Left: steps ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* Step 01 — Forme */}
-          <StepCard
-            number="01"
-            title="Forme"
-            {...(selectedShape?.name ? { summary: selectedShape.name } : {})}
-            {...(selectedShape?.requiresCutPath
-              ? { warning: "Cette forme nécessite un fichier vectoriel avec tracé de découpe (PDF, AI, EPS ou SVG)." }
-              : {})}
-          >
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {shapes.map((shape) => (
-                <OptionCard
-                  key={shape.id}
-                  active={state.selectedShapeId === shape.id}
-                  label={shape.name}
-                  {...(shape.requiresCutPath
-                    ? { sublabel: "Tracé vectoriel requis" }
-                    : shape.description
-                    ? { sublabel: shape.description }
-                    : {})}
-                  onClick={() => dispatch({ type: "SELECT_SHAPE", id: shape.id })}
-                />
-              ))}
-            </div>
-          </StepCard>
-
-          {/* Step 02 — Taille */}
-          <StepCard number="02" title="Taille" {...(sizeLabel ? { summary: sizeLabel } : {})}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {sizes.map((size) => (
-                <OptionCard
-                  key={size.id}
-                  active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
-                  label={size.label}
-                  sublabel={`${size.widthMm} × ${size.heightMm} mm`}
-                  onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
-                />
-              ))}
-              <OptionCard
-                active={state.sizeMode === "custom"}
-                label="Personnalisée"
-                sublabel="Dimensions libres"
-                onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
-              />
-            </div>
-
-            {state.sizeMode === "custom" && (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 4, padding: "16px", background: "#F9FAFB", borderRadius: 12, border: "1.5px solid #E5E7EB" }}>
-                {[
-                  { label: "Largeur", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
-                  { label: "Hauteur", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
-                ].map(({ label, key, value, min, max }) => (
-                  <label key={key} style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 120 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{label}</span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <input
-                        type="number"
-                        value={value}
-                        min={min}
-                        max={max}
-                        onChange={(e) => dispatch({
-                          type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
-                          value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
-                        })}
-                        style={{
-                          width: 80, padding: "8px 10px", border: "1.5px solid #D1D5DB",
-                          borderRadius: 8, fontSize: 14, fontWeight: 600,
-                        }}
-                      />
-                      <span style={{ fontSize: 13, color: "#6B7280" }}>mm</span>
-                    </div>
-                  </label>
+          {/* Forme — masqué si aucune forme configurée */}
+          {hasShapes && (
+            <StepCard
+              number={step()}
+              title="Forme"
+              {...(selectedShape?.name ? { summary: selectedShape.name } : {})}
+              {...(selectedShape?.requiresCutPath
+                ? { warning: "Cette forme nécessite un fichier vectoriel avec tracé de découpe (PDF, AI, EPS ou SVG)." }
+                : {})}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {shapes.map((shape) => (
+                  <OptionCard
+                    key={shape.id}
+                    active={state.selectedShapeId === shape.id}
+                    label={shape.name}
+                    {...(shape.requiresCutPath
+                      ? { sublabel: "Tracé vectoriel requis" }
+                      : shape.description
+                      ? { sublabel: shape.description }
+                      : {})}
+                    onClick={() => dispatch({ type: "SELECT_SHAPE", id: shape.id })}
+                  />
                 ))}
-                <div style={{ width: "100%", fontSize: 12, color: "#9CA3AF" }}>
-                  Min : {config.minWidthMm} mm · Max : {config.maxWidthMm} mm ·
-                  Surface : {((widthMm * heightMm) / 100).toFixed(1)} cm²
-                </div>
               </div>
-            )}
-          </StepCard>
+            </StepCard>
+          )}
 
-          {/* Step 03 — Quantité */}
-          <StepCard number="03" title="Quantité" summary={`${currentQty} pcs`}>
+          {/* Taille — masqué si aucune taille ET taille custom désactivée */}
+          {(hasSizes || config.allowCustomWidth) && (
+            <StepCard number={step()} title="Taille" {...(sizeLabel ? { summary: sizeLabel } : {})}>
+              {hasSizes && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  {sizes.map((size) => (
+                    <OptionCard
+                      key={size.id}
+                      active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
+                      label={size.label}
+                      sublabel={`${size.widthMm} × ${size.heightMm} mm`}
+                      onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
+                    />
+                  ))}
+                  {config.allowCustomWidth && (
+                    <OptionCard
+                      active={state.sizeMode === "custom"}
+                      label="Personnalisée"
+                      sublabel="Dimensions libres"
+                      onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Si aucune taille prédéfinie ET custom autorisé → afficher direct les inputs */}
+              {(!hasSizes || state.sizeMode === "custom") && config.allowCustomWidth && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 16, padding: "16px", background: "#F9FAFB", borderRadius: 12, border: "1.5px solid #E5E7EB" }}>
+                  {[
+                    { label: "Largeur", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
+                    { label: "Hauteur", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
+                  ].map(({ label, key, value, min, max }) => (
+                    <label key={key} style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1, minWidth: 120 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{label}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input
+                          type="number"
+                          value={value}
+                          min={min}
+                          max={max}
+                          onChange={(e) => dispatch({
+                            type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
+                            value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
+                          })}
+                          style={{ width: 80, padding: "8px 10px", border: "1.5px solid #D1D5DB", borderRadius: 8, fontSize: 14, fontWeight: 600 }}
+                        />
+                        <span style={{ fontSize: 13, color: "#6B7280" }}>mm</span>
+                      </div>
+                    </label>
+                  ))}
+                  <div style={{ width: "100%", fontSize: 12, color: "#9CA3AF" }}>
+                    Min : {config.minWidthMm} mm · Max : {config.maxWidthMm} mm ·
+                    Surface : {((widthMm * heightMm) / 100).toFixed(1)} cm²
+                  </div>
+                </div>
+              )}
+            </StepCard>
+          )}
+
+          {/* Quantité — toujours visible */}
+          <StepCard number={step()} title="Quantité" summary={`${currentQty} pcs`}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
               {QUICK_QUANTITIES.map((qty) => {
                 const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
@@ -909,44 +929,42 @@ export function ProductConfigurator({
                   placeholder="ex : 75"
                   onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
                   autoFocus
-                  style={{
-                    width: 120, padding: "10px 14px", border: "1.5px solid #D1D5DB",
-                    borderRadius: 8, fontSize: 15, fontWeight: 600,
-                  }}
+                  style={{ width: 120, padding: "10px 14px", border: "1.5px solid #D1D5DB", borderRadius: 8, fontSize: 15, fontWeight: 600 }}
                 />
                 <span style={{ fontSize: 13, color: "#6B7280" }}>pcs</span>
               </div>
             )}
           </StepCard>
 
-          {/* Step 04 — Matière */}
-          <StepCard number="04" title="Matière" summary={selectedMaterial?.name}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {materials.map((mat) => (
-                <OptionCard
-                  key={mat.id}
-                  active={state.selectedMaterialId === mat.id}
-                  label={mat.name}
-                  {...(mat.description ? { sublabel: mat.description } : {})}
-                  {...(mat.isPremium ? { badge: "Premium" } : {})}
-                  onClick={() => {
-                    dispatch({ type: "SELECT_MATERIAL", id: mat.id });
-                    // Reset incompatible lamination
-                    if (state.selectedLaminationId) {
-                      const lam = laminations.find((l) => l.id === state.selectedLaminationId);
-                      if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
-                        dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
+          {/* Matière — masqué si aucune matière configurée */}
+          {hasMaterials && (
+            <StepCard number={step()} title="Matière" {...(selectedMaterial?.name ? { summary: selectedMaterial.name } : {})}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {materials.map((mat) => (
+                  <OptionCard
+                    key={mat.id}
+                    active={state.selectedMaterialId === mat.id}
+                    label={mat.name}
+                    {...(mat.description ? { sublabel: mat.description } : {})}
+                    {...(mat.isPremium ? { badge: "Premium" } : {})}
+                    onClick={() => {
+                      dispatch({ type: "SELECT_MATERIAL", id: mat.id });
+                      if (state.selectedLaminationId) {
+                        const lam = laminations.find((l) => l.id === state.selectedLaminationId);
+                        if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
+                          dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
+                        }
                       }
-                    }
-                  }}
-                />
-              ))}
-            </div>
-          </StepCard>
+                    }}
+                  />
+                ))}
+              </div>
+            </StepCard>
+          )}
 
-          {/* Step 05 — Finition */}
-          {laminations.length > 0 && (
-            <StepCard number="05" title="Finition" summary={selectedLamination?.name ?? "Sans lamination"}>
+          {/* Finition — masqué si aucune lamination configurée */}
+          {hasLaminations && (
+            <StepCard number={step()} title="Finition" summary={selectedLamination?.name ?? "Sans lamination"}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                 {laminations.map((lam) => {
                   const isCompatible = compatibleLaminations.includes(lam);
@@ -972,7 +990,7 @@ export function ProductConfigurator({
             </StepCard>
           )}
 
-          {/* Step 06 — Fichier */}
+          {/* Fichier */}
           <div data-step="upload">
             <FileUploadStep
               uploadState={state.uploadState}
@@ -985,8 +1003,8 @@ export function ProductConfigurator({
             />
           </div>
 
-          {/* Step 07 — Instructions */}
-          <StepCard number="07" title="Instructions" summary={state.customerNote ? "Renseignées" : "Optionnel"}>
+          {/* Instructions */}
+          <StepCard number={step()} title="Instructions" summary={state.customerNote ? "Renseignées" : "Optionnel"}>
             <textarea
               value={state.customerNote}
               onChange={(e) => dispatch({ type: "SET_NOTE", note: e.target.value })}
@@ -995,8 +1013,7 @@ export function ProductConfigurator({
               style={{
                 width: "100%", padding: "12px 14px",
                 border: "1.5px solid #D1D5DB", borderRadius: 10,
-                fontSize: 13, resize: "vertical", boxSizing: "border-box",
-                lineHeight: 1.5,
+                fontSize: 13, resize: "vertical", boxSizing: "border-box", lineHeight: 1.5,
               }}
             />
           </StepCard>

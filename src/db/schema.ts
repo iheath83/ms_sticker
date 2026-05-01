@@ -1025,14 +1025,14 @@ export const stickerLaminations = pgTable(
 
 export type StickerQuantityTier = { minQty: number; discountPct: number };
 export type StickerConfigSnapshot = {
-  shapeId: string;
-  shapeName: string;
-  shapeCode: string;
+  shapeId?: string;
+  shapeName?: string;
+  shapeCode?: string;
   widthMm: number;
   heightMm: number;
   quantity: number;
-  materialId: string;
-  materialName: string;
+  materialId?: string;
+  materialName?: string;
   laminationId?: string;
   laminationName?: string;
   customerNote?: string;
