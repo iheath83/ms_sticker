@@ -3,6 +3,7 @@
 import { useReducer, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addToCart, prepareFileUpload, confirmFileUpload } from "@/lib/cart-actions";
+// Note: file upload goes through /api/uploads/direct (same-origin proxy → MinIO)
 import { configuratorReducer, createInitialState } from "./configurator.reducer";
 import type {
   StickerShape, StickerSize, StickerMaterial, StickerLamination,
@@ -668,23 +669,40 @@ export function ProductConfigurator({
     return () => { if (priceDebounce.current) clearTimeout(priceDebounce.current); };
   }, [calculatePrice]);
 
-  // ── File upload ──
+  // ── File upload — via same-origin proxy (no CSP issue, no MinIO URL exposed) ──
   async function handleFileSelect(file: File) {
     dispatch({ type: "SET_UPLOAD_STATE", state: "uploading" });
     try {
-      const { uploadUrl, key } = await prepareFileUpload({
+      const mimeType = file.type || "application/octet-stream";
+
+      // Get order ID and storage key from server action
+      const { key, orderId } = await prepareFileUpload({
         filename: file.name,
-        mimeType: file.type || "application/octet-stream",
+        mimeType,
         sizeBytes: file.size,
       });
-      const res = await fetch(uploadUrl, {
-        method: "PUT", body: file,
-        headers: { "Content-Type": file.type || "application/octet-stream" },
+
+      // POST directly to our Next.js route (same origin → no CSP issue)
+      const res = await fetch("/api/uploads/direct", {
+        method: "POST",
+        body: file,
+        headers: {
+          "Content-Type": mimeType,
+          "x-file-name": encodeURIComponent(file.name),
+          "x-file-mime": mimeType,
+          "x-storage-key": key,
+          "content-length": String(file.size),
+        },
       });
-      if (!res.ok) throw new Error("Erreur de transfert");
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error ?? "Erreur d'upload");
+      }
+
       dispatch({
         type: "SET_UPLOADED_FILE",
-        file: { key, filename: file.name, mimeType: file.type, sizeBytes: file.size },
+        file: { key, filename: file.name, mimeType, sizeBytes: file.size },
       });
     } catch (err) {
       dispatch({

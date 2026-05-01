@@ -7,7 +7,8 @@ import { cookies, headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import type { Cart, CartItem, CartItemFile, AddToCartResult, StickerConfigSnapshot } from "@/lib/cart-types";
-import { getPresignedUploadUrl, buildStorageKey } from "@/lib/storage";
+import { buildStorageKey, uploadStream } from "@/lib/storage";
+import { Readable } from "node:stream";
 
 export type { Cart, CartItem, CartItemFile, AddToCartResult } from "@/lib/cart-types";
 
@@ -286,16 +287,27 @@ export async function prepareFileUpload(input: {
   filename: string;
   mimeType: string;
   sizeBytes: number;
-}): Promise<{ uploadUrl: string; key: string; orderId: string }> {
+}): Promise<{ key: string; orderId: string }> {
   if (input.sizeBytes > MAX_FILE_SIZE) throw new Error("Fichier trop volumineux (max 50 Mo)");
-  if (!ALLOWED_MIME_TYPES.includes(input.mimeType)) throw new Error("Type de fichier non autorisé (PNG, JPG, SVG, PDF, AI/EPS)");
+  if (!ALLOWED_MIME_TYPES.includes(input.mimeType) && input.mimeType !== "application/octet-stream")
+    throw new Error("Type de fichier non autorisé (PNG, JPG, SVG, PDF, AI/EPS)");
 
   const userId = await getCurrentUserId();
   const orderId = await getOrCreateDraftOrder(userId);
   const key = buildStorageKey(orderId, "customer_upload", input.filename);
-  const uploadUrl = await getPresignedUploadUrl(key, input.sizeBytes);
 
-  return { uploadUrl, key, orderId };
+  return { key, orderId };
+}
+
+// Server-side direct upload (used by the proxy route only — not called from client components)
+export async function uploadFileServerSide(
+  file: ReadableStream,
+  key: string,
+  mimeType: string,
+  sizeBytes: number,
+): Promise<void> {
+  const nodeStream = Readable.fromWeb(file as Parameters<typeof Readable.fromWeb>[0]);
+  await uploadStream(key, nodeStream, sizeBytes, mimeType);
 }
 
 export async function confirmFileUpload(input: {

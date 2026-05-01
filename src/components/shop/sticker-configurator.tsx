@@ -214,15 +214,22 @@ export function StickerConfigurator({
     setIsUploading(true);
     setUploadedFile(null);
     try {
-      const { uploadUrl, key } = await prepareFileUpload({
+      const mimeType = file.type || "application/octet-stream";
+      const { key } = await prepareFileUpload({
         filename: file.name,
-        mimeType: file.type || "application/octet-stream",
+        mimeType,
         sizeBytes: file.size,
       });
-      const res = await fetch(uploadUrl, {
-        method: "PUT",
+      const res = await fetch("/api/uploads/direct", {
+        method: "POST",
         body: file,
-        headers: { "Content-Type": file.type || "application/octet-stream" },
+        headers: {
+          "Content-Type": mimeType,
+          "x-file-name": encodeURIComponent(file.name),
+          "x-file-mime": mimeType,
+          "x-storage-key": key,
+          "content-length": String(file.size),
+        },
       });
       if (!res.ok) throw new Error("Erreur lors du transfert vers le serveur");
       setUploadedFile({ key, filename: file.name, mimeType: file.type, sizeBytes: file.size });

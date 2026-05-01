@@ -84,6 +84,21 @@ export async function streamObject(
   return { stream, contentType, size: stat.size ?? null };
 }
 
+// Upload a stream directly to MinIO (used by the proxy upload route)
+export async function uploadStream(
+  key: string,
+  stream: NodeJS.ReadableStream,
+  size: number | undefined,
+  mimeType: string,
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (getClient() as any).putObject(
+    getBucket(), key, stream,
+    ...(size ? [size] : []),
+    { "Content-Type": mimeType },
+  );
+}
+
 // Delete an object
 export async function deleteObject(key: string): Promise<void> {
   await getClient().removeObject(getBucket(), key);
