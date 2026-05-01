@@ -1,32 +1,32 @@
 /**
- * Génération de ligne de coupe kiss cut.
+ * Génération de ligne de coupe kiss cut (alpha channel).
  *
- * Stratégie : fermeture morphologique sur le canal alpha.
+ * Stratégie : padding + fermeture morphologique légère.
  *
- * Pipeline :
- *  1. Dessin de l'image sur canvas 200×200
- *  2. Masque binaire alpha (seuil 15)
- *  3. DILATE de R pixels (séparable, rapide) → étale chaque pixel opaque
- *     d'un rayon R dans toutes les directions → bridge les gaps ≤ 2R
- *  4. ERODE de R pixels → restaure la taille originale (fermeture)
- *  5. Le masque résultant est UN seul blob qui englobe toute la silhouette
- *  6. Marching squares → un seul polygone de contour
- *  7. Simplification + scaling vers display + offset polygonal + lissage
- *
- *  Résultat : contour kiss cut global, fiable, qui inclut TOUS les éléments
- *  proches (logo + texte) sans contour lettre par lettre.
+ *  1. Canvas avec PADDING transparent autour
+ *     → garantit que le contour extérieur est toujours UNE boucle fermée
+ *  2. Image dessinée dans la zone centrale (200×200) avec 10 px de marge
+ *  3. Masque binaire alpha
+ *  4. Fermeture morphologique R=8 (modeste : MS + ADHÉSIF se touchent
+ *     presque, juste besoin de combler les petits gaps entre lettres)
+ *  5. Marching squares → segments
+ *  6. Connexion par index de segment → polygones
+ *  7. Contour extérieur = polygone avec la plus grande BBOX
+ *     (le padding garantit que le contour extérieur englobe tous les autres)
+ *  8. Soustraction du padding, scaling display, offset, lissage
  */
 
 interface Point { x: number; y: number; }
 
 // ─── Paramètres ───────────────────────────────────────────────────────────────
 
-const GRID_SIZE       = 200;
+const INNER_SIZE      = 200;   // zone d'analyse réelle
+const PAD             = 10;    // bordure transparente garantie
+const GRID_SIZE       = INNER_SIZE + 2 * PAD;
 const ALPHA_THRESHOLD = 15;
-/** Rayon de fermeture (px grille). 18 / 200 = 9 % → bridge gaps jusqu'à 18 % de la largeur. */
-const CLOSE_RADIUS    = 18;
+const CLOSE_RADIUS    = 8;     // fermeture modeste (logo + texte presque connectés)
 const SIMPLIFY_TOL    = 0.8;
-const SMOOTH_PASSES   = 2;
+const SMOOTH_PASSES   = 3;
 const BEVEL_THRESHOLD = 1.4;
 
 // ─── API publique ─────────────────────────────────────────────────────────────
@@ -49,12 +49,13 @@ export async function generateAlphaCutline(
   try { img = await loadImageElement(imageUrl); }
   catch { return { ok: false, error: "load_failed", message: "Impossible de charger l'image." }; }
 
-  // 2. Canvas + draw
+  // 2. Canvas avec padding : image dessinée dans [PAD..PAD+INNER_SIZE]
   const canvas = document.createElement("canvas");
   canvas.width = GRID_SIZE; canvas.height = GRID_SIZE;
   const ctx = canvas.getContext("2d");
   if (!ctx) return { ok: false, error: "no_contour", message: "Canvas non disponible." };
-  ctx.drawImage(img, 0, 0, GRID_SIZE, GRID_SIZE);
+  ctx.clearRect(0, 0, GRID_SIZE, GRID_SIZE);
+  ctx.drawImage(img, PAD, PAD, INNER_SIZE, INNER_SIZE);
 
   // 3. Masque binaire
   const { data } = ctx.getImageData(0, 0, GRID_SIZE, GRID_SIZE);
@@ -64,7 +65,7 @@ export async function generateAlphaCutline(
     if ((data[i * 4 + 3] ?? 0) > ALPHA_THRESHOLD) { mask[i] = 1; opaque++; }
   }
 
-  if (opaque / (GRID_SIZE * GRID_SIZE) > 0.96) {
+  if (opaque / (INNER_SIZE * INNER_SIZE) > 0.96) {
     return { ok: false, error: "no_transparency",
       message: "Votre image n'a pas de fond transparent. Utilisez un PNG avec canal alpha pour la découpe à la forme." };
   }
@@ -72,36 +73,66 @@ export async function generateAlphaCutline(
     return { ok: false, error: "no_contour", message: "Image trop peu opaque." };
   }
 
-  // 4. Fermeture morphologique : DILATE puis ERODE
-  //    Bridge les gaps ≤ 2 × CLOSE_RADIUS (donc 36 px en grille = 18% largeur)
+  // 4. Fermeture morphologique légère (bridge les petits gaps)
   const dilated = morphSep(mask,    GRID_SIZE, GRID_SIZE, CLOSE_RADIUS, "dilate");
   const closed  = morphSep(dilated, GRID_SIZE, GRID_SIZE, CLOSE_RADIUS, "erode");
 
-  // 5. Marching squares
+  // 5. Marching squares (bordures garanties à 0 → contour fermé)
   const segs = marchingSquares(closed, GRID_SIZE, GRID_SIZE);
   if (!segs.length) return { ok: false, error: "no_contour", message: "Aucun contour détecté." };
 
+  // 6. Connexion en polygones
   const polys = connectSegments(segs);
   if (!polys.length) return { ok: false, error: "no_contour", message: "Impossible de construire le contour." };
 
-  // 6. Plus grand polygone
-  const raw = [...polys].sort((a, b) => polyArea(b) - polyArea(a))[0] ?? [];
-  if (raw.length < 3) return { ok: false, error: "no_contour", message: "Contour trop petit." };
+  // 7. Contour extérieur = polygone avec la plus grande bbox
+  const outer = pickOuterPolygon(polys);
+  if (!outer || outer.length < 3) {
+    return { ok: false, error: "no_contour", message: "Contour trop petit." };
+  }
 
-  // 7. Simplification
-  const simplified = douglasPeucker(raw, SIMPLIFY_TOL);
+  // 8. Retirer le padding (passer en repère [0..INNER_SIZE])
+  const unpadded = outer.map(p => ({ x: p.x - PAD, y: p.y - PAD }));
 
-  // 8. Scaling display
-  const sx = displayW / GRID_SIZE, sy = displayH / GRID_SIZE;
+  // 9. Simplification
+  const simplified = douglasPeucker(unpadded, SIMPLIFY_TOL);
+
+  // 10. Scaling vers l'affichage
+  const sx = displayW / INNER_SIZE, sy = displayH / INNER_SIZE;
   const scaled = simplified.map(p => ({ x: p.x * sx, y: p.y * sy }));
 
-  // 9. Offset
+  // 11. Offset polygonal
   const expanded = offsetPx > 0 ? normalBevelOffset(scaled, offsetPx) : scaled;
 
-  // 10. Lissage final
+  // 12. Lissage
   const smoothed = smoothPolygon(expanded, SMOOTH_PASSES);
 
   return { ok: true, result: { pathData: toSvgPath(smoothed), pointCount: smoothed.length } };
+}
+
+// ─── Sélection du contour extérieur ───────────────────────────────────────────
+
+/**
+ * Avec padding garanti, le contour extérieur est le polygone qui couvre
+ * la plus grande zone (bbox la plus grande). Les "trous" internes ont
+ * forcément des bbox plus petites que le contour extérieur.
+ */
+function pickOuterPolygon(polys: Point[][]): Point[] | null {
+  let best: Point[] | null = null;
+  let bestBboxArea = 0;
+  for (const p of polys) {
+    if (p.length < 3) continue;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const pt of p) {
+      if (pt.x < minX) minX = pt.x;
+      if (pt.x > maxX) maxX = pt.x;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+    }
+    const a = (maxX - minX) * (maxY - minY);
+    if (a > bestBboxArea) { bestBboxArea = a; best = p; }
+  }
+  return best;
 }
 
 // ─── Chargement ───────────────────────────────────────────────────────────────
@@ -122,8 +153,6 @@ function morphSep(
   src: Uint8Array, w: number, h: number, r: number, op: "dilate" | "erode",
 ): Uint8Array {
   const isDilate = op === "dilate";
-
-  // Passe horizontale
   const tmp = new Uint8Array(src.length);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -137,8 +166,6 @@ function morphSep(
       tmp[y * w + x] = val;
     }
   }
-
-  // Passe verticale
   const out = new Uint8Array(src.length) as Uint8Array<ArrayBuffer>;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
