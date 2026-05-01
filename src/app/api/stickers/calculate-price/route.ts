@@ -6,6 +6,22 @@ import type { StickerPriceModifierType } from "@/db/schema";
 
 const NONE_MODIFIER = { type: "none" as StickerPriceModifierType, value: 1 };
 
+/**
+ * Les overrides produit sont toujours stockés en % d'augmentation.
+ * Si un override est défini, on utilise type "percentage" avec la valeur de l'override.
+ * Sinon, on utilise le type/valeur global du catalogue.
+ */
+function resolveModifier(
+  globalType: StickerPriceModifierType,
+  globalValue: number,
+  override: number | undefined,
+): { type: StickerPriceModifierType; value: number } {
+  if (override != null) {
+    return { type: "percentage", value: override };
+  }
+  return { type: globalType, value: globalValue };
+}
+
 const schema = z.object({
   productId:    z.string().uuid(),
   shapeId:      z.string().uuid().optional().nullable(),
@@ -60,18 +76,18 @@ export async function POST(req: NextRequest) {
       quantityTiers:    config.quantityTiers,
       setupFeeCents:    config.setupFeeCents,
       minOrderCents:    config.minOrderCents,
-      shapeModifier: shape ? {
-        type: shape.priceModifierType as StickerPriceModifierType,
-        value: (config.shapeModifierOverrides as Record<string, number> | undefined)?.[shape.id] ?? shape.priceModifierValue,
-      } : NONE_MODIFIER,
-      materialModifier: material ? {
-        type: material.priceModifierType as StickerPriceModifierType,
-        value: (config.materialModifierOverrides as Record<string, number> | undefined)?.[material.id] ?? material.priceModifierValue,
-      } : NONE_MODIFIER,
-      laminationModifier: lamination ? {
-        type: lamination.priceModifierType as StickerPriceModifierType,
-        value: (config.laminationModifierOverrides as Record<string, number> | undefined)?.[lamination.id] ?? lamination.priceModifierValue,
-      } : null,
+      shapeModifier: shape ? resolveModifier(
+        shape.priceModifierType as StickerPriceModifierType, shape.priceModifierValue,
+        (config.shapeModifierOverrides as Record<string, number> | undefined)?.[shape.id],
+      ) : NONE_MODIFIER,
+      materialModifier: material ? resolveModifier(
+        material.priceModifierType as StickerPriceModifierType, material.priceModifierValue,
+        (config.materialModifierOverrides as Record<string, number> | undefined)?.[material.id],
+      ) : NONE_MODIFIER,
+      laminationModifier: lamination ? resolveModifier(
+        lamination.priceModifierType as StickerPriceModifierType, lamination.priceModifierValue,
+        (config.laminationModifierOverrides as Record<string, number> | undefined)?.[lamination.id],
+      ) : null,
     });
 
     return NextResponse.json({

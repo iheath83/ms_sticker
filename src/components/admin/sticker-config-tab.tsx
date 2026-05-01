@@ -123,27 +123,32 @@ function ModifierOverrideInput({
   overrides: Record<string, string>;
   setOverrides: (fn: (prev: Record<string, string>) => Record<string, string>) => void;
 }) {
-  const label = globalType === "multiplier" ? "Multiplicateur (×)"
-    : globalType === "percentage" ? "Pourcentage (%)"
-    : globalType === "fixed" ? "Supplément fixe (€ cts)"
-    : "Modificateur";
-  const placeholder = globalType === "multiplier" ? `${globalValue} (global)`
-    : globalType === "percentage" ? `${globalValue} (global)`
-    : `${globalValue} (global)`;
+  // Convertit un multiplicateur global en % pour le placeholder (ex: ×1.15 → 15%)
+  const globalAsPct = globalType === "multiplier"
+    ? `${Math.round((globalValue - 1) * 100)} (global ×${globalValue})`
+    : globalType === "percentage"
+      ? `${globalValue} (global)`
+      : null;
+
+  if (globalType === "fixed" || globalType === "none") return null;
+
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <label style={{ fontSize: 10, fontWeight: 700, color: "#6B7280", textTransform: "uppercase" as const, letterSpacing: "0.06em", display: "block", marginBottom: 4 }}>
-        {label} — ce produit
+        % d&apos;augmentation — ce produit
       </label>
-      <input
-        type="number" step="0.01" min="0"
-        value={overrides[id] ?? ""}
-        onChange={(e) => setOverrides((prev) => ({ ...prev, [id]: e.target.value }))}
-        placeholder={placeholder}
-        style={{ width: "100%", padding: "6px 10px", borderRadius: 6, border: "1.5px solid #D1D5DB", fontSize: 13, boxSizing: "border-box" as const }}
-      />
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <input
+          type="number" step="1" min="0"
+          value={overrides[id] ?? ""}
+          onChange={(e) => setOverrides((prev) => ({ ...prev, [id]: e.target.value }))}
+          placeholder={globalAsPct ?? "0"}
+          style={{ flex: 1, padding: "6px 10px", borderRadius: 6, border: "1.5px solid #D1D5DB", fontSize: 13, boxSizing: "border-box" as const }}
+        />
+        <span style={{ fontSize: 13, color: "#6B7280", flexShrink: 0 }}>%</span>
+      </div>
       <p style={{ fontSize: 10, color: "#9CA3AF", margin: "3px 0 0" }}>
-        Laissez vide pour utiliser la valeur du catalogue
+        Laissez vide = valeur du catalogue
       </p>
     </div>
   );

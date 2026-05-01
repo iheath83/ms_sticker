@@ -38,17 +38,23 @@ function ModifierRow({ type, value, onType, onValue }: {
 }) {
   return (
     <div style={{ display: "flex", gap: 8 }}>
-      <select value={type} onChange={(e) => onType(e.target.value as ModType)} style={{ ...iS, maxWidth: 180 }}>
+      <select value={type} onChange={(e) => onType(e.target.value as ModType)} style={{ ...iS, maxWidth: 200 }}>
         <option value="none">Aucun modificateur</option>
-        <option value="multiplier">Multiplicateur (×)</option>
-        <option value="percentage">Pourcentage (+%)</option>
-        <option value="fixed">Fixe (+ € cts)</option>
+        <option value="percentage">% d&#39;augmentation</option>
+        <option value="fixed">Supplément fixe (€ HT)</option>
+        <option value="multiplier">Multiplicateur (×) — legacy</option>
       </select>
       {type !== "none" && (
         <input type="number" step="0.01" value={value}
           onChange={(e) => onValue(parseFloat(e.target.value) || 0)}
           style={{ ...iS, maxWidth: 100 }}
-          placeholder={type === "multiplier" ? "1.15" : type === "percentage" ? "10" : "500"} />
+          placeholder={type === "percentage" ? "ex: 15" : type === "fixed" ? "ex: 200" : "ex: 1.15"} />
+      )}
+      {type === "percentage" && value > 0 && (
+        <span style={{ fontSize: 12, color: "#6B7280", alignSelf: "center" }}>+{value}%</span>
+      )}
+      {type === "fixed" && value > 0 && (
+        <span style={{ fontSize: 12, color: "#6B7280", alignSelf: "center" }}>+{(value / 100).toFixed(2)} €</span>
       )}
     </div>
   );
@@ -415,8 +421,8 @@ type GenericForm = {
 };
 
 const EMPTY_GENERIC: GenericForm = {
-  code: "", name: "", description: "", priceModifierType: "none",
-  priceModifierValue: 1, isActive: true, position: 0,
+  code: "", name: "", description: "", priceModifierType: "percentage",
+  priceModifierValue: 0, isActive: true, position: 0,
 };
 
 function GenericFormFields({ form, setForm, isEdit, extraFields }: {
@@ -559,7 +565,11 @@ function GenericCatalogTab<T extends GenericItem>({
                   {item.description && <span style={{ fontSize: 12, color: T.textSecondary }}> · {item.description}</span>}
                   {item.priceModifierType !== "none" && (
                     <span style={{ fontSize: 12, color: T.info, marginLeft: 8 }}>
-                      {item.priceModifierType === "multiplier" ? "×" : "+"}{item.priceModifierValue} ({item.priceModifierType})
+                      {item.priceModifierType === "multiplier"
+                        ? `×${item.priceModifierValue}`
+                        : item.priceModifierType === "percentage"
+                          ? `+${item.priceModifierValue}%`
+                          : `+${(item.priceModifierValue / 100).toFixed(2)} €`}
                     </span>
                   )}
                 </div>
