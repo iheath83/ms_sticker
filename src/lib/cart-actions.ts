@@ -7,6 +7,7 @@ import { cookies, headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import type { Cart, CartItem, CartItemFile, AddToCartResult, StickerConfigSnapshot } from "@/lib/cart-types";
+import { getPresignedUploadUrl, buildStorageKey } from "@/lib/storage";
 
 export type { Cart, CartItem, CartItemFile, AddToCartResult } from "@/lib/cart-types";
 
@@ -271,4 +272,47 @@ export async function removeCartItem(itemId: string): Promise<Result<Cart>> {
 
 export async function clearDraftOrder(): Promise<void> {
   await clearDraftOrderCookie();
+}
+
+// ─── File upload helpers ──────────────────────────────────────────────────────
+
+const ALLOWED_MIME_TYPES = [
+  "image/png", "image/jpeg", "image/webp", "image/gif", "image/svg+xml",
+  "application/pdf", "application/postscript", "application/illustrator",
+];
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
+export async function prepareFileUpload(input: {
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+}): Promise<{ uploadUrl: string; key: string; orderId: string }> {
+  if (input.sizeBytes > MAX_FILE_SIZE) throw new Error("Fichier trop volumineux (max 50 Mo)");
+  if (!ALLOWED_MIME_TYPES.includes(input.mimeType)) throw new Error("Type de fichier non autorisé (PNG, JPG, SVG, PDF, AI/EPS)");
+
+  const userId = await getCurrentUserId();
+  const orderId = await getOrCreateDraftOrder(userId);
+  const key = buildStorageKey(orderId, "customer_upload", input.filename);
+  const uploadUrl = await getPresignedUploadUrl(key, input.sizeBytes);
+
+  return { uploadUrl, key, orderId };
+}
+
+export async function confirmFileUpload(input: {
+  orderId: string;
+  itemId: string;
+  key: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+}): Promise<void> {
+  await db.insert(orderFiles).values({
+    orderId: input.orderId,
+    orderItemId: input.itemId,
+    type: "customer_upload",
+    storageKey: input.key,
+    originalFilename: input.filename,
+    mimeType: input.mimeType,
+    sizeBytes: input.sizeBytes,
+  });
 }

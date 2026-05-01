@@ -8,7 +8,7 @@ import type {
   StickerLamination,
   ProductStickerConfig,
 } from "@/db/schema";
-import { addToCart } from "@/lib/cart-actions";
+import { addToCart, prepareFileUpload, confirmFileUpload } from "@/lib/cart-actions";
 import { useRouter } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -147,6 +147,14 @@ export function StickerConfigurator({
   );
   const [customerNote, setCustomerNote] = useState("");
 
+  // File upload state
+  const [uploadedFile, setUploadedFile] = useState<{
+    key: string; filename: string; mimeType: string; sizeBytes: number;
+  } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [priceResult, setPriceResult] = useState<PriceResult | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
@@ -201,15 +209,45 @@ export function StickerConfigurator({
     return () => { if (priceTimeout.current) clearTimeout(priceTimeout.current); };
   }, [calculatePrice]);
 
+  async function handleFileSelect(file: File) {
+    setUploadError(null);
+    setIsUploading(true);
+    setUploadedFile(null);
+    try {
+      const { uploadUrl, key } = await prepareFileUpload({
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+        sizeBytes: file.size,
+      });
+      const res = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+      });
+      if (!res.ok) throw new Error("Erreur lors du transfert vers le serveur");
+      setUploadedFile({ key, filename: file.name, mimeType: file.type, sizeBytes: file.size });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Erreur d'upload");
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   async function handleAddToCart() {
     if (!priceResult || !selectedShapeId || !selectedMaterialId) return;
+
+    const selectedShape = shapes.find((s) => s.id === selectedShapeId);
+    if (selectedShape?.requiresCutPath && !uploadedFile) {
+      setUploadError("Un fichier vectoriel est requis pour cette forme de découpe.");
+      return;
+    }
 
     startAddTransition(async () => {
       const shape = shapes.find((s) => s.id === selectedShapeId)!;
       const material = materials.find((m) => m.id === selectedMaterialId)!;
       const lamination = selectedLaminationId ? laminations.find((l) => l.id === selectedLaminationId) : null;
 
-      await addToCart({
+      const result = await addToCart({
         productId,
         productName,
         quantity: currentQty,
@@ -239,6 +277,18 @@ export function StickerConfigurator({
           },
         },
       });
+
+      // Link uploaded file to the newly created cart item
+      if (result.ok && uploadedFile) {
+        await confirmFileUpload({
+          orderId: result.data.orderId,
+          itemId: result.data.itemId,
+          key: uploadedFile.key,
+          filename: uploadedFile.filename,
+          mimeType: uploadedFile.mimeType,
+          sizeBytes: uploadedFile.sizeBytes,
+        });
+      }
 
       setAddedToCart(true);
       setTimeout(() => setAddedToCart(false), 3000);
@@ -461,21 +511,98 @@ export function StickerConfigurator({
           </section>
         )}
 
-        {/* Note client */}
-        {config.requireFileUpload && (
-          <section style={{ background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 16, padding: "24px 28px" }}>
-            <h3 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 800, color: "#0A0E27" }}>
-              Note pour la production
-            </h3>
-            <textarea
-              value={customerNote}
-              onChange={(e) => setCustomerNote(e.target.value)}
-              placeholder="Instructions particulières, lien fichier, etc."
-              rows={3}
-              style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #D1D5DB", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }}
-            />
-          </section>
-        )}
+        {/* Step 6 — Fichier & note */}
+        {(() => {
+          const currentShape = shapes.find((s) => s.id === selectedShapeId);
+          const needsFile = config.requireFileUpload || currentShape?.requiresCutPath;
+          return (
+            <section style={{ background: "#fff", border: `1.5px solid ${needsFile && !uploadedFile ? "#FDE68A" : "#E5E7EB"}`, borderRadius: 16, padding: "24px 28px" }}>
+              <StepHeader
+                number="06"
+                title="Votre fichier"
+                current={uploadedFile ? "✓ Fichier reçu" : needsFile ? "Requis" : "Optionnel"}
+              />
+
+              {/* Drop zone */}
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files[0];
+                  if (file) handleFileSelect(file);
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: `2px dashed ${uploadedFile ? "#10B981" : uploadError ? "#EF4444" : "#D1D5DB"}`,
+                  borderRadius: 12,
+                  padding: "28px 20px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  background: uploadedFile ? "#F0FDF4" : "#F9FAFB",
+                  transition: "all 0.15s",
+                  marginBottom: 16,
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.webp,.svg,.pdf,.ai,.eps"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                />
+                {isUploading ? (
+                  <div style={{ fontSize: 14, color: "#6B7280" }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>⏳</div>
+                    Upload en cours…
+                  </div>
+                ) : uploadedFile ? (
+                  <div>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#059669" }}>{uploadedFile.filename}</div>
+                    <div style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>
+                      {(uploadedFile.sizeBytes / 1024 / 1024).toFixed(2)} Mo — Cliquer pour changer
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>📎</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0A0E27" }}>
+                      Glissez votre fichier ici ou cliquez
+                    </div>
+                    <div style={{ fontSize: 12, color: "#6B7280", marginTop: 6 }}>
+                      PNG, JPG, SVG, PDF, AI, EPS — max 50 Mo
+                    </div>
+                    {needsFile && !uploadedFile && (
+                      <div style={{ fontSize: 12, color: "#B45309", marginTop: 8, fontWeight: 600 }}>
+                        {currentShape?.requiresCutPath
+                          ? "⚠️ Tracé vectoriel requis pour cette forme"
+                          : "⚠️ Fichier requis pour la personnalisation"}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {uploadError && (
+                <p style={{ fontSize: 13, color: "#EF4444", margin: "0 0 12px", padding: "8px 12px", background: "#FEF2F2", borderRadius: 8, border: "1px solid #FECACA" }}>
+                  {uploadError}
+                </p>
+              )}
+
+              {/* Note */}
+              <textarea
+                value={customerNote}
+                onChange={(e) => setCustomerNote(e.target.value)}
+                placeholder="Instructions particulières (ex : couleur Pantone, dimensions exactes, zone de sécurité…)"
+                rows={3}
+                style={{ width: "100%", padding: "10px 14px", border: "1.5px solid #D1D5DB", borderRadius: 8, fontSize: 13, resize: "vertical", boxSizing: "border-box" }}
+              />
+            </section>
+          );
+        })()}
       </div>
 
       {/* ─── Right column: Price summary ─────────────────────────────────── */}
