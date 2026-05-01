@@ -650,6 +650,7 @@ export function ProductConfigurator({
         body: JSON.stringify({
           productId,
           ...(state.selectedShapeId ? { shapeId: state.selectedShapeId } : {}),
+          ...(state.selectedSizeId ? { sizeId: state.selectedSizeId } : {}),
           widthMm, heightMm, quantity: currentQty,
           ...(state.selectedMaterialId ? { materialId: state.selectedMaterialId } : {}),
           ...(state.selectedLaminationId ? { laminationId: state.selectedLaminationId } : {}),

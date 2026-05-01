@@ -120,6 +120,7 @@ const sizeSchema = z.object({
   isPreset: z.boolean().default(true),
   isActive: z.boolean().default(true),
   minQuantity: z.number().int().optional().nullable(),
+  priceCents: z.number().int().min(0).optional().nullable(),
   position: z.number().int().default(0),
 });
 

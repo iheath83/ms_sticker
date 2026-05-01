@@ -264,8 +264,8 @@ function ShapesTab({ items }: { items: StickerShape[] }) {
 
 // ─── Sizes Tab ───────────────────────────────────────────────────────────────
 
-type SizeForm = { label: string; widthMm: number; heightMm: number; isActive: boolean; position: number };
-const EMPTY_SIZE: SizeForm = { label: "", widthMm: 50, heightMm: 50, isActive: true, position: 0 };
+type SizeForm = { label: string; widthMm: number; heightMm: number; isActive: boolean; position: number; priceCents: string };
+const EMPTY_SIZE: SizeForm = { label: "", widthMm: 50, heightMm: 50, isActive: true, position: 0, priceCents: "" };
 
 function SizesTab({ items }: { items: StickerSize[] }) {
   const router = useRouter();
@@ -277,12 +277,25 @@ function SizesTab({ items }: { items: StickerSize[] }) {
 
   function startEdit(item: StickerSize) {
     setEditingId(item.id);
-    setEditForm({ label: item.label, widthMm: item.widthMm, heightMm: item.heightMm, isActive: item.isActive, position: item.position });
+    setEditForm({
+      label: item.label, widthMm: item.widthMm, heightMm: item.heightMm,
+      isActive: item.isActive, position: item.position,
+      priceCents: item.priceCents != null ? (item.priceCents / 100).toFixed(2) : "",
+    });
+  }
+
+  function parsePriceCents(val: string): number | null {
+    const n = parseFloat(val);
+    return val.trim() === "" || isNaN(n) ? null : Math.round(n * 100);
   }
 
   function handleAdd() {
     startTransition(async () => {
-      await createStickerSize({ ...addForm, isPreset: true, label: addForm.label || `${addForm.widthMm / 10} × ${addForm.heightMm / 10} cm` });
+      await createStickerSize({
+        ...addForm, isPreset: true,
+        label: addForm.label || `${addForm.widthMm / 10} × ${addForm.heightMm / 10} cm`,
+        priceCents: parsePriceCents(addForm.priceCents),
+      });
       router.refresh(); setAdding(false); setAddForm(EMPTY_SIZE);
     });
   }
@@ -290,14 +303,14 @@ function SizesTab({ items }: { items: StickerSize[] }) {
   function handleUpdate() {
     if (!editingId) return;
     startTransition(async () => {
-      await updateStickerSize(editingId, editForm);
+      await updateStickerSize(editingId, { ...editForm, priceCents: parsePriceCents(editForm.priceCents) });
       router.refresh(); setEditingId(null);
     });
   }
 
   function SizeFields({ form, setForm }: { form: SizeForm; setForm: (fn: (f: SizeForm) => SizeForm) => void }) {
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 12 }}>
         <div>
           <label style={lS}>Largeur (mm)</label>
           <input type="number" style={iS} value={form.widthMm} onChange={(e) => setForm((f) => ({ ...f, widthMm: parseInt(e.target.value) || 0 }))} />
@@ -310,6 +323,13 @@ function SizesTab({ items }: { items: StickerSize[] }) {
           <label style={lS}>Label</label>
           <input style={iS} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
             placeholder={`${form.widthMm / 10} × ${form.heightMm / 10} cm`} />
+        </div>
+        <div>
+          <label style={lS}>Prix fixe HT (€)</label>
+          <input type="number" step="0.01" min="0" style={iS} value={form.priceCents}
+            onChange={(e) => setForm((f) => ({ ...f, priceCents: e.target.value }))}
+            placeholder="Laisser vide = calcul auto" />
+          <p style={{ fontSize: 10, color: "#9CA3AF", margin: "3px 0 0" }}>Prioritaire sur le mode cm² / unitaire</p>
         </div>
         <div>
           <label style={lS}>Ordre</label>
@@ -357,7 +377,12 @@ function SizesTab({ items }: { items: StickerSize[] }) {
                     <span style={{ fontWeight: 700, fontSize: 14 }}>{item.label}</span>
                     <Badge active={item.isActive} />
                   </div>
-                  <span style={{ fontSize: 12, color: T.textSecondary }}>{item.widthMm} × {item.heightMm} mm · ordre {item.position}</span>
+                  <span style={{ fontSize: 12, color: T.textSecondary }}>
+                    {item.widthMm} × {item.heightMm} mm · ordre {item.position}
+                    {item.priceCents != null && (
+                      <> · <span style={{ color: "#059669", fontWeight: 600 }}>Prix fixe : {(item.priceCents / 100).toFixed(2)} €</span></>
+                    )}
+                  </span>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <Btn onClick={() => startEdit(item)} disabled={pending}>Modifier</Btn>

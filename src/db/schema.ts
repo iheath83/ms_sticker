@@ -978,6 +978,7 @@ export const stickerSizes = pgTable(
     isPreset: boolean("is_preset").notNull().default(true),
     isActive: boolean("is_active").notNull().default(true),
     minQuantity: integer("min_quantity"),
+    priceCents: integer("price_cents"),
     position: integer("position").notNull().default(0),
     ...timestamps,
   },

@@ -9,6 +9,7 @@ const NONE_MODIFIER = { type: "none" as StickerPriceModifierType, value: 1 };
 const schema = z.object({
   productId:    z.string().uuid(),
   shapeId:      z.string().uuid().optional().nullable(),
+  sizeId:       z.string().uuid().optional().nullable(),
   widthMm:      z.number().int().min(1).max(5000),
   heightMm:     z.number().int().min(1).max(5000),
   quantity:     z.number().int().min(1),
@@ -26,9 +27,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Produit non trouvé ou non configuré" }, { status: 404 });
     }
 
-    const { config, shapes, materials, laminations } = catalog;
+    const { config, shapes, sizes, materials, laminations } = catalog;
 
     const shape     = input.shapeId     ? shapes.find((s) => s.id === input.shapeId)         : null;
+    const size      = input.sizeId      ? sizes.find((s) => s.id === input.sizeId)            : null;
     const material  = input.materialId  ? materials.find((m) => m.id === input.materialId)   : null;
     const lamination = input.laminationId ? laminations.find((l) => l.id === input.laminationId) : null;
 
@@ -49,6 +51,7 @@ export async function POST(req: NextRequest) {
       quantity:         input.quantity,
       pricePerCm2Cents: config.pricePerCm2Cents,
       baseUnitPriceCents: config.baseUnitPriceCents ?? 0,
+      sizePriceCents:   size?.priceCents ?? null,
       quantityTiers:    config.quantityTiers,
       setupFeeCents:    config.setupFeeCents,
       minOrderCents:    config.minOrderCents,
