@@ -1,5 +1,13 @@
 import type { NextConfig } from "next";
 
+// Build the MinIO origin for the CSP connect-src directive
+const minioEndpoint = process.env.MINIO_ENDPOINT ?? "";
+const minioPort = process.env.MINIO_PORT ?? "9000";
+const minioSsl = process.env.MINIO_USE_SSL === "true";
+const minioOrigin = minioEndpoint
+  ? `${minioSsl ? "https" : "http"}://${minioEndpoint}:${minioPort}`
+  : "";
+
 const nextConfig: NextConfig = {
   // Required for Docker standalone builds (single self-contained output)
   output: "standalone",
@@ -25,7 +33,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
               "frame-src https://js.stripe.com https://hooks.stripe.com",
-              "connect-src 'self' https://api.stripe.com https://api.brevo.com",
+              `connect-src 'self' https://api.stripe.com https://api.brevo.com${minioOrigin ? ` ${minioOrigin}` : ""}`,
               "img-src 'self' data: blob: https:",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
