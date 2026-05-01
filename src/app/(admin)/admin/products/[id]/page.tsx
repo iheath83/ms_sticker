@@ -9,12 +9,13 @@ export default async function AdminProductEditPage({
 }) {
   const { id } = await params;
 
-  const [productData, cats, shapes, finishes, materials] = await Promise.all([
+  const [productData, cats, shapes, finishes, materials, sizes] = await Promise.all([
     getProductWithVariants(id),
     getCategories(),
     getActiveOptionValues("shape"),
     getActiveOptionValues("finish"),
     getActiveOptionValues("material"),
+    getActiveOptionValues("size"),
   ]);
 
   if (!productData) notFound();
@@ -69,6 +70,7 @@ export default async function AdminProductEditPage({
       shapes={shapes.map((s) => ({ slug: s.slug, label: s.label }))}
       finishes={finishes.map((f) => ({ slug: f.slug, label: f.label }))}
       materials={materials.map((m) => ({ slug: m.slug, label: m.label }))}
+      sizes={sizes.map((s) => ({ slug: s.slug, label: s.label, description: s.description ?? null }))}
     />
   );
 }
