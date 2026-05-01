@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getActiveProducts, getProductBySlug } from "@/lib/products";
 import { getStickerCatalogForProduct } from "@/lib/sticker-catalog-actions";
-import { StickerConfigurator } from "@/components/shop/sticker-configurator";
+import { ProductConfigurator } from "@/components/product-configurator/ProductConfigurator";
 import { ProductRatingSummary } from "@/components/reviews/ProductRatingSummary";
 import { ProductReviews } from "@/components/reviews/ProductReviews";
 import { db } from "@/db";
@@ -92,27 +92,20 @@ export default async function ProductPage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
+
       {stickerCatalog ? (
-        <>
-          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px 0" }}>
-            <h1 style={{ fontFamily: "var(--font-archivo, system-ui)", fontSize: 36, fontWeight: 900, color: "#0A0E27", margin: "0 0 8px" }}>
-              {product.name}
-            </h1>
-            {product.tagline && (
-              <p style={{ fontSize: 16, color: "#6B7280", margin: "0 0 24px" }}>{product.tagline}</p>
-            )}
-          </div>
-          <StickerConfigurator
-            productId={product.id}
-            productName={product.name}
-            {...(product.imageUrl ? { imageUrl: product.imageUrl } : {})}
-            config={stickerCatalog.config}
-            shapes={stickerCatalog.shapes}
-            sizes={stickerCatalog.sizes}
-            materials={stickerCatalog.materials}
-            laminations={stickerCatalog.laminations}
-          />
-        </>
+        <ProductConfigurator
+          productId={product.id}
+          productName={product.name}
+          slug={product.slug}
+          {...(product.imageUrl ? { imageUrl: product.imageUrl } : {})}
+          config={stickerCatalog.config}
+          shapes={stickerCatalog.shapes}
+          sizes={stickerCatalog.sizes}
+          materials={stickerCatalog.materials}
+          laminations={stickerCatalog.laminations}
+          {...(aggregate ? { aggregate } : {})}
+        />
       ) : (
         <div style={{ maxWidth: 900, margin: "80px auto", padding: "0 24px", textAlign: "center" }}>
           <h1 style={{ fontSize: 32, fontWeight: 900, color: "#0A0E27", marginBottom: 16 }}>{product.name}</h1>
@@ -125,8 +118,9 @@ export default async function ProductPage({ params }: Props) {
           <p style={{ color: "#9CA3AF", fontSize: 14 }}>Ce produit n'a pas encore de configurateur actif. Revenez bientôt.</p>
         </div>
       )}
+
       {product.reviewsEnabled && (
-        <div className="max-w-4xl mx-auto px-4 pb-16 mt-12">
+        <div id="avis" className="max-w-4xl mx-auto px-4 pb-16 mt-12">
           <ProductRatingSummary productId={product.id} />
           <ProductReviews productId={product.id} />
         </div>
