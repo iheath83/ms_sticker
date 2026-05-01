@@ -6,6 +6,15 @@ import type { ProductWithVariants, ProductVariant } from "@/lib/products";
 import { materialToPreview } from "@/lib/product-utils";
 import { StickerPreview } from "@/components/shop/sticker-preview";
 import type { StickerMaterial, StickerShape } from "@/components/shop/sticker-preview";
+import type { PricingTier, CustomPreset } from "@/lib/pricing";
+
+/**
+ * REFERENCE_QTY matches pricing.ts — basePriceCents = price for 50 units at 5×5cm.
+ * For direct products we reverse this to get the per-unit price:
+ *   unitPriceHT = basePriceCents / REFERENCE_QTY
+ * We do NOT apply shape/area/material multipliers (the admin entered the final price).
+ */
+const REFERENCE_QTY = 50;
 
 const MATERIAL_LABELS: Record<string, string> = {
   vinyl: "Vinyle",
@@ -15,8 +24,33 @@ const MATERIAL_LABELS: Record<string, string> = {
   kraft: "Kraft",
 };
 
+const FINISH_LABELS: Record<string, string> = {
+  gloss: "Brillant",
+  matte: "Mat",
+  "uv-laminated": "Vernis UV",
+};
+
+const SHAPE_LABELS: Record<string, string> = {
+  "die-cut": "Découpe à la forme",
+  "kiss-cut": "Prédécoupé",
+  square: "Carré",
+  circle: "Rond",
+  rectangle: "Rectangle",
+};
+
+const VAT_RATE = 0.20;
+
 function euros(cents: number) {
   return (cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+}
+
+/** Apply quantity discount tiers — same logic as pricing.ts */
+function getDiscountPct(qty: number, tiers: PricingTier[]): number {
+  let discount = 0;
+  for (const t of tiers) {
+    if (qty >= t.minQty) discount = t.discountPct;
+  }
+  return discount;
 }
 
 interface Props {
@@ -35,6 +69,37 @@ export function ProductDirectTemplate({ product, variants }: Props) {
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   const variant = selectedVariant;
+
+  // Available options from the variant
+  const availableFinishes = (variant.availableFinishes ?? ["gloss"]) as string[];
+  const availableShapes = (variant.shapes ?? ["die-cut"]) as string[];
+  const customPresets = (variant.customPresets as CustomPreset[] | null) ?? [];
+  const variantTiers = (variant.tiers as PricingTier[] | null) ?? [];
+  const sizePriceMap = (variant.sizePrices as Record<string, number> | null) ?? {};
+
+  // Selected option state
+  const [selectedFinish, setSelectedFinish] = useState<string>(availableFinishes[0] ?? "gloss");
+  const [selectedShape, setSelectedShape] = useState<string>(availableShapes[0] ?? "die-cut");
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(
+    customPresets.length > 0 ? (customPresets[0]?.id ?? null) : null,
+  );
+
+  // ── Price calculation ──────────────────────────────────────────────────────
+  // For direct products: admin entered the FINAL unit price HT.
+  // basePriceCents is stored as ×REFERENCE_QTY (50) per the pricing engine convention.
+  // We reverse it to get the actual unit price HT without any shape/area multipliers.
+  const selectedPreset = customPresets.find((p) => p.id === selectedPresetId) ?? null;
+  const rawBaseCents = selectedPresetId && sizePriceMap[selectedPresetId]
+    ? sizePriceMap[selectedPresetId]!
+    : variant.basePriceCents;
+
+  const baseUnitHT = Math.round(rawBaseCents / REFERENCE_QTY);
+  const discountPct = variantTiers.length > 0 ? getDiscountPct(quantity, variantTiers) : 0;
+  const discountedUnitHT = Math.round(baseUnitHT * (1 - discountPct));
+  const subtotalHT = discountedUnitHT * quantity;
+  const vatCents = Math.ceil(subtotalHT * VAT_RATE);
+  const totalTTC = subtotalHT + vatCents;
+
   const images: string[] = [
     ...(variant.imageUrl ? [variant.imageUrl] : []),
     ...((variant.images as string[]) ?? []),
@@ -42,17 +107,16 @@ export function ProductDirectTemplate({ product, variants }: Props) {
     ...(product.imageUrl ? [product.imageUrl] : []),
   ].filter(Boolean);
 
-  // Price calculation (simplified — linear for direct products)
-  const unitPriceCents = variant.basePriceCents;
-  const totalCents = unitPriceCents * quantity;
-
-  // Tiers
-  const tiers = (variant.tiers as { minQty: number; discountPct: number }[] | null) ?? [];
-  const applicableTier = [...tiers]
-    .sort((a, b) => b.minQty - a.minQty)
-    .find((t) => quantity >= t.minQty);
-  const discountPct = applicableTier?.discountPct ?? 0;
-  const discountedTotal = Math.round(totalCents * (1 - discountPct));
+  function handleSelectVariant(v: ProductVariant) {
+    setSelectedVariant(v);
+    setQuantity(v.minQty);
+    const fins = (v.availableFinishes ?? ["gloss"]) as string[];
+    const shps = (v.shapes ?? ["die-cut"]) as string[];
+    const prs = (v.customPresets as CustomPreset[] | null) ?? [];
+    setSelectedFinish(fins[0] ?? "gloss");
+    setSelectedShape(shps[0] ?? "die-cut");
+    setSelectedPresetId(prs.length > 0 ? (prs[0]?.id ?? null) : null);
+  }
 
   function handleAddToCart() {
     if (isPending) return;
@@ -62,13 +126,15 @@ export function ProductDirectTemplate({ product, variants }: Props) {
         productId: product.id,
         productName: product.name,
         quantity,
-        widthMm: 50,
-        heightMm: 50,
-        shape: (variant.shapes?.[0] ?? "die-cut") as "die-cut" | "circle" | "square" | "rectangle",
-        finish: variant.availableFinishes?.[0] ?? "gloss",
+        widthMm: selectedPreset?.widthMm ?? 50,
+        heightMm: selectedPreset?.heightMm ?? 50,
+        shape: selectedShape as "die-cut" | "circle" | "square" | "rectangle",
+        finish: selectedFinish,
         material: variant.material,
-        basePriceCents: variant.basePriceCents,
+        basePriceCents: rawBaseCents,
         options: {},
+        // Bypass shape/material/area multipliers — the admin set the final unit price
+        directUnitPriceCents: discountedUnitHT,
       });
       setAdded(true);
       setTimeout(() => setAdded(false), 2500);
@@ -76,13 +142,7 @@ export function ProductDirectTemplate({ product, variants }: Props) {
   }
 
   return (
-    <div
-      style={{
-        background: "var(--cream)",
-        minHeight: "100vh",
-        paddingBottom: 80,
-      }}
-    >
+    <div style={{ background: "var(--cream)", minHeight: "100vh", paddingBottom: 80 }}>
       {/* Breadcrumb */}
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 32px 0" }}>
         <div style={{ fontSize: 12, color: "var(--grey-400)" }}>
@@ -112,7 +172,6 @@ export function ProductDirectTemplate({ product, variants }: Props) {
       >
         {/* Left: gallery */}
         <div>
-          {/* Main image */}
           <div
             style={{
               background: "#F0F4FF",
@@ -143,7 +202,6 @@ export function ProductDirectTemplate({ product, variants }: Props) {
             )}
           </div>
 
-          {/* Thumbnails */}
           {images.length > 1 && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {images.map((img, idx) => (
@@ -185,16 +243,14 @@ export function ProductDirectTemplate({ product, variants }: Props) {
             </span>
           </div>
 
-          <h1
-            style={{
-              fontFamily: "var(--font-archivo), system-ui, sans-serif",
-              fontSize: 40,
-              fontWeight: 900,
-              letterSpacing: "-0.02em",
-              lineHeight: 1.05,
-              marginBottom: 16,
-            }}
-          >
+          <h1 style={{
+            fontFamily: "var(--font-archivo), system-ui, sans-serif",
+            fontSize: 40,
+            fontWeight: 900,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.05,
+            marginBottom: 16,
+          }}>
             {product.name}
           </h1>
 
@@ -204,42 +260,69 @@ export function ProductDirectTemplate({ product, variants }: Props) {
             </p>
           )}
 
-          {/* Variant selector (if multiple) */}
+          {/* Material (if multiple variants) */}
           {variants.length > 1 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--grey-600)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
-                Matière
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {variants.map((v) => (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => { setSelectedVariant(v); setQuantity(v.minQty); }}
-                    style={{
-                      padding: "8px 16px",
-                      borderRadius: 8,
-                      border: `2px solid ${v.id === variant.id ? "var(--ink)" : "var(--grey-200)"}`,
-                      background: v.id === variant.id ? "var(--ink)" : "#fff",
-                      color: v.id === variant.id ? "#fff" : "var(--grey-700)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {MATERIAL_LABELS[v.material] ?? v.material}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <OptionGroup label="Matière">
+              {variants.map((v) => (
+                <OptionBtn
+                  key={v.id}
+                  selected={v.id === variant.id}
+                  onClick={() => handleSelectVariant(v)}
+                >
+                  {MATERIAL_LABELS[v.material] ?? v.material}
+                </OptionBtn>
+              ))}
+            </OptionGroup>
+          )}
+
+          {/* Size presets */}
+          {customPresets.length > 0 && (
+            <OptionGroup label="Format">
+              {customPresets.map((p) => (
+                <OptionBtn
+                  key={p.id}
+                  selected={selectedPresetId === p.id}
+                  onClick={() => setSelectedPresetId(p.id)}
+                >
+                  <span>{p.label}</span>
+                  <span style={{ fontSize: 10, opacity: 0.7, display: "block", marginTop: 1 }}>
+                    {p.widthMm}×{p.heightMm} mm
+                  </span>
+                </OptionBtn>
+              ))}
+            </OptionGroup>
+          )}
+
+          {/* Shape selector */}
+          {availableShapes.length > 1 && (
+            <OptionGroup label="Découpe">
+              {availableShapes.map((s) => (
+                <OptionBtn key={s} selected={selectedShape === s} onClick={() => setSelectedShape(s)}>
+                  {SHAPE_LABELS[s] ?? s}
+                </OptionBtn>
+              ))}
+            </OptionGroup>
+          )}
+
+          {/* Finish selector */}
+          {availableFinishes.length > 1 && (
+            <OptionGroup label="Finition">
+              {availableFinishes.map((f) => (
+                <OptionBtn key={f} selected={selectedFinish === f} onClick={() => setSelectedFinish(f)}>
+                  {FINISH_LABELS[f] ?? f}
+                </OptionBtn>
+              ))}
+            </OptionGroup>
           )}
 
           {/* Pricing tiers */}
-          {tiers.length > 1 && (
+          {variantTiers.length > 1 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--grey-600)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>Tarifs dégressifs</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--grey-600)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 8 }}>
+                Tarifs dégressifs
+              </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {tiers.map((t) => (
+                {variantTiers.map((t) => (
                   <div
                     key={t.minQty}
                     onClick={() => setQuantity(t.minQty)}
@@ -250,13 +333,16 @@ export function ProductDirectTemplate({ product, variants }: Props) {
                       background: quantity >= t.minQty ? "#FEF2F2" : "#fff",
                       cursor: "pointer",
                       textAlign: "center",
+                      minWidth: 52,
                     }}
                   >
                     <div style={{ fontSize: 11, fontWeight: 700, color: quantity >= t.minQty ? "var(--red)" : "var(--grey-400)" }}>
                       {t.minQty}+
                     </div>
                     {t.discountPct > 0 && (
-                      <div style={{ fontSize: 10, color: "var(--red)", fontWeight: 700 }}>-{Math.round(t.discountPct * 100)}%</div>
+                      <div style={{ fontSize: 10, color: "var(--red)", fontWeight: 700 }}>
+                        -{Math.round(t.discountPct * 100)}%
+                      </div>
                     )}
                   </div>
                 ))}
@@ -265,33 +351,33 @@ export function ProductDirectTemplate({ product, variants }: Props) {
           )}
 
           {/* Quantity + price */}
-          <div
-            style={{
-              background: "var(--white)",
-              border: "2px solid var(--ink)",
-              borderRadius: 12,
-              padding: "20px",
-              marginBottom: 20,
-            }}
-          >
+          <div style={{
+            background: "var(--white)",
+            border: "2px solid var(--ink)",
+            borderRadius: 12,
+            padding: "20px",
+            marginBottom: 20,
+          }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <div>
-                <div style={{ fontSize: 10, letterSpacing: "0.12em", color: "var(--grey-400)", textTransform: "uppercase", marginBottom: 4 }}>Prix total</div>
+                <div style={{ fontSize: 10, letterSpacing: "0.12em", color: "var(--grey-400)", textTransform: "uppercase", marginBottom: 4 }}>
+                  Prix total TTC
+                </div>
                 <div style={{ fontFamily: "var(--font-archivo)", fontSize: 36, fontWeight: 900 }}>
-                  {euros(discountedTotal)}
+                  {euros(totalTTC)}
                 </div>
                 {discountPct > 0 && (
                   <div style={{ fontSize: 12, color: "var(--red)", fontWeight: 700 }}>
-                    Économie : {euros(totalCents - discountedTotal)} (-{Math.round(discountPct * 100)}%)
+                    -{Math.round(discountPct * 100)}% remise volume
                   </div>
                 )}
                 <div style={{ fontSize: 11, color: "var(--grey-400)" }}>
-                  {euros(Math.round(discountedTotal / quantity))} / unité
+                  {euros(discountedUnitHT)} HT / unité · TVA {Math.round(VAT_RATE * 100)}%
                 </div>
               </div>
 
               {/* Qty stepper */}
-              <div style={{ display: "flex", alignItems: "center", gap: 0, border: "2px solid var(--ink)", borderRadius: 8, overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", border: "2px solid var(--ink)", borderRadius: 8, overflow: "hidden" }}>
                 <button
                   type="button"
                   onClick={() => setQuantity(Math.max(variant.minQty, quantity - 1))}
@@ -360,5 +446,40 @@ export function ProductDirectTemplate({ product, variants }: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+function OptionGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--grey-600)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function OptionBtn({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: "8px 16px",
+        borderRadius: 8,
+        border: `2px solid ${selected ? "var(--ink)" : "var(--grey-200)"}`,
+        background: selected ? "var(--ink)" : "#fff",
+        color: selected ? "#fff" : "var(--grey-700)",
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: "pointer",
+        textAlign: "center",
+      }}
+    >
+      {children}
+    </button>
   );
 }

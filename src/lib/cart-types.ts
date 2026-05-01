@@ -54,4 +54,6 @@ export interface AddToCartInput {
   basePriceCents: number;
   options: Record<string, boolean>;
   customizationNote?: string | undefined;
+  /** For non-customizable products: bypass shape/area/material multipliers from computePrice */
+  directUnitPriceCents?: number | undefined;
 }

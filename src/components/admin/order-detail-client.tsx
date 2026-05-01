@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { OrderStatus } from "@/lib/order-state";
 import type { AddressData } from "@/lib/admin-actions";
-import { changeOrderStatus, addInternalNote, uploadProof, refundOrder, generateInvoice, refreshInvoiceUrl, replyToRevision, createShipment, getSendCloudShippingMethods } from "@/lib/admin-actions";
+import { changeOrderStatus, addInternalNote, uploadProof, refundOrder, generateInvoice, refreshInvoiceUrl, replyToRevision, createShipment, getSendCloudShippingMethods, markPaidByTransfer, sendAdminPaymentLink } from "@/lib/admin-actions";
 
 const STATUS_LABELS: Record<string, string> = {
   proof_pending: "En attente de paiement",
@@ -74,6 +74,9 @@ const EVENT_ICONS: Record<string, string> = {
   "sendcloud.order_created":  "📥",
   "sendcloud.error":          "⚠️",
   "sendcloud.status_update":  "🚚",
+  "payment.link_sent":        "🔗",
+  "pennylane.invoice_created":"🧾",
+  "pennylane.error":          "⚠️",
 };
 
 const EVENT_LABELS: Record<string, string> = {
@@ -95,6 +98,9 @@ const EVENT_LABELS: Record<string, string> = {
   "sendcloud.order_created":  "Commande importée dans SendCloud",
   "sendcloud.error":          "Erreur SendCloud",
   "sendcloud.status_update":  "Mise à jour transporteur",
+  "payment.link_sent":        "Lien de paiement envoyé au client",
+  "pennylane.invoice_created":"Facture Pennylane générée",
+  "pennylane.error":          "Erreur Pennylane",
 };
 
 interface SerializedOrder {
@@ -475,6 +481,12 @@ export function OrderDetailClient({ detail }: Props) {
   const [replyPending, startReplyTransition] = useTransition();
   const [replySuccess, setReplySuccess] = useState<string | null>(null);
 
+  // Payment actions state (for proof_pending orders)
+  const [transferNote, setTransferNote] = useState("");
+  const [paymentActionPending, startPaymentTransition] = useTransition();
+  const [paymentActionMsg, setPaymentActionMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [generatedPaymentLink, setGeneratedPaymentLink] = useState<string | null>(null);
+
   const sc = STATUS_COLORS[detail.order.status] ?? { bg: "#F3F4F6", text: "#6B7280", border: "#E5E7EB" };
   const email =
     detail.order.customerEmail ??
@@ -603,6 +615,33 @@ export function OrderDetailClient({ detail }: Props) {
         router.refresh();
       } else {
         setError(res.error);
+      }
+    });
+  }
+
+  function handleMarkPaidByTransfer() {
+    setPaymentActionMsg(null);
+    startPaymentTransition(async () => {
+      const res = await markPaidByTransfer(detail.order.id, transferNote || undefined);
+      if (res.ok) {
+        setPaymentActionMsg({ type: "success", text: "Commande marquée comme payée par virement. Email de confirmation envoyé." });
+        router.refresh();
+      } else {
+        setPaymentActionMsg({ type: "error", text: res.error });
+      }
+    });
+  }
+
+  function handleSendPaymentLink() {
+    setPaymentActionMsg(null);
+    startPaymentTransition(async () => {
+      const res = await sendAdminPaymentLink(detail.order.id);
+      if (res.ok) {
+        setGeneratedPaymentLink(res.data.checkoutUrl);
+        setPaymentActionMsg({ type: "success", text: `Lien de paiement envoyé à ${res.data.email}` });
+        router.refresh();
+      } else {
+        setPaymentActionMsg({ type: "error", text: res.error });
       }
     });
   }
@@ -961,6 +1000,110 @@ export function OrderDetailClient({ detail }: Props) {
 
         {/* RIGHT — Actions */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+          {/* Payment actions — visible only when waiting for payment */}
+          {detail.order.status === "proof_pending" && (
+            <section style={{ ...sectionStyle, border: "1px solid #FCD34D", background: "#FFFBEB" }}>
+              <h2 style={{ ...sectionTitleStyle, color: "#92400E" }}>💳 Actions de paiement</h2>
+
+              {paymentActionMsg && (
+                <div style={{
+                  background: paymentActionMsg.type === "success" ? "#D1FAE5" : "#FEE2E2",
+                  border: `1px solid ${paymentActionMsg.type === "success" ? "#6EE7B7" : "#FCA5A5"}`,
+                  borderRadius: 6,
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  color: paymentActionMsg.type === "success" ? "#065F46" : "#991B1B",
+                  marginBottom: 12,
+                }}>
+                  {paymentActionMsg.text}
+                </div>
+              )}
+
+              {generatedPaymentLink && (
+                <div style={{ marginBottom: 12, padding: "10px 12px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 8 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "#1D4ED8", marginBottom: 4 }}>Lien de paiement généré :</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input
+                      readOnly
+                      value={generatedPaymentLink}
+                      style={{ flex: 1, fontSize: 11, padding: "6px 8px", border: "1px solid #BFDBFE", borderRadius: 6, background: "#fff", color: "#1E40AF", fontFamily: "monospace" }}
+                    />
+                    <button
+                      onClick={() => { void navigator.clipboard.writeText(generatedPaymentLink); }}
+                      style={{ padding: "6px 10px", background: "#1D4ED8", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, flexShrink: 0 }}
+                    >
+                      Copier
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Option 1: Bank transfer */}
+                <div style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#fff" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#0A0E27", marginBottom: 8 }}>
+                    🏦 Virement bancaire
+                  </div>
+                  <p style={{ fontSize: 12, color: "#6B7280", margin: "0 0 10px 0" }}>
+                    Marque la commande comme payée, génère la facture Pennylane et envoie un email de confirmation au client.
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Référence virement (optionnel)"
+                    value={transferNote}
+                    onChange={(e) => setTransferNote(e.target.value)}
+                    style={{ ...inputStyle, marginBottom: 8, fontSize: 12 }}
+                  />
+                  <button
+                    onClick={handleMarkPaidByTransfer}
+                    disabled={paymentActionPending}
+                    style={{
+                      width: "100%",
+                      padding: "9px 14px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: paymentActionPending ? "#6B7280" : "#059669",
+                      color: "#fff",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: paymentActionPending ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {paymentActionPending ? "En cours…" : "✓ Marquer payé par virement"}
+                  </button>
+                </div>
+
+                {/* Option 2: Stripe payment link */}
+                <div style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #E5E7EB", background: "#fff" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#0A0E27", marginBottom: 8 }}>
+                    🔗 Lien de paiement Stripe
+                  </div>
+                  <p style={{ fontSize: 12, color: "#6B7280", margin: "0 0 10px 0" }}>
+                    Génère un lien Stripe Checkout et l'envoie par email au client. La facture Pennylane sera créée automatiquement dès paiement.
+                  </p>
+                  <button
+                    onClick={handleSendPaymentLink}
+                    disabled={paymentActionPending}
+                    style={{
+                      width: "100%",
+                      padding: "9px 14px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: paymentActionPending ? "#6B7280" : "#6366F1",
+                      color: "#fff",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: paymentActionPending ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {paymentActionPending ? "En cours…" : "📧 Envoyer le lien de paiement"}
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
           {/* Status change */}
           {detail.nextStatuses.length > 0 && (
             <section style={sectionStyle}>

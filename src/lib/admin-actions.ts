@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { validateTransition } from "@/lib/order-state";
 import type { OrderStatus } from "@/lib/order-state";
+import { getStripe } from "@/lib/stripe";
 import { z } from "zod";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1017,4 +1018,269 @@ export async function refreshInvoiceUrl(
   }
 
   return { ok: true, data: { invoiceUrl } };
+}
+
+// ─── Mark order paid by bank transfer ────────────────────────────────────────
+
+export async function markPaidByTransfer(
+  orderId: string,
+  note?: string,
+): Promise<Result<{ invoiceUrl: string | null }>> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: "Non autorisé" };
+
+  const [order] = await db
+    .select({
+      id: orders.id,
+      status: orders.status,
+      totalCents: orders.totalCents,
+      subtotalCents: orders.subtotalCents,
+      taxAmountCents: orders.taxAmountCents,
+      shippingCents: orders.shippingCents,
+      vatRate: orders.vatRate,
+      userId: orders.userId,
+      guestEmail: orders.guestEmail,
+      pennylaneInvoiceId: orders.pennylaneInvoiceId,
+    })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (!order) return { ok: false, error: "Commande introuvable" };
+  if (order.status !== "proof_pending") return { ok: false, error: "La commande doit être en attente de paiement" };
+
+  const transition = validateTransition("proof_pending", "paid");
+  if (!transition.ok) return { ok: false, error: "Transition invalide" };
+
+  await db.update(orders).set({ status: "paid", updatedAt: new Date() }).where(eq(orders.id, orderId));
+
+  await db.insert(orderEvents).values({
+    orderId,
+    type: transition.eventType,
+    actorId: admin.user.id,
+    payload: {
+      from: "proof_pending",
+      to: "paid",
+      paymentMethod: "virement",
+      ...(note ? { note } : {}),
+    },
+  });
+
+  let customerEmail: string | null = order.guestEmail ?? null;
+  let customerName: string | null = null;
+  if (order.userId) {
+    const [user] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, order.userId)).limit(1);
+    customerEmail = user?.email ?? customerEmail;
+    customerName = user?.name ?? null;
+  }
+
+  let invoiceUrl: string | null = null;
+  if (!order.pennylaneInvoiceId && customerEmail) {
+    try {
+      const { getOrCreateCustomer, createAndFinalizeInvoice, vatRateToCode, centsToEuroString } = await import("@/lib/pennylane");
+      const customerRes = await getOrCreateCustomer({ email: customerEmail, name: customerName });
+      if (customerRes.ok) {
+        const vatRate = parseFloat(order.vatRate ?? "0.2");
+        const vatCode = vatRateToCode(vatRate);
+        const items = await db
+          .select({ productId: orderItems.productId, quantity: orderItems.quantity, widthMm: orderItems.widthMm, heightMm: orderItems.heightMm, shape: orderItems.shape, unitPriceCents: orderItems.unitPriceCents })
+          .from(orderItems)
+          .where(eq(orderItems.orderId, orderId));
+
+        const invoiceLines = await Promise.all(items.map(async (item) => {
+          let label = `Sticker ${item.shape} ${item.widthMm}×${item.heightMm} mm`;
+          if (item.productId) {
+            const [p] = await db.select({ name: products.name }).from(products).where(eq(products.id, item.productId)).limit(1);
+            if (p) label = `${p.name} — ${item.shape} ${item.widthMm}×${item.heightMm} mm`;
+          }
+          return { label, quantity: item.quantity, raw_currency_unit_price: centsToEuroString(item.unitPriceCents), vat_rate: vatCode, unit: "unité" };
+        }));
+
+        if (order.shippingCents > 0) {
+          const shippingHT = Math.round(order.shippingCents / (1 + vatRate));
+          invoiceLines.push({ label: "Frais de livraison", quantity: 1, raw_currency_unit_price: centsToEuroString(shippingHT), vat_rate: vatCode, unit: "forfait" });
+        }
+
+        const today = new Date().toISOString().slice(0, 10);
+        const invoiceRes = await createAndFinalizeInvoice({
+          customerId: customerRes.data.id,
+          date: today,
+          deadline: today,
+          lines: invoiceLines,
+          externalReference: orderId,
+          subject: `Commande MS Adhésif #${orderId.slice(0, 8).toUpperCase()}`,
+          description: `Paiement par virement bancaire`,
+        });
+
+        if (invoiceRes.ok) {
+          invoiceUrl = invoiceRes.data.pdf_invoice_url ?? invoiceRes.data.file_url ?? null;
+          await db.update(orders).set({
+            pennylaneCustomerId: String(customerRes.data.id),
+            pennylaneInvoiceId: String(invoiceRes.data.id),
+            pennylaneInvoiceUrl: invoiceUrl,
+            updatedAt: new Date(),
+          }).where(eq(orders.id, orderId));
+          await db.insert(orderEvents).values({
+            orderId,
+            type: "pennylane.invoice_created",
+            actorId: admin.user.id,
+            payload: { pennylaneInvoiceId: invoiceRes.data.id, invoiceUrl },
+          });
+        }
+      }
+    } catch (err) {
+      console.error("[markPaidByTransfer] Pennylane error:", err);
+    }
+  }
+
+  if (customerEmail) {
+    const appUrl = process.env["BETTER_AUTH_URL"] ?? process.env["APP_URL"] ?? "";
+    const orderNum = orderId.slice(0, 8).toUpperCase();
+    const euroTotal = (order.totalCents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+    const { sendEmail } = await import("@/lib/mail");
+    await sendEmail({
+      to: customerEmail,
+      subject: `Paiement reçu — commande #${orderNum}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+          <h2 style="color:#0A0E27">Votre paiement a été enregistré ✓</h2>
+          <p>Bonjour${customerName ? ` ${customerName}` : ""},</p>
+          <p>Nous avons bien reçu votre virement bancaire pour la commande <strong>#${orderNum}</strong> d'un montant de <strong>${euroTotal}</strong>.</p>
+          ${invoiceUrl ? `<p style="text-align:center;margin:28px 0"><a href="${invoiceUrl}" style="display:inline-block;padding:12px 28px;background:#0A0E27;color:#fff;border-radius:8px;text-decoration:none;font-weight:700">Télécharger la facture PDF →</a></p>` : ""}
+          <p>Nous allons préparer votre BAT et vous contacter prochainement.</p>
+          <p>Merci pour votre confiance,<br/>L'équipe MS Adhésif</p>
+          <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0"/>
+          <p style="font-size:12px;color:#9CA3AF">Suivre votre commande : <a href="${appUrl}/account/orders/${orderId}">${appUrl}/account/orders/${orderId}</a></p>
+        </div>
+      `,
+    }).catch((err) => console.error("[markPaidByTransfer] Email error:", err));
+  }
+
+  return { ok: true, data: { invoiceUrl } };
+}
+
+// ─── Send Stripe payment link to customer ─────────────────────────────────────
+
+export async function sendAdminPaymentLink(
+  orderId: string,
+): Promise<Result<{ checkoutUrl: string; email: string }>> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: "Non autorisé" };
+
+  const [order] = await db
+    .select({
+      id: orders.id,
+      status: orders.status,
+      totalCents: orders.totalCents,
+      userId: orders.userId,
+      guestEmail: orders.guestEmail,
+      stripeCheckoutSessionId: orders.stripeCheckoutSessionId,
+    })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (!order) return { ok: false, error: "Commande introuvable" };
+  if (order.status !== "proof_pending") return { ok: false, error: "La commande doit être en attente de paiement" };
+
+  let customerEmail: string | null = order.guestEmail ?? null;
+  let customerName: string | null = null;
+  if (order.userId) {
+    const [user] = await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, order.userId)).limit(1);
+    customerEmail = user?.email ?? customerEmail;
+    customerName = user?.name ?? null;
+  }
+  if (!customerEmail) return { ok: false, error: "Aucun email client trouvé pour cette commande" };
+
+  const stripe = getStripe();
+  let checkoutUrl: string | null = null;
+
+  if (order.stripeCheckoutSessionId) {
+    try {
+      const existing = await stripe.checkout.sessions.retrieve(order.stripeCheckoutSessionId);
+      if (existing.status === "open" && existing.url) {
+        checkoutUrl = existing.url;
+      }
+    } catch { /* expired — create new */ }
+  }
+
+  if (!checkoutUrl) {
+    const items = await db
+      .select({ productId: orderItems.productId, quantity: orderItems.quantity, widthMm: orderItems.widthMm, heightMm: orderItems.heightMm, shape: orderItems.shape, unitPriceCents: orderItems.unitPriceCents })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
+
+    const lineItems = await Promise.all(items.map(async (item) => {
+      let productName = `Sticker ${item.widthMm}×${item.heightMm}mm (${item.shape})`;
+      if (item.productId) {
+        const [p] = await db.select({ name: products.name }).from(products).where(eq(products.id, item.productId)).limit(1);
+        if (p) productName = `${p.name} — ${item.widthMm}×${item.heightMm}mm (${item.shape})`;
+      }
+      return {
+        price_data: { currency: "eur", unit_amount: item.unitPriceCents, product_data: { name: productName } },
+        quantity: item.quantity,
+      };
+    }));
+
+    const appUrl = process.env["BETTER_AUTH_URL"] ?? process.env["APP_URL"] ?? "http://localhost:3000";
+    const orderNum = orderId.slice(0, 8).toUpperCase();
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card", "sepa_debit"],
+      line_items: lineItems,
+      metadata: { orderId },
+      customer_email: customerEmail,
+      success_url: `${appUrl}/confirmation?payment=success&order_id=${orderId}`,
+      cancel_url: `${appUrl}/paiement?order_id=${orderId}`,
+      locale: "fr",
+      payment_intent_data: {
+        metadata: { orderId },
+        description: `Commande MS Adhésif #${orderNum}`,
+        receipt_email: customerEmail,
+      },
+      expires_at: Math.floor(Date.now() / 1000) + 72 * 3600,
+    });
+
+    if (!session.url) return { ok: false, error: "Impossible de créer la session Stripe" };
+    checkoutUrl = session.url;
+    await db.update(orders).set({ stripeCheckoutSessionId: session.id, updatedAt: new Date() }).where(eq(orders.id, orderId));
+  }
+
+  await db.insert(orderEvents).values({
+    orderId,
+    type: "payment.link_sent",
+    actorId: admin.user.id,
+    payload: { to: customerEmail, checkoutUrl },
+  });
+
+  const appUrl = process.env["BETTER_AUTH_URL"] ?? process.env["APP_URL"] ?? "";
+  const orderNum = orderId.slice(0, 8).toUpperCase();
+  const euroTotal = (order.totalCents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+  const { sendEmail } = await import("@/lib/mail");
+  await sendEmail({
+    to: customerEmail,
+    subject: `Votre lien de paiement — commande #${orderNum}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+        <h2 style="color:#0A0E27">Réglez votre commande en ligne</h2>
+        <p>Bonjour${customerName ? ` ${customerName}` : ""},</p>
+        <p>Votre commande <strong>#${orderNum}</strong> d'un montant de <strong>${euroTotal}</strong> est prête à être réglée.</p>
+        <p>Cliquez sur le bouton ci-dessous pour effectuer votre paiement sécurisé par carte bancaire ou prélèvement SEPA :</p>
+        <p style="text-align:center;margin:32px 0">
+          <a href="${checkoutUrl}" style="display:inline-block;padding:16px 36px;background:#0A0E27;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px">
+            Payer ${euroTotal} →
+          </a>
+        </p>
+        <p style="font-size:12px;color:#9CA3AF;text-align:center">Ce lien est valable 72 heures.</p>
+        <p>Une facture vous sera envoyée automatiquement dès réception du paiement.</p>
+        <p>Pour toute question, répondez simplement à cet e-mail.</p>
+        <p>Cordialement,<br/>L'équipe MS Adhésif</p>
+        <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0"/>
+        <p style="font-size:11px;color:#9CA3AF">Lien de paiement : <a href="${checkoutUrl}">${checkoutUrl}</a></p>
+      </div>
+    `,
+  }).catch((err) => console.error("[sendAdminPaymentLink] Email error:", err));
+
+  return { ok: true, data: { checkoutUrl: checkoutUrl!, email: customerEmail } };
 }

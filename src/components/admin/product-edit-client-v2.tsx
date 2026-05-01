@@ -198,6 +198,7 @@ export function ProductEditClientV2({
       {activeTab === "variants" && (
         <VariantsTab
           productId={initialProduct.id}
+          isDirectProduct={!initialProduct.requiresCustomization}
           variants={variants}
           shapes={shapes}
           finishes={finishes}
@@ -376,6 +377,36 @@ function GeneralTab({
           Ce réglage détermine si les clients doivent uploader un fichier et passer par le process BAT.
         </div>
       </section>
+
+      {/* Guide options pour impression directe */}
+      {!requiresCustomization && (
+        <section style={{ ...sectionStyle, background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+          <SectionTitle>⚙️ Options affichées sur la page produit</SectionTitle>
+          <p style={{ fontSize: 13, color: "#1E40AF", marginBottom: 12, lineHeight: 1.6 }}>
+            Pour un produit <strong>Impression directe</strong>, les options configurées dans les <strong>Déclinaisons</strong> apparaissent automatiquement comme sélecteurs sur la page produit :
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[
+              { icon: "📐", label: "Tailles", desc: "Ajoutez des Présets de taille (ex : S=50×50mm, M=100×100mm) → un sélecteur de taille s'affiche" },
+              { icon: "✂️", label: "Découpe", desc: "Si plusieurs Formes disponibles → un sélecteur de découpe s'affiche (die-cut, rond, carré…)" },
+              { icon: "✨", label: "Finitions", desc: "Si plusieurs Finitions disponibles → un sélecteur finition s'affiche (brillant, mat, vernis UV)" },
+              { icon: "🎨", label: "Matières", desc: "Plusieurs déclinaisons avec des matières différentes → un sélecteur de matière s'affiche" },
+            ].map((item) => (
+              <div key={item.label} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#fff", borderRadius: 8, padding: "10px 14px", border: "1px solid #BFDBFE" }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#0A0E27" }}>{item.label}</div>
+                  <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>{item.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 12, color: "#1D4ED8", marginTop: 12 }}>
+            → Gérez ces options dans l&apos;onglet <strong>Déclinaisons</strong>.
+            Le prix unitaire HT que vous saisissez est la base avant multiplicateurs (forme, matière, finition).
+          </p>
+        </section>
+      )}
 
       {/* Matières disponibles */}
       <section style={sectionStyle}>
@@ -582,6 +613,7 @@ function QuickAddMaterial({
 
 function VariantsTab({
   productId,
+  isDirectProduct,
   variants,
   shapes,
   finishes,
@@ -589,6 +621,7 @@ function VariantsTab({
   onVariantsChange,
 }: {
   productId: string;
+  isDirectProduct: boolean;
   variants: VariantData[];
   shapes: OptionItem[];
   finishes: OptionItem[];
@@ -671,6 +704,7 @@ function VariantsTab({
           <VariantEditor
             key={variant.id}
             variant={variant}
+            isDirectProduct={isDirectProduct}
             shapes={shapes}
             finishes={finishes}
             materials={materials}
@@ -702,6 +736,7 @@ function VariantsTab({
 
 function VariantEditor({
   variant,
+  isDirectProduct,
   shapes,
   finishes,
   materials,
@@ -715,6 +750,7 @@ function VariantEditor({
   isLast,
 }: {
   variant: VariantData;
+  isDirectProduct: boolean;
   shapes: OptionItem[];
   finishes: OptionItem[];
   materials: OptionItem[];
@@ -744,6 +780,10 @@ function VariantEditor({
   const [maxW, setMaxW] = useState(String(variant.maxWidthMm));
   const [minH, setMinH] = useState(String(variant.minHeightMm));
   const [maxH, setMaxH] = useState(String(variant.maxHeightMm));
+  // For direct products: explicit toggles for which options to expose
+  const [enableFinishChoice, setEnableFinishChoice] = useState(variant.availableFinishes.length > 1);
+  const [enableShapeChoice, setEnableShapeChoice] = useState(variant.shapes.length > 1);
+  const [enableTiers, setEnableTiers] = useState(variant.tiers != null && variant.tiers.length > 0);
   const [tiers, setTiers] = useState<PricingTier[]>(
     variant.tiers?.length
       ? (variant.tiers as PricingTier[])
@@ -765,13 +805,24 @@ function VariantEditor({
     setError(null);
     setSuccess(false);
     startTransition(async () => {
+      // For direct products: apply toggles before saving
+      const finalFinishes = isDirectProduct && !enableFinishChoice
+        ? [selectedFinishes[0] ?? "gloss"]
+        : selectedFinishes;
+      const finalShapes = isDirectProduct && !enableShapeChoice
+        ? [selectedShapes[0] ?? "die-cut"]
+        : selectedShapes;
+      const finalTiers = isDirectProduct && !enableTiers
+        ? []
+        : tiers.filter((t) => t.minQty > 0).sort((a, b) => a.minQty - b.minQty);
+
       const input = {
         productId: variant.productId,
         name: name.trim(),
         sku: sku.trim() || null,
         material,
-        availableFinishes: selectedFinishes,
-        shapes: selectedShapes,
+        availableFinishes: finalFinishes,
+        shapes: finalShapes,
         basePriceCents: Math.round(parseFloat(basePrice) * 50 * 100) || 1,
         minQty: parseInt(minQty) || 1,
         weightGrams: parseInt(weightGrams) || 100,
@@ -779,7 +830,7 @@ function VariantEditor({
         maxWidthMm: parseInt(maxW) || 300,
         minHeightMm: parseInt(minH) || 20,
         maxHeightMm: parseInt(maxH) || 300,
-        tiers: tiers.filter((t) => t.minQty > 0).sort((a, b) => a.minQty - b.minQty),
+        tiers: finalTiers,
         sizePrices: Object.fromEntries(
           Object.entries(sizePrices)
             .filter(([, v]) => v.trim() !== "" && parseFloat(v) > 0)
@@ -884,82 +935,163 @@ function VariantEditor({
             </div>
 
             {/* Finishes + Shapes */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-              <div>
-                <FieldLabel>Finitions disponibles</FieldLabel>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {finishes.map((f) => {
-                    const on = selectedFinishes.includes(f.slug);
-                    return <button key={f.slug} type="button" onClick={() => setFinishes(on && selectedFinishes.length > 1 ? selectedFinishes.filter((x) => x !== f.slug) : on ? selectedFinishes : [...selectedFinishes, f.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{f.label}</button>;
-                  })}
+            {isDirectProduct ? (
+              /* Direct product: show explicit toggles */
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: "#F9FAFB", borderRadius: 8, border: "1px solid #E5E7EB" }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#6B7280", textTransform: "uppercase", letterSpacing: "0.06em" }}>Options proposées au client</div>
+
+                {/* Finition toggle */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: enableFinishChoice ? 8 : 0 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Choix de finition</label>
+                    <Toggle value={enableFinishChoice} onChange={setEnableFinishChoice} labelOn="Oui" labelOff="Non" />
+                  </div>
+                  {enableFinishChoice && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {finishes.map((f) => {
+                        const on = selectedFinishes.includes(f.slug);
+                        return <button key={f.slug} type="button" onClick={() => setFinishes(on && selectedFinishes.length > 1 ? selectedFinishes.filter((x) => x !== f.slug) : on ? selectedFinishes : [...selectedFinishes, f.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{f.label}</button>;
+                      })}
+                    </div>
+                  )}
+                  {!enableFinishChoice && (
+                    <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
+                      Finition fixe : <strong>{finishes.find((f) => f.slug === selectedFinishes[0])?.label ?? selectedFinishes[0] ?? "Brillant"}</strong>
+                      <span style={{ marginLeft: 8, fontSize: 11, display: "inline-flex", gap: 4 }}>
+                        {finishes.map((f) => (
+                          <button key={f.slug} type="button" onClick={() => setFinishes([f.slug])} style={{ padding: "2px 8px", borderRadius: 4, border: `1.5px solid ${selectedFinishes[0] === f.slug ? "#0A0E27" : "#E5E7EB"}`, background: selectedFinishes[0] === f.slug ? "#0A0E27" : "#F9FAFB", color: selectedFinishes[0] === f.slug ? "#fff" : "#374151", fontSize: 11, cursor: "pointer" }}>{f.label}</button>
+                        ))}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Shape toggle */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: enableShapeChoice ? 8 : 0 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Choix de découpe</label>
+                    <Toggle value={enableShapeChoice} onChange={setEnableShapeChoice} labelOn="Oui" labelOff="Non" />
+                  </div>
+                  {enableShapeChoice && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {shapes.map((s) => {
+                        const on = selectedShapes.includes(s.slug);
+                        return <button key={s.slug} type="button" onClick={() => setShapes(on && selectedShapes.length > 1 ? selectedShapes.filter((x) => x !== s.slug) : on ? selectedShapes : [...selectedShapes, s.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{s.label}</button>;
+                      })}
+                    </div>
+                  )}
+                  {!enableShapeChoice && (
+                    <div style={{ fontSize: 12, color: "#9CA3AF", marginTop: 4 }}>
+                      Découpe fixe : <strong>{shapes.find((s) => s.slug === selectedShapes[0])?.label ?? selectedShapes[0] ?? "Découpe à la forme"}</strong>
+                      <span style={{ marginLeft: 8, fontSize: 11, display: "inline-flex", gap: 4 }}>
+                        {shapes.map((s) => (
+                          <button key={s.slug} type="button" onClick={() => setShapes([s.slug])} style={{ padding: "2px 8px", borderRadius: 4, border: `1.5px solid ${selectedShapes[0] === s.slug ? "#0A0E27" : "#E5E7EB"}`, background: selectedShapes[0] === s.slug ? "#0A0E27" : "#F9FAFB", color: selectedShapes[0] === s.slug ? "#fff" : "#374151", fontSize: 11, cursor: "pointer" }}>{s.label}</button>
+                        ))}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-              <div>
-                <FieldLabel>Formes disponibles</FieldLabel>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {shapes.map((s) => {
-                    const on = selectedShapes.includes(s.slug);
-                    return <button key={s.slug} type="button" onClick={() => setShapes(on && selectedShapes.length > 1 ? selectedShapes.filter((x) => x !== s.slug) : on ? selectedShapes : [...selectedShapes, s.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{s.label}</button>;
-                  })}
+            ) : (
+              /* Customizable product: standard multi-select */
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div>
+                  <FieldLabel>Finitions disponibles</FieldLabel>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {finishes.map((f) => {
+                      const on = selectedFinishes.includes(f.slug);
+                      return <button key={f.slug} type="button" onClick={() => setFinishes(on && selectedFinishes.length > 1 ? selectedFinishes.filter((x) => x !== f.slug) : on ? selectedFinishes : [...selectedFinishes, f.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{f.label}</button>;
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <FieldLabel>Formes disponibles</FieldLabel>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {shapes.map((s) => {
+                      const on = selectedShapes.includes(s.slug);
+                      return <button key={s.slug} type="button" onClick={() => setShapes(on && selectedShapes.length > 1 ? selectedShapes.filter((x) => x !== s.slug) : on ? selectedShapes : [...selectedShapes, s.slug])} style={{ padding: "6px 12px", borderRadius: 8, border: `2px solid ${on ? "#0A0E27" : "#E5E7EB"}`, background: on ? "#0A0E27" : "#F9FAFB", color: on ? "#fff" : "#374151", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{s.label}</button>;
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Pricing + Dimensions */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isDirectProduct ? "1fr 1fr" : "repeat(4, 1fr)", gap: 14 }}>
               <div>
                 <FieldLabel>Prix unitaire HT (€)</FieldLabel>
                 <div style={{ position: "relative" }}>
                   <input type="number" step="0.0001" min="0" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} style={{ ...inputStyle, paddingRight: 24 }} />
                   <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>€</span>
                 </div>
+                {isDirectProduct && (
+                  <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 4 }}>
+                    Prix affiché tel quel sur la page produit, sans multiplicateurs.
+                  </p>
+                )}
               </div>
               <div>
                 <FieldLabel>Qté min</FieldLabel>
                 <input type="number" min="1" value={minQty} onChange={(e) => setMinQty(e.target.value)} style={inputStyle} />
               </div>
-              <div>
-                <FieldLabel>Poids (g)</FieldLabel>
-                <div style={{ position: "relative" }}>
-                  <input type="number" min="1" value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} style={{ ...inputStyle, paddingRight: 18 }} />
-                  <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>g</span>
+              {!isDirectProduct && (
+                <div>
+                  <FieldLabel>Poids (g)</FieldLabel>
+                  <div style={{ position: "relative" }}>
+                    <input type="number" min="1" value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} style={{ ...inputStyle, paddingRight: 18 }} />
+                    <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>g</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
-              {[["Larg. min (mm)", minW, setMinW], ["Larg. max (mm)", maxW, setMaxW], ["Haut. min (mm)", minH, setMinH], ["Haut. max (mm)", maxH, setMaxH]].map(([lbl, val, fn]) => (
-                <div key={String(lbl)}>
-                  <FieldLabel>{String(lbl)}</FieldLabel>
-                  <input type="number" value={String(val)} onChange={(e) => (fn as (v: string) => void)(e.target.value)} style={inputStyle} />
-                </div>
-              ))}
-            </div>
-
-            {/* Pricing tiers */}
-            <div>
-              <FieldLabel>Tarifs dégressifs</FieldLabel>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 36px", gap: 8 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>Qté min</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>Remise (%)</span>
-                  <span />
-                </div>
-                {tiers.map((tier, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 36px", gap: 8, alignItems: "center" }}>
-                    <input type="number" min="1" value={tier.minQty} onChange={(e) => { const n = [...tiers]; n[i] = { ...n[i]!, minQty: parseInt(e.target.value) || 1 }; setTiers(n); }} style={inputStyle} />
-                    <div style={{ position: "relative" }}>
-                      <input type="number" min="0" max="99" step="1" value={Math.round(tier.discountPct * 100)} onChange={(e) => { const n = [...tiers]; n[i] = { ...n[i]!, discountPct: (parseInt(e.target.value) || 0) / 100 }; setTiers(n); }} style={{ ...inputStyle, paddingRight: 26 }} />
-                      <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>%</span>
-                    </div>
-                    <button type="button" onClick={() => setTiers(tiers.filter((_, j) => j !== i))} disabled={tiers.length <= 1} style={{ padding: "6px", borderRadius: 6, border: "1px solid #E5E7EB", background: tiers.length <= 1 ? "#F9FAFB" : "#FEE2E2", color: tiers.length <= 1 ? "#D1D5DB" : "#991B1B", cursor: "pointer", fontSize: 12 }}>✕</button>
+            {/* Dimension ranges — only for customizable products */}
+            {!isDirectProduct && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+                {[["Larg. min (mm)", minW, setMinW], ["Larg. max (mm)", maxW, setMaxW], ["Haut. min (mm)", minH, setMinH], ["Haut. max (mm)", maxH, setMaxH]].map(([lbl, val, fn]) => (
+                  <div key={String(lbl)}>
+                    <FieldLabel>{String(lbl)}</FieldLabel>
+                    <input type="number" value={String(val)} onChange={(e) => (fn as (v: string) => void)(e.target.value)} style={inputStyle} />
                   </div>
                 ))}
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button type="button" onClick={() => setTiers([...tiers, { minQty: (tiers[tiers.length - 1]?.minQty ?? 50) * 2, discountPct: 0 }])} style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>+ Palier</button>
-                <button type="button" onClick={() => setTiers(QUANTITY_TIERS.map((t) => ({ minQty: t.minQty, discountPct: t.discountPct })))} style={{ padding: "7px 12px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#6B7280", cursor: "pointer", fontSize: 12 }}>Réinitialiser</button>
-              </div>
+            )}
+
+            {/* Pricing tiers */}
+            <div>
+              {isDirectProduct ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: enableTiers ? 12 : 0 }}>
+                  <FieldLabel>Remises dégressives par quantité</FieldLabel>
+                  <Toggle value={enableTiers} onChange={(v) => { setEnableTiers(v); if (v && tiers.length === 0) setTiers(QUANTITY_TIERS.map((t) => ({ minQty: t.minQty, discountPct: t.discountPct }))); }} labelOn="Actives" labelOff="Inactives" />
+                </div>
+              ) : (
+                <FieldLabel>Tarifs dégressifs</FieldLabel>
+              )}
+              {(!isDirectProduct || enableTiers) && (
+                <>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 36px", gap: 8 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>Qté min</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase" }}>Remise (%)</span>
+                      <span />
+                    </div>
+                    {tiers.map((tier, i) => (
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 36px", gap: 8, alignItems: "center" }}>
+                        <input type="number" min="1" value={tier.minQty} onChange={(e) => { const n = [...tiers]; n[i] = { ...n[i]!, minQty: parseInt(e.target.value) || 1 }; setTiers(n); }} style={inputStyle} />
+                        <div style={{ position: "relative" }}>
+                          <input type="number" min="0" max="99" step="1" value={Math.round(tier.discountPct * 100)} onChange={(e) => { const n = [...tiers]; n[i] = { ...n[i]!, discountPct: (parseInt(e.target.value) || 0) / 100 }; setTiers(n); }} style={{ ...inputStyle, paddingRight: 26 }} />
+                          <span style={{ position: "absolute", right: 9, top: "50%", transform: "translateY(-50%)", fontSize: 11, color: "#9CA3AF" }}>%</span>
+                        </div>
+                        <button type="button" onClick={() => setTiers(tiers.filter((_, j) => j !== i))} disabled={tiers.length <= 1} style={{ padding: "6px", borderRadius: 6, border: "1px solid #E5E7EB", background: tiers.length <= 1 ? "#F9FAFB" : "#FEE2E2", color: tiers.length <= 1 ? "#D1D5DB" : "#991B1B", cursor: "pointer", fontSize: 12 }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button type="button" onClick={() => setTiers([...tiers, { minQty: (tiers[tiers.length - 1]?.minQty ?? 50) * 2, discountPct: 0 }])} style={{ padding: "7px 14px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F3F4F6", color: "#374151", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>+ Palier</button>
+                    <button type="button" onClick={() => setTiers(QUANTITY_TIERS.map((t) => ({ minQty: t.minQty, discountPct: t.discountPct })))} style={{ padding: "7px 12px", borderRadius: 6, border: "1px solid #E5E7EB", background: "#F9FAFB", color: "#6B7280", cursor: "pointer", fontSize: 12 }}>Réinitialiser</button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Size prices */}

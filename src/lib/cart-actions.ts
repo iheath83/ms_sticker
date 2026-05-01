@@ -127,6 +127,8 @@ const addToCartSchema = z.object({
   basePriceCents: z.number().int().positive(),
   options: z.record(z.string(), z.boolean()).default({}),
   customizationNote: z.string().optional(),
+  // For non-customizable products: bypass computePrice multipliers and use this unit price directly (HT, in cents)
+  directUnitPriceCents: z.number().int().positive().optional(),
 });
 
 export type AddToCartInput = z.infer<typeof addToCartSchema>;
@@ -160,8 +162,11 @@ export async function addToCart(input: AddToCartInput): Promise<Result<AddToCart
     vatRate: 0.20,
   };
 
-  const pricing = computePrice(pricingInput);
-  const lineTotalCents = pricing.subtotalCents + pricing.optionsUpchargeCents;
+  // For non-customizable (direct) products: bypass the shape/area/material multipliers
+  const unitPriceCents = data.directUnitPriceCents ?? computePrice(pricingInput).unitPriceCents;
+  const lineTotalCents = data.directUnitPriceCents
+    ? data.directUnitPriceCents * data.quantity
+    : (() => { const p = computePrice(pricingInput); return p.subtotalCents + p.optionsUpchargeCents; })();
 
   // Insert the item
   const [insertedItem] = await db.insert(orderItems).values({
@@ -178,7 +183,7 @@ export async function addToCart(input: AddToCartInput): Promise<Result<AddToCart
       material: data.material,
       basePriceCents: data.basePriceCents,
     },
-    unitPriceCents: pricing.unitPriceCents,
+    unitPriceCents,
     lineTotalCents,
     customizationNote: data.customizationNote,
   }).returning({ id: orderItems.id });
