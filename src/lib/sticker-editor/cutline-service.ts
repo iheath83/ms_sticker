@@ -29,10 +29,9 @@ export interface CutlineApiSuccess {
     width_px: number;
     height_px: number;
     point_count: number;
+    contour_count: number;
     has_transparency: boolean;
     offset_px: number;
-    offset_mm: number;
-    dpi: number;
   };
 }
 
@@ -49,8 +48,11 @@ export type CutlineApiResponse = CutlineApiSuccess | CutlineApiFailure;
 export interface CutlineCallParams {
   file: Blob;
   filename?: string;
-  offsetMm: number;
-  dpi: number;
+  /** Marge de coupe en pixels d'image originale (préféré, plus précis). */
+  offsetPx?: number;
+  /** Fallback si offsetPx absent : marge en mm + DPI. */
+  offsetMm?: number;
+  dpi?: number;
   closeRadiusPx?: number;
   smoothPasses?: number;
 }
@@ -60,8 +62,12 @@ export async function callCutlineService(
 ): Promise<CutlineApiResponse> {
   const fd = new FormData();
   fd.append("file", params.file, params.filename ?? "image.png");
-  fd.append("offset_mm", String(params.offsetMm));
-  fd.append("dpi", String(params.dpi));
+  if (params.offsetPx !== undefined) {
+    fd.append("offset_px", String(Math.round(params.offsetPx)));
+  } else {
+    fd.append("offset_mm", String(params.offsetMm ?? 2));
+    fd.append("dpi", String(params.dpi ?? 300));
+  }
   if (params.closeRadiusPx !== undefined) {
     fd.append("close_radius_px", String(params.closeRadiusPx));
   }

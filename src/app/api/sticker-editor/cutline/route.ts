@@ -36,6 +36,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const offsetPxRaw = form.get("offset_px");
+  const offsetPx =
+    offsetPxRaw !== null
+      ? Math.max(0, Math.min(2000, Number(offsetPxRaw)))
+      : undefined;
   const offsetMm = Math.max(0, Math.min(20, Number(form.get("offset_mm") ?? 2)));
   const dpi = Math.max(72, Math.min(2400, Number(form.get("dpi") ?? 300)));
   const closeRadiusPx = form.get("close_radius_px")
@@ -52,8 +57,7 @@ export async function POST(request: NextRequest) {
     const result = await callCutlineService({
       file,
       filename,
-      offsetMm,
-      dpi,
+      ...(offsetPx !== undefined ? { offsetPx } : { offsetMm, dpi }),
       ...(closeRadiusPx !== undefined ? { closeRadiusPx } : {}),
       ...(smoothPasses !== undefined ? { smoothPasses } : {}),
     });

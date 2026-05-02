@@ -45,7 +45,8 @@ export type CutlineOutcome = CutlineSuccess | CutlineFailure;
  * @param imageUrl    URL de l'image (data URL, blob URL ou URL publique)
  * @param displayW    largeur d'affichage en pixels (canvas)
  * @param displayH    hauteur d'affichage en pixels (canvas)
- * @param offsetPx    marge de coupe en pixels d'affichage
+ * @param offsetPx    marge de coupe en pixels d'affichage. Convertie en
+ *                    pixels d'image originale via le ratio displayW / imageWidthPx.
  */
 export async function generateAlphaCutline(
   imageUrl: string,
@@ -67,26 +68,24 @@ export async function generateAlphaCutline(
     };
   }
 
-  // 2. Convertir offsetPx (display) → offsetMm (référence physique)
-  //    Le service Python travaille en pixels d'image originale, on lui passe
-  //    l'offset en mm. Pour ça, on fait l'hypothèse que la zone d'affichage
-  //    représente la même surface physique que l'image. Le serveur convertit
-  //    ensuite mm → px d'image originale via le DPI.
-  //
-  //    Ici on simplifie : on dérive offsetMm depuis le ratio d'affichage.
-  //    Si displayW=240px représente la largeur en mm de l'image, alors
-  //    1 mm display = 1 mm physique. On utilise directement le ratio.
-  //    À défaut d'info précise, on envoie un DPI standard et offsetMm calculé
-  //    pour produire un offset équivalent à offsetPx en display.
-  //
-  //    NB : la composante d'affichage repasse les coordonnées via scaleToDisplay()
-  //    après réception. Donc l'unité ici n'a pas besoin d'être en mm physiques.
-  const offsetMm = (offsetPx / Math.max(displayW, displayH)) * 30; // approximation
+  // 2. Lire les dimensions natives de l'image pour convertir offsetPx
+  //    (pixels d'affichage) → pixels d'image originale (= unité de travail
+  //    du backend). Cette conversion est exacte et indépendante du DPI.
+  const imgDims = await getImageNaturalSize(blob);
+  if (!imgDims) {
+    return {
+      ok: false,
+      error: "load_failed",
+      message: "Impossible de lire les dimensions de l'image.",
+    };
+  }
+  const displayMax = Math.max(displayW, displayH, 1);
+  const imageMax = Math.max(imgDims.width, imgDims.height, 1);
+  const offsetImagePx = (offsetPx * imageMax) / displayMax;
 
   const fd = new FormData();
   fd.append("file", blob, "image.png");
-  fd.append("offset_mm", String(offsetMm.toFixed(2)));
-  fd.append("dpi", "300");
+  fd.append("offset_px", String(Math.round(offsetImagePx)));
 
   // 3. Appel API
   let res: Response;
@@ -166,10 +165,9 @@ interface ServerSuccess {
     width_px: number;
     height_px: number;
     point_count: number;
+    contour_count: number;
     has_transparency: boolean;
     offset_px: number;
-    offset_mm: number;
-    dpi: number;
   };
 }
 interface ServerFailure {
@@ -198,6 +196,25 @@ function mapServerError(err: string): CutlineError {
     default:
       return "service_unavailable";
   }
+}
+
+/** Lit les dimensions naturelles d'une image depuis un Blob. */
+async function getImageNaturalSize(
+  blob: Blob,
+): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const img = new window.Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
 }
 
 /** Rescale un SVG path linéaire (M/L) coordonnée par coordonnée. */

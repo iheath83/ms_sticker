@@ -20,11 +20,15 @@ router = APIRouter()
 @router.post("/api/cutline")
 async def cutline_endpoint(
     file: Annotated[UploadFile, File(description="Image PNG/JPG/WEBP")],
+    # Offset peut être donné soit en pixels d'image originale (préféré),
+    # soit en mm + DPI. Si offset_px est fourni, il a la priorité.
+    offset_px: Annotated[int | None, Form(ge=0, le=2000)] = None,
     offset_mm: Annotated[float, Form(ge=0, le=20)] = 2.0,
     dpi: Annotated[int, Form(ge=72, le=2400)] = 300,
-    close_radius_px: Annotated[int, Form(ge=0, le=64)] = 8,
-    grid_size: Annotated[int, Form(ge=64, le=512)] = 220,
-    smooth_passes: Annotated[int, Form(ge=0, le=12)] = 5,
+    # Avancés (rarement utilisés côté front)
+    grid_size: Annotated[int, Form(ge=64, le=1024)] = 320,
+    close_radius_px: Annotated[int, Form(ge=0, le=64)] = 0,
+    smooth_passes: Annotated[int, Form(ge=0, le=12)] = 1,
 ) -> dict:
     if file.size and file.size > settings.max_image_bytes:
         raise HTTPException(
@@ -40,21 +44,17 @@ async def cutline_endpoint(
 
     image_bytes = await file.read()
     if not image_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="empty_file",
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="empty_file")
 
-    # Convertir offset_mm → offset_px (image originale)
-    # 1 inch = 25.4 mm, donc px = mm × dpi / 25.4
-    offset_px = int(round(offset_mm * dpi / 25.4))
+    if offset_px is None:
+        # Fallback : convertir mm → px d'image originale via DPI
+        offset_px = int(round(offset_mm * dpi / 25.4))
 
     outcome = generate_cutline(
         image_bytes,
         offset_px=offset_px,
         grid_size=grid_size,
         close_radius=close_radius_px,
-        pad=close_radius_px + 6,  # toujours > close_radius
         smooth_passes=smooth_passes,
     )
 
@@ -66,10 +66,9 @@ async def cutline_endpoint(
                 "width_px": outcome.width_px,
                 "height_px": outcome.height_px,
                 "point_count": outcome.point_count,
+                "contour_count": outcome.contour_count,
                 "has_transparency": outcome.has_transparency,
                 "offset_px": offset_px,
-                "offset_mm": offset_mm,
-                "dpi": dpi,
             },
         }
 
