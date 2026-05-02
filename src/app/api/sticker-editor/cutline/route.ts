@@ -7,7 +7,10 @@ const MAX_BYTES = 25 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anon";
-  const rl = await checkRateLimit(`sticker-cutline:${ip}`, 30, 5 * 60);
+  // 80 req / 5 min : tolérant pour le tuning interactif du slider de marge
+  // (chaque arrêt = une régénération). Le service Python est rapide (<500ms)
+  // donc pas de risque de surcharge.
+  const rl = await checkRateLimit(`sticker-cutline:${ip}`, 80, 5 * 60);
   if (!rl.allowed) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }

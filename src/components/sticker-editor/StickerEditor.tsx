@@ -212,18 +212,30 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
     setBgRemoveError(null);
   }, [state.image?.filename]);
 
-  // Déclencher automatiquement la génération quand on passe en mode alpha
+  // Déclencher automatiquement la génération quand on passe en mode alpha.
+  // Debounce 600ms : si l'utilisateur fait glisser le slider de marge,
+  // on attend qu'il s'arrête avant de régénérer (sinon on spam l'API et
+  // on déclenche le rate limit).
   useEffect(() => {
     if (
-      state.settings.cutline.method === "alpha" &&
-      state.image &&
-      state.settings.cutline.status === "not_generated" &&
-      !isGeneratingCutline
+      state.settings.cutline.method !== "alpha" ||
+      !state.image ||
+      state.settings.cutline.status !== "not_generated" ||
+      isGeneratingCutline
     ) {
-      void handleGenerateCutline();
+      return;
     }
+    const t = setTimeout(() => {
+      void handleGenerateCutline();
+    }, 600);
+    return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.settings.cutline.method, state.image?.url, state.settings.cutline.status]);
+  }, [
+    state.settings.cutline.method,
+    state.image?.url,
+    state.settings.cutline.status,
+    state.settings.cutline.offsetMm,
+  ]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
