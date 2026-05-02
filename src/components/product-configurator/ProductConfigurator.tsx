@@ -589,7 +589,7 @@ function FileUploadStep({
 // ─── Main Configurator ────────────────────────────────────────────────────────
 
 export function ProductConfigurator({
-  productId, productName, imageUrl, config, shapes, sizes, materials, laminations, aggregate, slug,
+  productId, productName, imageUrl, config, shapes, sizes, materials, laminations, aggregate, slug, enableProductionDownload = false,
 }: {
   productId: string;
   productName: string;
@@ -601,6 +601,9 @@ export function ProductConfigurator({
   laminations: StickerLamination[];
   aggregate?: { averageRating: number; reviewCount: number } | null;
   slug: string;
+  /** Toggle back-office : autorise le téléchargement du PDF de production
+   *  depuis l'éditeur (QA / tests internes). */
+  enableProductionDownload?: boolean;
 }) {
   const router = useRouter();
   const [state, dispatch] = useReducer(
@@ -840,6 +843,7 @@ export function ProductConfigurator({
              le format choisi. Activé uniquement si le produit autorise une
              taille personnalisée. */
           allowResize={config.allowCustomWidth}
+          enableProductionDownload={enableProductionDownload}
           onValidate={handleEditorValidate}
           onClose={() => setShowEditor(false)}
         />

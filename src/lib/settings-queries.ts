@@ -15,6 +15,7 @@ export const SETTINGS_DEFAULTS = {
   expressShippingCents: 990,
   freeShippingThresholdCents: 5000,
   quantityStep: 25,
+  enableProductionDownload: false,
   updatedAt: new Date(),
 };
 

@@ -32,6 +32,7 @@ export async function updateSiteSettings(data: {
   expressShippingCents: number;
   freeShippingThresholdCents: number;
   quantityStep: number;
+  enableProductionDownload: boolean;
 }) {
   await requireAdmin();
   await ensureSettingsRow();
@@ -73,6 +74,7 @@ const SETTINGS_DEFAULTS = {
   expressShippingCents: 990,
   freeShippingThresholdCents: 5000,
   quantityStep: 25,
+  enableProductionDownload: false,
   updatedAt: new Date(),
 };
 

@@ -573,6 +573,9 @@ export const siteSettings = pgTable("site_settings", {
   expressShippingCents:          integer("express_shipping_cents").notNull().default(990),
   freeShippingThresholdCents:    integer("free_shipping_threshold_cents").notNull().default(5000),
   quantityStep:                  integer("quantity_step").notNull().default(25),
+  // Permet à l'équipe d'exporter un PDF 300 dpi sans fond avec cut contour
+  // spot magenta directement depuis l'éditeur, sans passer par une commande.
+  enableProductionDownload:      boolean("enable_production_download").notNull().default(false),
   updatedAt:                     timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

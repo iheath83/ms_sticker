@@ -40,6 +40,9 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
   const [exprShipping, setExprShipping] = useState(String((settings.expressShippingCents ?? 990) / 100));
   const [freeThreshold, setFreeThreshold] = useState(String((settings.freeShippingThresholdCents ?? 5000) / 100));
   const [qtyStep, setQtyStep] = useState(String(settings.quantityStep ?? 25));
+  const [enableProductionDownload, setEnableProductionDownload] = useState(
+    settings.enableProductionDownload ?? false,
+  );
 
   function handleSave() {
     startTransition(async () => {
@@ -55,6 +58,7 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
         expressShippingCents:       Math.round(parseFloat(exprShipping) * 100) || 990,
         freeShippingThresholdCents: Math.round(parseFloat(freeThreshold) * 100) || 5000,
         quantityStep:               parseInt(qtyStep, 10) || 25,
+        enableProductionDownload,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -237,6 +241,69 @@ export function SettingsClient({ settings }: { settings: SiteSettings }) {
             <input type="number" step="1" min="1" value={qtyStep} onChange={(e) => setQtyStep(e.target.value)} style={inputStyle} placeholder="25" />
           </div>
         </div>
+      </div>
+
+      {/* Production download (debug / QA) */}
+      <div style={sectionStyle}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: enableProductionDownload ? 16 : 0 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#0A0E27", marginBottom: 4 }}>
+              Téléchargement du fichier de production (QA)
+            </div>
+            <div style={{ fontSize: 12, color: "#6B7280", maxWidth: 480 }}>
+              Ajoute un bouton « Télécharger le PDF de production » dans l&apos;éditeur visuel.
+              Le PDF est généré en 300 dpi, sans fond, avec un cut contour spot magenta CMJN
+              (épaisseur 0,2 mm) à la taille exacte choisie. À activer pour tester les
+              sorties d&apos;impression sans passer commande.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setEnableProductionDownload((v) => !v)}
+            aria-label="Activer le téléchargement du fichier de production"
+            style={{
+              width: 52,
+              height: 28,
+              borderRadius: 999,
+              border: "none",
+              background: enableProductionDownload ? "#0B3D91" : "#D1D5DB",
+              cursor: "pointer",
+              position: "relative",
+              transition: "background 0.2s",
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: 4,
+                left: enableProductionDownload ? 28 : 4,
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                background: "#fff",
+                transition: "left 0.2s",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+              }}
+            />
+          </button>
+        </div>
+        {enableProductionDownload && (
+          <div
+            style={{
+              background: "#EFF6FF",
+              border: "1px solid #BFDBFE",
+              borderRadius: 8,
+              padding: "10px 14px",
+              fontSize: 12,
+              color: "#1D4ED8",
+              fontWeight: 600,
+            }}
+          >
+            ℹ️ Le bouton de téléchargement est <strong>actif</strong> dans l&apos;éditeur pour tous les visiteurs.
+            Pensez à le désactiver une fois les tests terminés.
+          </div>
+        )}
       </div>
 
       {/* Save */}

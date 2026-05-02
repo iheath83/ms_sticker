@@ -19,6 +19,7 @@ import {
   type EditorValidationOutput,
   type EditorImage,
 } from "@/lib/sticker-editor/editor.types";
+import { buildCutPathMm } from "@/lib/sticker-editor/cut-path-builder";
 import type { StickerShape } from "@/db/schema";
 // Konva chargé côté client uniquement (pas de SSR)
 const EditorCanvasClient = dynamic(() => import("./EditorCanvasClient"), {
@@ -55,6 +56,10 @@ interface Props {
    *  Transformer Konva). Activer uniquement quand le produit autorise une
    *  taille personnalisée — sinon le visuel doit s'adapter au format strict. */
   allowResize?: boolean;
+  /** Affiche un bouton « Télécharger le PDF de production » (PDF 300 dpi
+   *  sans fond avec cut contour spot magenta CMJN, 0,2 mm). Toggle back-office
+   *  → utilisé pour faire des tests de sortie de fichier sans passer commande. */
+  enableProductionDownload?: boolean;
 }
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -76,6 +81,7 @@ export function StickerEditor({
   selectedShapeId,
   onShapeChange,
   allowResize = false,
+  enableProductionDownload = false,
 }: Props) {
   const [state, dispatch] = useReducer(
     editorReducer,
@@ -108,6 +114,8 @@ export function StickerEditor({
   const [isRemovingBg, setIsRemovingBg] = useState(false);
   const [bgRemoveError, setBgRemoveError] = useState<string | null>(null);
   const [bgRemoveDone, setBgRemoveDone] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [pdfExportError, setPdfExportError] = useState<string | null>(null);
 
   // Mesure la largeur réelle du conteneur canvas
   useEffect(() => {
@@ -252,6 +260,79 @@ export function StickerEditor({
     setBgRemoveDone(false);
     setBgRemoveError(null);
   }, [state.image?.filename]);
+
+  // ── Téléchargement du PDF de production (QA back-office) ──
+  const handleDownloadPdf = useCallback(async () => {
+    if (!state.image || isExportingPdf) return;
+    setPdfExportError(null);
+
+    const { image, settings } = state;
+    const cutPathMm = buildCutPathMm({
+      method: settings.cutline.method,
+      image,
+      offsetMm: settings.cutline.offsetMm,
+      alphaPath: settings.cutline.alphaCutlinePath,
+    });
+    if (!cutPathMm) {
+      setPdfExportError(
+        settings.cutline.method === "alpha"
+          ? "Le contour à la forme n'est pas encore généré."
+          : "Impossible de calculer le contour de découpe.",
+      );
+      return;
+    }
+
+    setIsExportingPdf(true);
+    try {
+      // Récupère le binaire de l'image originale (object URL ou data URL).
+      const imgRes = await fetch(image.url);
+      const imgBlob = await imgRes.blob();
+      const mime = imgBlob.type || image.mimeType || "image/png";
+
+      const form = new FormData();
+      form.append("file", imgBlob, image.filename);
+      form.append("width_mm", String(widthMm));
+      form.append("height_mm", String(heightMm));
+      form.append("image_center_x_mm", String(image.xMm));
+      form.append("image_center_y_mm", String(image.yMm));
+      form.append("image_width_mm", String(image.widthMm));
+      form.append("image_height_mm", String(image.heightMm));
+      form.append("image_rotation_deg", String(image.rotationDeg));
+      form.append("cut_path_mm", cutPathMm);
+      form.append("product_name", productName);
+
+      const res = await fetch("/api/sticker-editor/export-pdf", {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Erreur ${res.status}`);
+      }
+      const pdfBlob = await res.blob();
+      const url = URL.createObjectURL(pdfBlob);
+      const safeName = (image.filename || "sticker").replace(/\.[^.]+$/, "");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${safeName}-prod.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Libération différée le temps que le navigateur attache le download.
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      // Mime check pour message d'avertissement (non bloquant)
+      if (mime !== "image/png") {
+        setPdfExportError(
+          "PDF généré. Pour une qualité maximale, préférez un PNG transparent.",
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      setPdfExportError(`Échec du téléchargement : ${msg}`);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [state, widthMm, heightMm, productName, isExportingPdf]);
 
   // Déclencher automatiquement la génération du contour alpha :
   //  - Mode "À la forme" → le path est utilisé pour le rendu de la cutline
@@ -637,6 +718,21 @@ export function StickerEditor({
               </SideSection>
             )}
 
+            {/* ── PDF de production (QA back-office) ── */}
+            {image && enableProductionDownload && (
+              <SideSection title="Test de sortie fichier">
+                <ProductionPdfDownload
+                  isExporting={isExportingPdf}
+                  error={pdfExportError}
+                  onDownload={handleDownloadPdf}
+                  cutlineReady={
+                    state.settings.cutline.method !== "alpha" ||
+                    state.settings.cutline.status === "generated"
+                  }
+                />
+              </SideSection>
+            )}
+
             {/* ── Validation ── */}
             <ValidationPanel validation={validation} />
 
@@ -990,6 +1086,78 @@ function BackgroundRemoveAction({
         </div>
       )}
 
+      {error && (
+        <div
+          style={{
+            padding: "8px 10px",
+            borderRadius: 8,
+            fontSize: 12,
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            color: "#DC2626",
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProductionPdfDownload({
+  isExporting,
+  error,
+  onDownload,
+  cutlineReady,
+}: {
+  isExporting: boolean;
+  error: string | null;
+  onDownload: () => void;
+  cutlineReady: boolean;
+}) {
+  const disabled = isExporting || !cutlineReady;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <p style={{ margin: 0, fontSize: 12, color: "#6B7280", lineHeight: 1.45 }}>
+        PDF 300 dpi sans fond, cut contour <strong>spot magenta CMJN</strong>{" "}
+        (CutContour, 0,2 mm), à la taille exacte choisie.
+      </p>
+      <button
+        type="button"
+        onClick={onDownload}
+        disabled={disabled}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          padding: "10px 14px",
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: disabled ? "not-allowed" : "pointer",
+          background: disabled ? "#E5E7EB" : "#0B3D91",
+          color: disabled ? "#9CA3AF" : "#FFFFFF",
+          border: "none",
+          transition: "background 120ms",
+        }}
+      >
+        {isExporting ? (
+          <>
+            <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>
+              ⏳
+            </span>
+            Génération du PDF…
+          </>
+        ) : (
+          <>↓ Télécharger le PDF de production</>
+        )}
+      </button>
+      {!cutlineReady && (
+        <p style={{ margin: 0, fontSize: 11, color: "#B45309" }}>
+          Le contour à la forme doit être généré avant l&apos;export.
+        </p>
+      )}
       {error && (
         <div
           style={{

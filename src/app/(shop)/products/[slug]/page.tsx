@@ -7,6 +7,7 @@ import { ProductReviews } from "@/components/reviews/ProductReviews";
 import { db } from "@/db";
 import { reviewAggregates } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { getSiteSettingsQuery } from "@/lib/settings-queries";
 import type { Metadata } from "next";
 
 interface Props {
@@ -56,9 +57,10 @@ export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [aggregate, stickerCatalog] = await Promise.all([
+  const [aggregate, stickerCatalog, siteSettings] = await Promise.all([
     getProductAggregate(product.id),
     getStickerCatalogForProduct(product.id),
+    getSiteSettingsQuery(),
   ]);
 
   const appUrl = (process.env.APP_URL ?? "https://msadhesif.fr").replace(/\/$/, "");
@@ -104,6 +106,7 @@ export default async function ProductPage({ params }: Props) {
           sizes={stickerCatalog.sizes}
           materials={stickerCatalog.materials}
           laminations={stickerCatalog.laminations}
+          enableProductionDownload={siteSettings.enableProductionDownload ?? false}
           {...(aggregate ? { aggregate } : {})}
         />
       ) : (
