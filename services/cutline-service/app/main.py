@@ -27,10 +27,16 @@ log = logging.getLogger("cutline-service")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    log.info("Booting cutline-service…")
-    warmup_rembg(settings.rembg_model)
-    log.info("rembg model %s ready", settings.rembg_model)
+    log.info("Booting cutline-service on port 8000…")
+    log.info("Configured rembg model: %s", settings.rembg_model)
+    log.info("API key configured: %s", "yes" if settings.api_key else "NO (will reject all requests)")
+    # Warmup non-bloquant : si rembg crash, le service reste up
+    ok = warmup_rembg(settings.rembg_model)
+    if not ok:
+        log.warning("rembg warmup failed — /api/background/remove will retry on demand")
+    log.info("cutline-service ready to accept connections")
     yield
+    log.info("cutline-service shutting down")
 
 
 app = FastAPI(

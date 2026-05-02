@@ -19,7 +19,7 @@ services:
       postgres:
         condition: service_healthy
       cutline:
-        condition: service_healthy
+        condition: service_started
     networks:
       - web
       - internal
@@ -78,7 +78,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      API_KEY: ${CUTLINE_SERVICE_API_KEY:?required}
+      API_KEY: ${CUTLINE_SERVICE_API_KEY}
       REMBG_MODEL: ${CUTLINE_REMBG_MODEL:-isnet-general-use}
     networks:
       - internal
@@ -86,8 +86,8 @@ services:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 30s
+      retries: 5
+      start_period: 60s
 
   # ─── DB migration job (runs once at deploy, then exits) ────────────────────
   migrate:
