@@ -63,12 +63,6 @@ const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml",
 const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.svg,.pdf";
 const MAX_CANVAS_WIDTH = 520;
 
-// Padding interne du canvas Konva (cf. EditorCanvasClient). Doit rester en
-// phase pour que le repère pièce de 2 € soit à la même échelle que le sticker.
-const CANVAS_PAD_PX = 32;
-// Ø d'une pièce de 2 € (mm) — référence universelle pour la taille.
-const COIN_2_EUR_DIAMETER_MM = 25.75;
-
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 export function StickerEditor({
@@ -503,9 +497,6 @@ export function StickerEditor({
                   />
                 </div>
 
-                {/* Repère d'échelle : pièce de 2 € à la même échelle que le canvas */}
-                <CoinScaleReference containerWidth={containerWidth} canvasWidthMm={widthMm} />
-
                 {/* Légende des couleurs */}
                 <Legend settings={settings} />
 
@@ -867,68 +858,6 @@ function ToggleRow({ label, color, checked, onChange }: {
       <span style={{ flex: 1 }}>{label}</span>
       <input type="checkbox" checked={checked} onChange={onChange} style={{ accentColor: color }} />
     </label>
-  );
-}
-
-/**
- * Affiche un cercle représentant une pièce de 2 € (Ø 25,75 mm) à la même
- * échelle que le canvas Konva. Sert de repère universel pour aider le
- * client à se rendre compte de la taille réelle du sticker.
- */
-function CoinScaleReference({
-  containerWidth,
-  canvasWidthMm,
-}: {
-  containerWidth: number;
-  canvasWidthMm: number;
-}) {
-  const scale = computeScale(containerWidth - 2 * CANVAS_PAD_PX, canvasWidthMm);
-  const coinPx = Math.max(8, COIN_2_EUR_DIAMETER_MM * scale);
-  const fontSize = Math.max(8, Math.min(14, coinPx * 0.32));
-
-  return (
-    <div
-      style={{
-        marginTop: 12,
-        padding: "10px 14px",
-        background: "#FFFBEB",
-        border: "1px solid #FDE68A",
-        borderRadius: 10,
-        display: "flex",
-        alignItems: "center",
-        gap: 12,
-      }}
-      aria-label="Repère d'échelle : pièce de 2 €"
-    >
-      <div
-        aria-hidden
-        style={{
-          width: coinPx,
-          height: coinPx,
-          borderRadius: "50%",
-          background: "radial-gradient(circle at 35% 30%, #FCD34D, #B45309)",
-          border: "1.5px solid #92400E",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#92400E",
-          fontSize,
-          fontWeight: 800,
-          flexShrink: 0,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.18)",
-        }}
-      >
-        2€
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>
-          Repère d&apos;échelle
-        </span>
-        <span style={{ fontSize: 11, color: "#B45309", lineHeight: 1.4 }}>
-          Pièce de 2 € (Ø 25,75 mm) à la même échelle que votre sticker.
-        </span>
-      </div>
-    </div>
   );
 }
 
