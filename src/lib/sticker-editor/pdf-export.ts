@@ -90,13 +90,15 @@ export async function buildProductionPdf(input: PdfExportInput): Promise<Uint8Ar
   ]);
   const csRef = ctx.register(cutContourCS);
 
-  // Attacher le ColorSpace aux Resources de la page
+  // Attacher le ColorSpace aux Resources de la page.
+  // ⚠ `lookup(key, type)` jette si la clef n'existe pas → on utilise
+  // `lookupMaybe` (retourne undefined silencieusement).
   let resources = page.node.Resources();
   if (!resources) {
     resources = ctx.obj({});
     page.node.set(PDFName.of("Resources"), resources);
   }
-  let colorSpaces = resources.lookup(PDFName.of("ColorSpace"), PDFDict);
+  let colorSpaces = resources.lookupMaybe(PDFName.of("ColorSpace"), PDFDict);
   if (!colorSpaces) {
     colorSpaces = ctx.obj({});
     resources.set(PDFName.of("ColorSpace"), colorSpaces);
