@@ -33,6 +33,12 @@ interface Props {
   heightMm: number;
   onValidate: (output: EditorValidationOutput) => void;
   onClose: () => void;
+  /**
+   * Si false, le modal est masqué (display: none) mais le composant reste
+   * monté → l'image et les paramètres sont préservés entre les ouvertures.
+   * Défaut : true.
+   */
+  isOpen?: boolean;
 }
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -43,7 +49,7 @@ const MAX_CANVAS_WIDTH = 520;
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-export function StickerEditor({ productName, widthMm, heightMm, onValidate, onClose }: Props) {
+export function StickerEditor({ productName, widthMm, heightMm, onValidate, onClose, isOpen = true }: Props) {
   const [state, dispatch] = useReducer(
     editorReducer,
     undefined,
@@ -283,9 +289,11 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
       style={{
         position: "fixed", inset: 0, zIndex: 9999,
         background: "rgba(10,14,39,0.72)", backdropFilter: "blur(4px)",
-        display: "flex", flexDirection: "column",
+        display: isOpen ? "flex" : "none",
+        flexDirection: "column",
         overflow: "hidden",
       }}
+      aria-hidden={!isOpen}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* ── Modal ── */}

@@ -42,7 +42,7 @@ export function fitImageToCanvas(
   imageHeightPx: number,
   canvasWidthMm: number,
   canvasHeightMm: number,
-  maxFillRatio = 0.85,
+  maxFillRatio = 0.7,
 ): { widthMm: number; heightMm: number } {
   const ratio = imageWidthPx / imageHeightPx;
   const maxW = canvasWidthMm * maxFillRatio;

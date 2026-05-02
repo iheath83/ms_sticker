@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Stage, Layer, Rect, Image as KonvaImage, Transformer, Path, Line } from "react-konva";
+import { Stage, Layer, Rect, Image as KonvaImage, Transformer, Path, Line, Group } from "react-konva";
 import type Konva from "konva";
 import type { EditorImage, EditorSettings } from "@/lib/sticker-editor/editor.types";
 import { mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
@@ -38,9 +38,14 @@ export default function EditorCanvasClient({
   const imageNodeRef = useRef<Konva.Image | null>(null);
   const [konvaImg, setKonvaImg] = useState<HTMLImageElement | null>(null);
 
-  const scale = computeScale(containerWidth, canvasWidthMm);
-  const stageW = canvasWidthMm * scale;
-  const stageH = canvasHeightMm * scale;
+  // Padding visuel interne du canvas Konva : laisse de l'espace autour
+  // du sticker pour voir cutline + bleed sans qu'ils touchent le bord.
+  const PAD_PX = 32;
+  const scale = computeScale(containerWidth - 2 * PAD_PX, canvasWidthMm);
+  const innerW = canvasWidthMm * scale;
+  const innerH = canvasHeightMm * scale;
+  const stageW = innerW + 2 * PAD_PX;
+  const stageH = innerH + 2 * PAD_PX;
 
   // Charger l'image HTML pour Konva
   useEffect(() => {
@@ -122,69 +127,83 @@ export default function EditorCanvasClient({
 
   return (
     <Stage ref={stageRef} width={stageW} height={stageH} style={{ cursor: "default" }}>
-      {/* ── Fond blanc ── */}
-      <Layer>
-        <Rect x={0} y={0} width={stageW} height={stageH} fill="#ffffff" />
+      {/* ── Fond global (gris très léger) + zone du sticker en blanc ── */}
+      <Layer listening={false}>
+        <Rect x={0} y={0} width={stageW} height={stageH} fill="#F9FAFB" />
+        <Rect
+          x={PAD_PX}
+          y={PAD_PX}
+          width={innerW}
+          height={innerH}
+          fill="#ffffff"
+          stroke="#E5E7EB"
+          strokeWidth={1}
+        />
       </Layer>
 
       {/* ── Fond perdu (sous l'image) ── */}
       {settings.showBleed && bbGuides?.bleed && settings.cutline.method === "bounding_box" && (
         <Layer>
-          <Rect
-            {...bbGuides.bleed}
-            stroke={COLOR_BLEED}
-            strokeWidth={1.5}
-            fill="rgba(248,113,113,0.06)"
-            dash={DASHES_GUIDE}
-            listening={false}
-          />
+          <Group x={PAD_PX} y={PAD_PX}>
+            <Rect
+              {...bbGuides.bleed}
+              stroke={COLOR_BLEED}
+              strokeWidth={1.5}
+              fill="rgba(248,113,113,0.06)"
+              dash={DASHES_GUIDE}
+              listening={false}
+            />
+          </Group>
         </Layer>
       )}
 
       {/* ── Artwork + Transformer ── */}
       <Layer>
-        {konvaImg && image && (
-          <KonvaImage
-            ref={imageNodeRef}
-            image={konvaImg}
-            x={imgX}
-            y={imgY}
-            width={imgW}
-            height={imgH}
-            rotation={image.rotationDeg}
-            draggable
-            onDragEnd={handleDragEnd}
-            onTransformEnd={handleTransformEnd}
+        <Group x={PAD_PX} y={PAD_PX}>
+          {konvaImg && image && (
+            <KonvaImage
+              ref={imageNodeRef}
+              image={konvaImg}
+              x={imgX}
+              y={imgY}
+              width={imgW}
+              height={imgH}
+              rotation={image.rotationDeg}
+              draggable
+              onDragEnd={handleDragEnd}
+              onTransformEnd={handleTransformEnd}
+            />
+          )}
+          <Transformer
+            ref={transformerRef}
+            keepRatio={true}
+            enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
+            rotateEnabled={true}
+            boundBoxFunc={(oldBox, newBox) => {
+              if (Math.abs(newBox.width) < 20 || Math.abs(newBox.height) < 20) return oldBox;
+              return newBox;
+            }}
           />
-        )}
-        <Transformer
-          ref={transformerRef}
-          /* Resize toujours proportionnel */
-          keepRatio={true}
-          enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
-          rotateEnabled={true}
-          boundBoxFunc={(oldBox, newBox) => {
-            if (Math.abs(newBox.width) < 20 || Math.abs(newBox.height) < 20) return oldBox;
-            return newBox;
-          }}
-        />
+        </Group>
       </Layer>
 
       {/* ── Ligne de coupe alpha (suit l'image) ── */}
       {settings.showCutline && hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
         <Layer listening={false}>
-          <Path
-            x={pathX}
-            y={pathY}
-            offsetX={imgW / 2}
-            offsetY={imgH / 2}
-            rotation={image.rotationDeg}
-            data={settings.cutline.alphaCutlinePath}
-            stroke={cutlineColor}
-            strokeWidth={1.5}
-            fill="transparent"
-            dash={[5, 3]}
-          />
+          <Group x={PAD_PX} y={PAD_PX}>
+            <Path
+              x={pathX}
+              y={pathY}
+              offsetX={imgW / 2}
+              offsetY={imgH / 2}
+              rotation={image.rotationDeg}
+              data={settings.cutline.alphaCutlinePath}
+              stroke={cutlineColor}
+              strokeWidth={1.5}
+              fill="transparent"
+              dash={[5, 3]}
+            />
+          </Group>
         </Layer>
       )}
 
@@ -193,57 +212,65 @@ export default function EditorCanvasClient({
         settings.cutline.method === "bounding_box" &&
         bbGuides?.cutline && (
           <Layer listening={false}>
-            <Rect
-              {...bbGuides.cutline}
-              stroke={cutlineColor}
-              strokeWidth={1.5}
-              fill="transparent"
-              dash={[5, 3]}
-            />
+            <Group x={PAD_PX} y={PAD_PX}>
+              <Rect
+                {...bbGuides.cutline}
+                stroke={cutlineColor}
+                strokeWidth={1.5}
+                fill="transparent"
+                dash={[5, 3]}
+              />
+            </Group>
           </Layer>
         )}
 
       {/* ── Zone de sécurité (bounding box seulement — masquée en mode alpha) ── */}
       {settings.showSafety && bbGuides?.safety && settings.cutline.method === "bounding_box" && (
         <Layer listening={false}>
-          <Rect
-            {...bbGuides.safety}
-            stroke={COLOR_SAFETY}
-            strokeWidth={1}
-            fill="rgba(34,197,94,0.04)"
-            dash={DASHES_GUIDE}
-          />
+          <Group x={PAD_PX} y={PAD_PX}>
+            <Rect
+              {...bbGuides.safety}
+              stroke={COLOR_SAFETY}
+              strokeWidth={1}
+              fill="rgba(34,197,94,0.04)"
+              dash={DASHES_GUIDE}
+            />
+          </Group>
         </Layer>
       )}
 
       {/* ── Fond perdu pour alpha cutline ── */}
       {settings.showBleed && settings.cutline.method === "alpha" && hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
         <Layer listening={false}>
-          <Path
-            x={pathX}
-            y={pathY}
-            offsetX={imgW / 2}
-            offsetY={imgH / 2}
-            rotation={image.rotationDeg}
-            data={scaledPath(
-              settings.cutline.alphaCutlinePath,
-              imgW,
-              imgH,
-              offsetPx,
-              mmToPx(settings.bleedMm, scale),
-            )}
-            stroke={COLOR_BLEED}
-            strokeWidth={1}
-            fill="rgba(248,113,113,0.06)"
-            dash={DASHES_GUIDE}
-          />
+          <Group x={PAD_PX} y={PAD_PX}>
+            <Path
+              x={pathX}
+              y={pathY}
+              offsetX={imgW / 2}
+              offsetY={imgH / 2}
+              rotation={image.rotationDeg}
+              data={scaledPath(
+                settings.cutline.alphaCutlinePath,
+                imgW,
+                imgH,
+                offsetPx,
+                mmToPx(settings.bleedMm, scale),
+              )}
+              stroke={COLOR_BLEED}
+              strokeWidth={1}
+              fill="rgba(248,113,113,0.06)"
+              dash={DASHES_GUIDE}
+            />
+          </Group>
         </Layer>
       )}
 
       {/* ── Grille ── */}
       {settings.showGrid && (
         <Layer listening={false}>
-          <GridLines stageW={stageW} stageH={stageH} stepMm={10} scale={scale} />
+          <Group x={PAD_PX} y={PAD_PX}>
+            <GridLines stageW={innerW} stageH={innerH} stepMm={10} scale={scale} />
+          </Group>
         </Layer>
       )}
     </Stage>

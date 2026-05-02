@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-05-02)
 
 ## Corpus Check
-- 285 files · ~154,062 words
+- 285 files · ~154,684 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 899 nodes · 908 edges · 221 communities detected
+- 906 nodes · 917 edges · 221 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
@@ -240,9 +240,9 @@
 5. `requireAdmin()` - 12 edges
 6. `PATCH()` - 10 edges
 7. `DELETE()` - 10 edges
-8. `requireAdmin()` - 7 edges
-9. `getClient()` - 7 edges
-10. `getBucket()` - 7 edges
+8. `generate_cutline()` - 7 edges
+9. `requireAdmin()` - 7 edges
+10. `getClient()` - 7 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `GET()` --calls--> `escapeXml()`  [EXTRACTED]
@@ -287,32 +287,32 @@ Cohesion: 0.27
 Nodes (13): buttonBlock(), dividerBlock(), footerBlock(), heroBlock(), logoBlock(), makeBody(), makeColumn(), makeDesign() (+5 more)
 
 ### Community 7 - "Community 7"
+Cohesion: 0.24
+Nodes (10): CutlineFailure, CutlineSuccess, generate_cutline(), _grid_offset(), Génération de ligne de coupe (kiss cut) façon prettygoodstickers.com.  Stratégie, Convertit un offset en pixels d'image originale vers la grille d'analyse., Moyenne mobile cyclique [0.25, 0.5, 0.25]. Conserve la forme., Génère un SVG path en coordonnées **pixels d'image originale**.      Args: (+2 more)
+
+### Community 8 - "Community 8"
 Cohesion: 0.18
 Nodes (4): emptyForm(), handleSave(), openNew(), showToast()
 
-### Community 8 - "Community 8"
+### Community 9 - "Community 9"
 Cohesion: 0.17
 Nodes (2): handleSave(), showToast()
 
-### Community 9 - "Community 9"
+### Community 10 - "Community 10"
 Cohesion: 0.29
 Nodes (12): archiveReview(), createManualReviewRequest(), getAdminReview(), getAdminReviewRequests(), getAdminReviews(), getReviewSettings(), importReviewsFromCSV(), publishReview() (+4 more)
 
-### Community 10 - "Community 10"
+### Community 11 - "Community 11"
 Cohesion: 0.18
 Nodes (2): handleSubmitOrder(), validate()
 
-### Community 11 - "Community 11"
+### Community 12 - "Community 12"
 Cohesion: 0.36
 Nodes (10): buildStorageKey(), deleteObject(), ensureBucketExists(), getBucket(), getClient(), getPresignedDownloadUrl(), getPresignedUploadUrl(), sanitizeFilename() (+2 more)
 
-### Community 12 - "Community 12"
+### Community 13 - "Community 13"
 Cohesion: 0.24
 Nodes (8): createCompanyCustomer(), createCreditNote(), createIndividualCustomer(), findCustomerByEmail(), getConfig(), getOrCreateCustomer(), plFetch(), vatRateToCode()
-
-### Community 13 - "Community 13"
-Cohesion: 0.29
-Nodes (8): CutlineFailure, CutlineSuccess, generate_cutline(), Génération de ligne de coupe (kiss cut) via OpenCV.  Pipeline robuste, beaucoup, Moyenne mobile cyclique [0.25, 0.5, 0.25] sur N passes., Génère un SVG path en coordonnées 0..width × 0..height en pixels d'image origina, _smooth_cyclic(), _to_svg_path()
 
 ### Community 14 - "Community 14"
 Cohesion: 0.18
@@ -335,44 +335,44 @@ Cohesion: 0.33
 Nodes (7): createPage(), deletePage(), getAllPagesAdmin(), getPageAdmin(), requireAdmin(), seedDefaultPages(), updatePage()
 
 ### Community 19 - "Community 19"
-Cohesion: 0.39
-Nodes (8): authHeader(), autoCreateSendCloudOrder(), createParcel(), getFromAddress(), getLabelUrl(), getShippingMethods(), requireAdmin(), scFetch()
+Cohesion: 0.22
+Nodes (5): Suppression de fond via rembg (modèle IS-Net / U²-Net ONNX).  Le warmup est tolé, Charge le modèle en mémoire au démarrage. Retourne False si échec., Renvoie un PNG avec fond transparent.      Si la session n'est pas chargée, tent, remove_background(), warmup_rembg()
 
 ### Community 20 - "Community 20"
 Cohesion: 0.39
-Nodes (7): createNavItem(), deleteNavItem(), getNavTreeAdmin(), reorderNavItems(), requireAdmin(), seedDefaultNav(), updateNavItem()
+Nodes (8): authHeader(), autoCreateSendCloudOrder(), createParcel(), getFromAddress(), getLabelUrl(), getShippingMethods(), requireAdmin(), scFetch()
 
 ### Community 21 - "Community 21"
+Cohesion: 0.39
+Nodes (7): createNavItem(), deleteNavItem(), getNavTreeAdmin(), reorderNavItems(), requireAdmin(), seedDefaultNav(), updateNavItem()
+
+### Community 22 - "Community 22"
 Cohesion: 0.33
 Nodes (5): requireAdmin(), resetEmailTemplate(), saveEmailTemplate(), seedEmailTemplates(), seedUnlayerDesigns()
 
-### Community 22 - "Community 22"
+### Community 23 - "Community 23"
+Cohesion: 0.33
+Nodes (5): generateAlphaCutline(), getImageNaturalSize(), isApiResponse(), mapServerError(), scaleSvgPath()
+
+### Community 24 - "Community 24"
 Cohesion: 0.44
 Nodes (8): buildReminderEmailHtml(), buildRequestEmailHtml(), buildReviewLink(), buildThankYouEmailHtml(), escapeHtml(), sendReminderEmail(), sendReviewRequestEmail(), sendThankYouEmail()
 
-### Community 23 - "Community 23"
-Cohesion: 0.25
-Nodes (5): Suppression de fond via rembg (modèle IS-Net / U²-Net ONNX)., À appeler au démarrage pour charger le modèle ONNX en mémoire., Renvoie un PNG avec fond transparent., remove_background(), warmup_rembg()
-
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.29
 Nodes (2): closeForm(), handleSave()
 
-### Community 25 - "Community 25"
+### Community 26 - "Community 26"
 Cohesion: 0.32
 Nodes (3): buildPayload(), closeForm(), handleSave()
 
-### Community 26 - "Community 26"
+### Community 27 - "Community 27"
 Cohesion: 0.29
 Nodes (2): handleEditorValidate(), handleFileSelect()
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 0.25
 Nodes (2): ChronopostProvider, ColissimoProvider
-
-### Community 28 - "Community 28"
-Cohesion: 0.36
-Nodes (4): generateAlphaCutline(), isApiResponse(), mapServerError(), scaleSvgPath()
 
 ### Community 29 - "Community 29"
 Cohesion: 0.29
@@ -423,28 +423,28 @@ Cohesion: 0.33
 Nodes (1): MS Adhésif – Cutline Service.  Microservice Python qui traite les images uploadé
 
 ### Community 41 - "Community 41"
+Cohesion: 0.33
+Nodes (5): healthz(), Health check endpoint (utilisé par Docker healthcheck + Traefik)., Liveness check : 200 dès que uvicorn répond (pas besoin de rembg)., Readiness : 200 seulement si le modèle rembg est chargé., readyz()
+
+### Community 42 - "Community 42"
 Cohesion: 0.47
 Nodes (3): acceptAll(), acceptEssential(), storeConsent()
 
-### Community 42 - "Community 42"
+### Community 43 - "Community 43"
 Cohesion: 0.6
 Nodes (5): baseProps(), CartIcon(), ChevronDownIcon(), CloseIcon(), SearchIcon()
 
-### Community 43 - "Community 43"
+### Community 44 - "Community 44"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 44 - "Community 44"
+### Community 45 - "Community 45"
 Cohesion: 0.4
 Nodes (2): closeForm(), handleSave()
 
-### Community 45 - "Community 45"
+### Community 46 - "Community 46"
 Cohesion: 0.6
 Nodes (4): baseLayout(), btn(), buildAdminOrderNotificationEmail(), buildOrderConfirmationEmail()
-
-### Community 46 - "Community 46"
-Cohesion: 0.33
-Nodes (0): 
 
 ### Community 47 - "Community 47"
 Cohesion: 0.33
@@ -455,20 +455,20 @@ Cohesion: 0.33
 Nodes (0): 
 
 ### Community 49 - "Community 49"
+Cohesion: 0.33
+Nodes (0): 
+
+### Community 50 - "Community 50"
 Cohesion: 0.53
 Nodes (4): ensureSettingsRow(), getSiteSettings(), requireAdmin(), updateSiteSettings()
 
-### Community 50 - "Community 50"
+### Community 51 - "Community 51"
 Cohesion: 0.67
 Nodes (5): excludeMatches(), matchesRule(), normalize(), postalCodeIsExcluded(), postalCodeMatchesRules()
 
-### Community 51 - "Community 51"
+### Community 52 - "Community 52"
 Cohesion: 0.47
 Nodes (3): computeShippingQuote(), loadActiveMethods(), loadActiveRules()
-
-### Community 52 - "Community 52"
-Cohesion: 0.4
-Nodes (0): 
 
 ### Community 53 - "Community 53"
 Cohesion: 0.4
@@ -487,72 +487,72 @@ Cohesion: 0.4
 Nodes (0): 
 
 ### Community 57 - "Community 57"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 58 - "Community 58"
 Cohesion: 0.6
 Nodes (3): formatOrderNumber(), getDraftOrderId(), submitOrder()
 
-### Community 58 - "Community 58"
+### Community 59 - "Community 59"
 Cohesion: 0.7
 Nodes (4): calculateDiscounts(), getActiveAutomaticDiscounts(), getDiscountsByCode(), resolveDiscountCombinations()
 
-### Community 59 - "Community 59"
+### Community 60 - "Community 60"
 Cohesion: 0.7
 Nodes (4): evaluate(), evaluateCondition(), evaluateConditionGroup(), resolveField()
 
-### Community 60 - "Community 60"
+### Community 61 - "Community 61"
 Cohesion: 0.5
 Nodes (3): BaseSettings, Settings du service via variables d'env (Pydantic Settings)., Settings
 
-### Community 61 - "Community 61"
+### Community 62 - "Community 62"
 Cohesion: 0.83
 Nodes (3): ConfirmationPage(), fetchOrderData(), formatOrderNumber()
-
-### Community 62 - "Community 62"
-Cohesion: 0.5
-Nodes (0): 
 
 ### Community 63 - "Community 63"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 64 - "Community 64"
-Cohesion: 0.67
-Nodes (2): handleNameChange(), slugify()
-
-### Community 65 - "Community 65"
 Cohesion: 0.5
 Nodes (0): 
+
+### Community 65 - "Community 65"
+Cohesion: 0.67
+Nodes (2): handleNameChange(), slugify()
 
 ### Community 66 - "Community 66"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 67 - "Community 67"
-Cohesion: 0.83
-Nodes (3): runJson(), runSimple(), runSimulation()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 68 - "Community 68"
 Cohesion: 0.83
-Nodes (3): deleteUserAccount(), exportUserData(), requireSession()
+Nodes (3): runJson(), runSimple(), runSimulation()
 
 ### Community 69 - "Community 69"
+Cohesion: 0.83
+Nodes (3): deleteUserAccount(), exportUserData(), requireSession()
+
+### Community 70 - "Community 70"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 70 - "Community 70"
+### Community 71 - "Community 71"
 Cohesion: 0.67
 Nodes (2): createCheckoutSession(), requireSession()
 
-### Community 71 - "Community 71"
+### Community 72 - "Community 72"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 72 - "Community 72"
-Cohesion: 0.67
-Nodes (2): destinationMatchesZone(), haversineKm()
-
 ### Community 73 - "Community 73"
 Cohesion: 0.67
-Nodes (1): Health check endpoint (utilisé par Docker healthcheck + Traefik).
+Nodes (2): destinationMatchesZone(), haversineKm()
 
 ### Community 74 - "Community 74"
 Cohesion: 1.0
@@ -1143,7 +1143,7 @@ Cohesion: 1.0
 Nodes (0): 
 
 ## Knowledge Gaps
-- **7 isolated node(s):** `Settings du service via variables d'env (Pydantic Settings).`, `MS Adhésif – Cutline Service.  Microservice Python qui traite les images uploadé`, `Health check endpoint (utilisé par Docker healthcheck + Traefik).`, `À appeler au démarrage pour charger le modèle ONNX en mémoire.`, `Renvoie un PNG avec fond transparent.` (+2 more)
+- **10 isolated node(s):** `Settings du service via variables d'env (Pydantic Settings).`, `MS Adhésif – Cutline Service.  Microservice Python qui traite les images uploadé`, `Health check endpoint (utilisé par Docker healthcheck + Traefik).`, `Liveness check : 200 dès que uvicorn répond (pas besoin de rembg).`, `Readiness : 200 seulement si le modèle rembg est chargé.` (+5 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 94`** (2 nodes): `ShopLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -1404,7 +1404,7 @@ Nodes (0):
 _Questions this graph is uniquely positioned to answer:_
 
 - **What connects `Settings du service via variables d'env (Pydantic Settings).`, `MS Adhésif – Cutline Service.  Microservice Python qui traite les images uploadé`, `Health check endpoint (utilisé par Docker healthcheck + Traefik).` to the rest of the system?**
-  _7 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _10 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.04 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

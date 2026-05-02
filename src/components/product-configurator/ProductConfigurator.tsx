@@ -612,6 +612,7 @@ export function ProductConfigurator({
   const priceDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [editorMounted, setEditorMounted] = useState(false);
 
   // Derived values
   const selectedShape = shapes.find((s) => s.id === state.selectedShapeId);
@@ -821,9 +822,14 @@ export function ProductConfigurator({
 
   return (
     <>
-      {/* Éditeur visuel — modal plein écran */}
-      {showEditor && (
+      {/* Éditeur visuel — modal plein écran.
+          Le composant reste monté après la première ouverture pour
+          préserver l'image et les paramètres entre les ouvertures. */}
+      {editorMounted && (
         <StickerEditor
+          /* Remonte si la taille du sticker change → resize cohérent */
+          key={`${widthMm}x${heightMm}`}
+          isOpen={showEditor}
           productName={productName}
           widthMm={widthMm}
           heightMm={heightMm}
@@ -1064,7 +1070,7 @@ export function ProductConfigurator({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setShowEditor(true)}
+                  onClick={() => { setEditorMounted(true); setShowEditor(true); }}
                   style={{
                     padding: "10px 18px", borderRadius: 10,
                     background: "#1D4ED8", color: "#fff",
@@ -1090,8 +1096,10 @@ export function ProductConfigurator({
                 <button
                   type="button"
                   onClick={() => {
-                    dispatch({ type: "SET_UPLOADED_FILE", file: null });
-                    dispatch({ type: "SET_NOTE", note: "" });
+                    // Ne pas reset uploadedFile/note : si l'utilisateur ferme
+                    // sans valider, on garde la version actuelle. La validation
+                    // suivante écrasera de toute façon.
+                    setEditorMounted(true);
                     setShowEditor(true);
                   }}
                   style={{
