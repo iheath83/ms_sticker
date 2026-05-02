@@ -9,9 +9,6 @@ import { mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
 // ─── Constantes couleurs (spec §12.1) ─────────────────────────────────────────
 const COLOR_CUTLINE_THROUGH = "#00B3D8"; // cyan
 const COLOR_CUTLINE_KISS = "#E91E8C";    // magenta
-const COLOR_BLEED = "#F87171";           // rouge clair
-const COLOR_SAFETY = "#22C55E";          // vert
-const DASHES_GUIDE: number[] = [6, 4];
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -123,35 +120,46 @@ export default function EditorCanvasClient({
   // Pour la rotation : le Path est positionné à l'image center avec offsetX/Y = imgW/2, imgH/2
   const pathX = imgX + imgW / 2;
   const pathY = imgY + imgH / 2;
-  const offsetPx = image ? mmToPx(settings.cutline.offsetMm, scale) : 0;
 
   return (
     <Stage ref={stageRef} width={stageW} height={stageH} style={{ cursor: "default" }}>
-      {/* ── Fond global (gris très léger) + zone du sticker en blanc ── */}
+      {/* ── Fond global gris : la zone du sticker physique sera dessinée
+            en blanc à l'intérieur de la cutline UNIQUEMENT ── */}
       <Layer listening={false}>
-        <Rect x={0} y={0} width={stageW} height={stageH} fill="#F9FAFB" />
-        <Rect
-          x={PAD_PX}
-          y={PAD_PX}
-          width={innerW}
-          height={innerH}
-          fill="#ffffff"
-          stroke="#E5E7EB"
-          strokeWidth={1}
-        />
+        <Rect x={0} y={0} width={stageW} height={stageH} fill="#F3F4F6" />
       </Layer>
 
-      {/* ── Fond perdu (sous l'image) ── */}
-      {settings.showBleed && bbGuides?.bleed && settings.cutline.method === "bounding_box" && (
-        <Layer>
+      {/* ── Fond blanc = surface physique du sticker (intérieur du kiss cut) ── */}
+      {/* Mode alpha : suit la silhouette */}
+      {hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
+        <Layer listening={false}>
+          <Group x={PAD_PX} y={PAD_PX}>
+            <Path
+              x={pathX}
+              y={pathY}
+              offsetX={imgW / 2}
+              offsetY={imgH / 2}
+              rotation={image.rotationDeg}
+              data={settings.cutline.alphaCutlinePath}
+              fill="#ffffff"
+              stroke="transparent"
+              shadowColor="rgba(15,23,42,0.18)"
+              shadowBlur={6}
+              shadowOffsetY={2}
+            />
+          </Group>
+        </Layer>
+      )}
+      {/* Mode bounding_box : rect blanc à la position de la cutline */}
+      {settings.cutline.method === "bounding_box" && bbGuides?.cutline && (
+        <Layer listening={false}>
           <Group x={PAD_PX} y={PAD_PX}>
             <Rect
-              {...bbGuides.bleed}
-              stroke={COLOR_BLEED}
-              strokeWidth={1.5}
-              fill="rgba(248,113,113,0.06)"
-              dash={DASHES_GUIDE}
-              listening={false}
+              {...bbGuides.cutline}
+              fill="#ffffff"
+              shadowColor="rgba(15,23,42,0.18)"
+              shadowBlur={6}
+              shadowOffsetY={2}
             />
           </Group>
         </Layer>
@@ -224,47 +232,6 @@ export default function EditorCanvasClient({
           </Layer>
         )}
 
-      {/* ── Zone de sécurité (bounding box seulement — masquée en mode alpha) ── */}
-      {settings.showSafety && bbGuides?.safety && settings.cutline.method === "bounding_box" && (
-        <Layer listening={false}>
-          <Group x={PAD_PX} y={PAD_PX}>
-            <Rect
-              {...bbGuides.safety}
-              stroke={COLOR_SAFETY}
-              strokeWidth={1}
-              fill="rgba(34,197,94,0.04)"
-              dash={DASHES_GUIDE}
-            />
-          </Group>
-        </Layer>
-      )}
-
-      {/* ── Fond perdu pour alpha cutline ── */}
-      {settings.showBleed && settings.cutline.method === "alpha" && hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
-        <Layer listening={false}>
-          <Group x={PAD_PX} y={PAD_PX}>
-            <Path
-              x={pathX}
-              y={pathY}
-              offsetX={imgW / 2}
-              offsetY={imgH / 2}
-              rotation={image.rotationDeg}
-              data={scaledPath(
-                settings.cutline.alphaCutlinePath,
-                imgW,
-                imgH,
-                offsetPx,
-                mmToPx(settings.bleedMm, scale),
-              )}
-              stroke={COLOR_BLEED}
-              strokeWidth={1}
-              fill="rgba(248,113,113,0.06)"
-              dash={DASHES_GUIDE}
-            />
-          </Group>
-        </Layer>
-      )}
-
       {/* ── Grille ── */}
       {settings.showGrid && (
         <Layer listening={false}>
@@ -319,27 +286,6 @@ function computeBoundingBoxGuides(
  * Produit un path légèrement agrandi (fond perdu) à partir du path alpha cutline.
  * Utilise une transformation de mise à l'échelle simple autour du centre de l'image.
  */
-function scaledPath(
-  pathData: string,
-  imgW: number,
-  imgH: number,
-  currentOffsetPx: number,
-  additionalOffsetPx: number,
-): string {
-  if (!additionalOffsetPx) return pathData;
-  const cx = imgW / 2;
-  const cy = imgH / 2;
-  const sx = (imgW + 2 * (currentOffsetPx + additionalOffsetPx)) / Math.max(1, imgW + 2 * currentOffsetPx);
-  const sy = (imgH + 2 * (currentOffsetPx + additionalOffsetPx)) / Math.max(1, imgH + 2 * currentOffsetPx);
-
-  // Parser le path SVG et mettre à l'échelle depuis le centre
-  return pathData.replace(/([ML])(-?\d+\.?\d*),(-?\d+\.?\d*)/g, (_m, cmd, xs, ys) => {
-    const x = (parseFloat(xs) - cx) * sx + cx;
-    const y = (parseFloat(ys) - cy) * sy + cy;
-    return `${cmd}${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`;
-  });
-}
-
 // ─── Grille ───────────────────────────────────────────────────────────────────
 
 function GridLines({
