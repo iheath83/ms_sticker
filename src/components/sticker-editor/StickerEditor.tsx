@@ -248,19 +248,28 @@ export function StickerEditor({
     setBgRemoveError(null);
   }, [state.image?.filename]);
 
-  // Déclencher automatiquement la génération quand on passe en mode alpha.
-  // Debounce 600ms : si l'utilisateur fait glisser le slider de marge,
-  // on attend qu'il s'arrête avant de régénérer (sinon on spam l'API et
-  // on déclenche le rate limit).
+  // Déclencher automatiquement la génération du contour alpha :
+  //  - Mode "À la forme" → le path est utilisé pour le rendu de la cutline
+  //  - Modes géométriques (rond / carré / arrondi) avec image transparente
+  //    → le path sert à calculer la *tight bbox* du contenu pour serrer la
+  //      forme géométrique au plus près du visuel (ignore les marges
+  //      transparentes du fichier).
+  // Debounce 600ms pour éviter de spammer l'API quand l'utilisateur fait
+  // glisser le slider de marge.
   useEffect(() => {
     if (
-      state.settings.cutline.method !== "alpha" ||
       !state.image ||
       state.settings.cutline.status !== "not_generated" ||
       isGeneratingCutline
     ) {
       return;
     }
+    // Génération uniquement si transparence détectée (sinon le service
+    // refuse l'image et l'aspect géométrique fallback sur la bbox image).
+    const needsAlphaPath =
+      state.settings.cutline.method === "alpha" || state.image.hasTransparency;
+    if (!needsAlphaPath) return;
+
     const t = setTimeout(() => {
       void handleGenerateCutline();
     }, 600);
@@ -269,6 +278,7 @@ export function StickerEditor({
   }, [
     state.settings.cutline.method,
     state.image?.url,
+    state.image?.hasTransparency,
     state.settings.cutline.status,
     state.settings.cutline.offsetMm,
   ]);

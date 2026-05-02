@@ -5,6 +5,7 @@ import { Stage, Layer, Rect, Image as KonvaImage, Transformer, Path, Line, Group
 import type Konva from "konva";
 import type { EditorImage, EditorSettings } from "@/lib/sticker-editor/editor.types";
 import { mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
+import { computePathBounds } from "@/lib/sticker-editor/path-bounds";
 
 // ─── Constantes couleurs (spec §12.1) ─────────────────────────────────────────
 const COLOR_CUTLINE_THROUGH = "#00B3D8"; // cyan
@@ -102,6 +103,33 @@ export default function EditorCanvasClient({
   const imgW = image ? mmToPx(image.widthMm, scale) : 0;
   const imgH = image ? mmToPx(image.heightMm, scale) : 0;
 
+  // ── Tight bbox du contenu non transparent (en coords display) ──
+  // Calculée à partir du path alpha quand il est disponible. Sert à serrer
+  // les formes géométriques (rond / carré / arrondi) au plus près du visuel
+  // réel, en ignorant les marges transparentes du fichier source.
+  const contentRect = (() => {
+    if (!image || imgW <= 0 || imgH <= 0) return null;
+    const path = settings.cutline.alphaCutlinePath;
+    if (!path || settings.cutline.status !== "generated") return null;
+    if (!(image.originalWidthPx > 0) || !(image.originalHeightPx > 0)) return null;
+    const bounds = computePathBounds(path);
+    if (!bounds) return null;
+    const sx = imgW / image.originalWidthPx;
+    const sy = imgH / image.originalHeightPx;
+    return {
+      x: imgX + bounds.minX * sx,
+      y: imgY + bounds.minY * sy,
+      width: bounds.width * sx,
+      height: bounds.height * sy,
+      // Centre + rayon (sur l'axe horizontal — on garde radiusX/Y pour
+      // garder la même proportion). En mode "rond pur" on prendra le max.
+      centerX: imgX + bounds.centerX * sx,
+      centerY: imgY + bounds.centerY * sy,
+      radiusX: bounds.radius * sx,
+      radiusY: bounds.radius * sy,
+    };
+  })();
+
   // ── Guides bounding box ──
   const bbGuides = image
     ? computeBoundingBoxGuides(image, settings, scale)
@@ -173,6 +201,7 @@ export default function EditorCanvasClient({
             <Group x={PAD_PX} y={PAD_PX}>
               <GeometricCutShape
                 imageRect={{ x: imgX, y: imgY, width: imgW, height: imgH }}
+                contentRect={contentRect}
                 offsetPx={mmToPx(settings.cutline.offsetMm, scale)}
                 method={settings.cutline.method}
                 fill="#ffffff"
@@ -247,6 +276,7 @@ export default function EditorCanvasClient({
             <Group x={PAD_PX} y={PAD_PX}>
               <GeometricCutShape
                 imageRect={{ x: imgX, y: imgY, width: imgW, height: imgH }}
+                contentRect={contentRect}
                 offsetPx={mmToPx(settings.cutline.offsetMm, scale)}
                 method={settings.cutline.method}
                 stroke={cutlineColor}
@@ -273,21 +303,37 @@ export default function EditorCanvasClient({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Rend la forme de découpe géométrique appropriée à la méthode.
+ * Rend la forme de découpe géométrique adaptée au contenu réel du visuel.
  *
- * - `bounding_box` : rectangle = bbox image élargie de `offsetPx`
- * - `rounded`      : idem, avec coins arrondis (rayon ≈ 12 % du plus petit côté)
- * - `circle`       : ellipse **circonscrite** au rect image (passe par les 4
- *   coins → demi-axes = (w/2)·√2 et (h/2)·√2), puis élargie de `offsetPx`.
- *   Les visuels déjà ronds devront être agrandis pour être tangents au cercle.
+ * Si `contentRect` est fournie (= tight bbox des pixels non transparents
+ * extraite du contour alpha), elle prime sur `imageRect` (= bbox du fichier
+ * source) pour serrer la forme au plus près du visuel — sans toucher de
+ * pixel rempli. Sinon on retombe sur `imageRect`.
+ *
+ * - `bounding_box` : rectangle = bbox du contenu élargie de `offsetPx`
+ * - `rounded`      : idem avec coins arrondis (rayon ≈ 12 % du plus petit côté)
+ * - `circle`       : cercle minimal englobant le contenu, centré sur la
+ *   tight bbox + `offsetPx` de marge. Si le contour n'est pas disponible,
+ *   fallback sur l'ellipse circonscrite à `imageRect` (× √2).
  */
 function GeometricCutShape({
   imageRect,
+  contentRect,
   offsetPx,
   method,
   ...visualProps
 }: {
   imageRect: { x: number; y: number; width: number; height: number };
+  contentRect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    centerX: number;
+    centerY: number;
+    radiusX: number;
+    radiusY: number;
+  } | null;
   offsetPx: number;
   method: "bounding_box" | "circle" | "rounded" | "alpha";
   fill?: string;
@@ -296,6 +342,20 @@ function GeometricCutShape({
   dash?: number[];
 }) {
   if (method === "circle") {
+    if (contentRect) {
+      // Cercle (rayons identiques) qui englobe tous les pixels remplis.
+      const radius = Math.max(contentRect.radiusX, contentRect.radiusY) + offsetPx;
+      return (
+        <Ellipse
+          x={contentRect.centerX}
+          y={contentRect.centerY}
+          radiusX={radius}
+          radiusY={radius}
+          {...visualProps}
+        />
+      );
+    }
+    // Fallback (pas de contour disponible) : ellipse circonscrite × √2.
     const cx = imageRect.x + imageRect.width / 2;
     const cy = imageRect.y + imageRect.height / 2;
     const radiusX = (imageRect.width / 2) * Math.SQRT2 + offsetPx;
@@ -303,11 +363,15 @@ function GeometricCutShape({
     return <Ellipse x={cx} y={cy} radiusX={radiusX} radiusY={radiusY} {...visualProps} />;
   }
 
+  // Pour rect / rounded : tight bbox du contenu si dispo, sinon bbox image.
+  const base = contentRect
+    ? { x: contentRect.x, y: contentRect.y, width: contentRect.width, height: contentRect.height }
+    : imageRect;
   const rect = {
-    x: imageRect.x - offsetPx,
-    y: imageRect.y - offsetPx,
-    width: imageRect.width + 2 * offsetPx,
-    height: imageRect.height + 2 * offsetPx,
+    x: base.x - offsetPx,
+    y: base.y - offsetPx,
+    width: base.width + 2 * offsetPx,
+    height: base.height + 2 * offsetPx,
   };
 
   if (method === "rounded") {
