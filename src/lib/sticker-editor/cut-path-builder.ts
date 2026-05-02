@@ -176,6 +176,18 @@ function ellipsePath(cx: number, cy: number, rx: number, ry: number): string {
 
 // ─── Conversion alpha SVG (px image) → mm sticker, avec rotation ─────────────
 
+interface SubPath {
+  points: Array<[number, number]>;
+  closed: boolean;
+}
+
+/**
+ * Découpe le path alpha (M/L/Z, en pixels d image) en sous-paths cycliques
+ * et les projette en mm sticker en appliquant la rotation Konva. Chaque
+ * sous-path est ensuite lisse via Catmull-Rom -> Bezier cubique pour eviter
+ * les segments anguleux visibles dans le PDF (l aperçu Konva les masque
+ * avec le pointille, le PDF les rend en trait continu).
+ */
 function transformAlphaPathToMm(svgPath: string, image: EditorImage): string {
   const sx = image.widthMm / Math.max(1, image.originalWidthPx);
   const sy = image.heightMm / Math.max(1, image.originalHeightPx);
@@ -188,11 +200,9 @@ function transformAlphaPathToMm(svgPath: string, image: EditorImage): string {
   const sin = Math.sin(theta);
 
   const project = (px: number, py: number): [number, number] => {
-    // px image → mm relatif → mm sticker (sans rotation)
     const mx = baseX + px * sx;
     const my = baseY + py * sy;
     if (image.rotationDeg === 0) return [mx, my];
-    // Rotation horaire (Konva) autour du centre image (cx, cy)
     const dx = mx - cx;
     const dy = my - cy;
     const rx = dx * cos - dy * sin;
@@ -200,10 +210,10 @@ function transformAlphaPathToMm(svgPath: string, image: EditorImage): string {
     return [cx + rx, cy + ry];
   };
 
-  // Tokenize : M/L absolus (le service Python) — couvre aussi m/l/Z/z
-  // par défensivité.
+  // 1. Tokenize → sous-paths
   const tokenRegex = /([MLmlZz])\s*([-\d.eE+]*)\s*,?\s*([-\d.eE+]*)/g;
-  const out: string[] = [];
+  const subs: SubPath[] = [];
+  let current: SubPath | null = null;
   let cursorPxX = 0;
   let cursorPxY = 0;
   let match: RegExpExecArray | null;
@@ -211,22 +221,95 @@ function transformAlphaPathToMm(svgPath: string, image: EditorImage): string {
     const cmd = match[1];
     const a = parseFloat(match[2] ?? "");
     const b = parseFloat(match[3] ?? "");
-    if (cmd === "M" || cmd === "L") {
+    if (cmd === "M") {
       if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
       cursorPxX = a;
       cursorPxY = b;
-      const [mx, my] = project(cursorPxX, cursorPxY);
-      out.push(`${cmd} ${fmt(mx)} ${fmt(my)}`);
-    } else if (cmd === "m" || cmd === "l") {
+      current = { points: [project(cursorPxX, cursorPxY)], closed: false };
+      subs.push(current);
+    } else if (cmd === "m") {
       if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
       cursorPxX += a;
       cursorPxY += b;
-      const [mx, my] = project(cursorPxX, cursorPxY);
-      out.push(`${cmd === "m" ? "M" : "L"} ${fmt(mx)} ${fmt(my)}`);
+      current = { points: [project(cursorPxX, cursorPxY)], closed: false };
+      subs.push(current);
+    } else if (cmd === "L") {
+      if (!current || !Number.isFinite(a) || !Number.isFinite(b)) continue;
+      cursorPxX = a;
+      cursorPxY = b;
+      current.points.push(project(cursorPxX, cursorPxY));
+    } else if (cmd === "l") {
+      if (!current || !Number.isFinite(a) || !Number.isFinite(b)) continue;
+      cursorPxX += a;
+      cursorPxY += b;
+      current.points.push(project(cursorPxX, cursorPxY));
     } else if (cmd === "Z" || cmd === "z") {
-      out.push("Z");
+      if (current) current.closed = true;
     }
   }
+
+  // 2. Lissage Catmull-Rom -> Bezier
+  return subs.map((s) => smoothToBezierPath(dedupe(s.points), s.closed)).join(" ");
+}
+
+/** Supprime les points consécutifs identiques (eps 1e-3 mm). */
+function dedupe(pts: Array<[number, number]>): Array<[number, number]> {
+  const out: Array<[number, number]> = [];
+  const eps = 1e-3;
+  for (const p of pts) {
+    const last = out[out.length - 1];
+    if (!last || Math.abs(last[0] - p[0]) > eps || Math.abs(last[1] - p[1]) > eps) {
+      out.push(p);
+    }
+  }
+  return out;
+}
+
+/**
+ * Catmull-Rom uniform (tension = 0.5) -> Bezier cubique.
+ * Pour 4 points consecutifs P0..P3, la courbe entre P1 et P2 est :
+ *   B0 = P1
+ *   B1 = P1 + (P2 - P0) / 6
+ *   B2 = P2 - (P3 - P1) / 6
+ *   B3 = P2
+ */
+function smoothToBezierPath(pts: Array<[number, number]>, closed: boolean): string {
+  const n = pts.length;
+  if (n === 0) return "";
+  if (n === 1) return `M ${fmt(pts[0]![0])} ${fmt(pts[0]![1])}`;
+  if (n === 2) {
+    return [
+      `M ${fmt(pts[0]![0])} ${fmt(pts[0]![1])}`,
+      `L ${fmt(pts[1]![0])} ${fmt(pts[1]![1])}`,
+      closed ? "Z" : "",
+    ].filter(Boolean).join(" ");
+  }
+
+  const get = (i: number): [number, number] => {
+    if (closed) {
+      const k = ((i % n) + n) % n;
+      return pts[k]!;
+    }
+    return pts[Math.max(0, Math.min(n - 1, i))]!;
+  };
+
+  const out: string[] = [];
+  out.push(`M ${fmt(pts[0]![0])} ${fmt(pts[0]![1])}`);
+  const limit = closed ? n : n - 1;
+  for (let i = 0; i < limit; i++) {
+    const p0 = get(i - 1);
+    const p1 = get(i);
+    const p2 = get(i + 1);
+    const p3 = get(i + 2);
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    out.push(
+      `C ${fmt(c1x)} ${fmt(c1y)}, ${fmt(c2x)} ${fmt(c2y)}, ${fmt(p2[0])} ${fmt(p2[1])}`,
+    );
+  }
+  if (closed) out.push("Z");
   return out.join(" ");
 }
 
