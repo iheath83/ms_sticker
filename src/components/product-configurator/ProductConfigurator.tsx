@@ -827,11 +827,11 @@ export function ProductConfigurator({
     <>
       {/* Éditeur visuel — modal plein écran.
           Le composant reste monté après la première ouverture pour
-          préserver l'image et les paramètres entre les ouvertures. */}
+          préserver l'image et les paramètres entre les ouvertures. La taille
+          du canvas se met a jour en interne via `SET_CANVAS_SIZE` quand
+          widthMm/heightMm changent — pas de remount. */}
       {editorMounted && (
         <StickerEditor
-          /* Remonte si la taille du sticker change → resize cohérent */
-          key={`${widthMm}x${heightMm}`}
           isOpen={showEditor}
           productName={productName}
           widthMm={widthMm}
@@ -839,6 +839,10 @@ export function ProductConfigurator({
           shapes={shapes}
           selectedShapeId={state.selectedShapeId}
           onShapeChange={(id) => dispatch({ type: "SELECT_SHAPE", id })}
+          sizes={sizes}
+          selectedSizeId={state.selectedSizeId}
+          sizeMode={state.sizeMode}
+          onSizeChange={(id) => dispatch({ type: "SELECT_SIZE", id })}
           /* Pas de redimensionnement du visuel : il doit toujours remplir
              le format choisi. Activé uniquement si le produit autorise une
              taille personnalisée. */

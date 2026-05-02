@@ -212,6 +212,50 @@ export function editorReducer(
       };
     }
 
+    case "SET_CANVAS_SIZE": {
+      // Met a jour les dimensions du canvas. Si une image est presente, on
+      // refit ses dimensions et la recentre — sinon le visuel deborde / est
+      // mal positionne quand le client change de taille depuis l editeur.
+      // La cutline alpha doit etre regeneree car son path en pixels image
+      // reste valide, mais l offset visuel et la projection en mm changent.
+      if (
+        state.canvasWidthMm === action.widthMm &&
+        state.canvasHeightMm === action.heightMm
+      ) {
+        return state;
+      }
+      const next: StickerEditorState = {
+        ...state,
+        canvasWidthMm: action.widthMm,
+        canvasHeightMm: action.heightMm,
+        isDirty: true,
+      };
+      if (state.image) {
+        const { widthMm: imgW, heightMm: imgH } = fitImageToCanvas(
+          state.image.originalWidthPx,
+          state.image.originalHeightPx,
+          action.widthMm,
+          action.heightMm,
+        );
+        next.image = {
+          ...state.image,
+          widthMm: imgW,
+          heightMm: imgH,
+          xMm: action.widthMm / 2,
+          yMm: action.heightMm / 2,
+        };
+        next.settings = {
+          ...state.settings,
+          cutline: {
+            ...state.settings.cutline,
+            alphaCutlinePath: undefined as string | undefined,
+            status: "not_generated" as const,
+          },
+        };
+      }
+      return next;
+    }
+
     default:
       return state;
   }

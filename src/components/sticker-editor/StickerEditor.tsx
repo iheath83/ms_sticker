@@ -20,7 +20,7 @@ import {
   type EditorImage,
 } from "@/lib/sticker-editor/editor.types";
 import { buildCutPathMm } from "@/lib/sticker-editor/cut-path-builder";
-import type { StickerShape } from "@/db/schema";
+import type { StickerShape, StickerSize } from "@/db/schema";
 // Konva chargé côté client uniquement (pas de SSR)
 const EditorCanvasClient = dynamic(() => import("./EditorCanvasClient"), {
   ssr: false,
@@ -60,6 +60,16 @@ interface Props {
    *  sans fond avec cut contour spot magenta CMJN, 0,2 mm). Toggle back-office
    *  → utilisé pour faire des tests de sortie de fichier sans passer commande. */
   enableProductionDownload?: boolean;
+  /** Tailles préréglées disponibles sur le produit (la sélection est
+   *  synchronisée avec le configurateur via `onSizeChange`). */
+  sizes?: StickerSize[];
+  /** Id de la taille préréglée actuellement sélectionnée (mode preset). */
+  selectedSizeId?: string | undefined;
+  /** Mode courant : preset (taille standard) ou custom (taille personnalisée). */
+  sizeMode?: "preset" | "custom";
+  /** Callback lorsque l'utilisateur change de taille depuis l'éditeur — à
+   *  brancher sur `dispatch({ type: "SELECT_SIZE", id })` côté configurateur. */
+  onSizeChange?: (sizeId: string) => void;
 }
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -113,6 +123,10 @@ export function StickerEditor({
   onShapeChange,
   allowResize = false,
   enableProductionDownload = false,
+  sizes = [],
+  selectedSizeId,
+  sizeMode = "preset",
+  onSizeChange,
 }: Props) {
   const [state, dispatch] = useReducer(
     editorReducer,
@@ -133,6 +147,14 @@ export function StickerEditor({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentShape?.id]);
+
+  // Synchronise la taille du canvas avec les dimensions choisies dans le
+  // configurateur (preset OU saisie custom). Le reducer refit l'image et
+  // recentre, et regenere la cutline alpha (path en px image inchange,
+  // mais offset visuel et projection mm changent).
+  useEffect(() => {
+    dispatch({ type: "SET_CANVAS_SIZE", widthMm, heightMm });
+  }, [widthMm, heightMm]);
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -686,6 +708,20 @@ export function StickerEditor({
               </SideSection>
             )}
 
+            {/* ── Taille du sticker (cochée aussi sur la fiche produit) ── */}
+            {sizes.length > 0 && (
+              <SideSection title="Taille du sticker">
+                <SizeSelector
+                  sizes={sizes}
+                  selectedSizeId={selectedSizeId}
+                  sizeMode={sizeMode}
+                  currentWidthMm={widthMm}
+                  currentHeightMm={heightMm}
+                  onChange={(id) => onSizeChange?.(id)}
+                />
+              </SideSection>
+            )}
+
             {/* ── Préparation de l'image ── */}
             {image && (
               <SideSection title="Préparer l'image">
@@ -944,6 +980,76 @@ function ShapeSelector({
             {isGenerating ? "⏳ Calcul en cours…" : "↺ Régénérer le contour"}
           </button>
         </>
+      )}
+    </div>
+  );
+}
+
+function SizeSelector({
+  sizes,
+  selectedSizeId,
+  sizeMode,
+  currentWidthMm,
+  currentHeightMm,
+  onChange,
+}: {
+  sizes: StickerSize[];
+  selectedSizeId: string | undefined;
+  sizeMode: "preset" | "custom";
+  currentWidthMm: number;
+  currentHeightMm: number;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {sizes.map((size) => {
+        const isActive = sizeMode === "preset" && size.id === selectedSizeId;
+        return (
+          <button
+            key={size.id}
+            type="button"
+            onClick={() => onChange(size.id)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              padding: "8px 12px",
+              borderRadius: 10,
+              border: `2px solid ${isActive ? "#0A0E27" : "#E5E7EB"}`,
+              background: isActive ? "#0A0E27" : "#fff",
+              color: isActive ? "#fff" : "#0A0E27",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              fontSize: 13,
+              fontWeight: 600,
+              textAlign: "left",
+            }}
+          >
+            <span>{size.label}</span>
+            <span style={{ opacity: 0.7, fontSize: 12, fontWeight: 500 }}>
+              {size.widthMm} × {size.heightMm} mm
+            </span>
+          </button>
+        );
+      })}
+      {sizeMode === "custom" && (
+        <div
+          style={{
+            padding: "8px 12px",
+            borderRadius: 10,
+            border: "2px dashed #BFDBFE",
+            background: "#EFF6FF",
+            color: "#1D4ED8",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          ✎ Taille personnalisée : {currentWidthMm} × {currentHeightMm} mm
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "#64748B", fontWeight: 400 }}>
+            Modifiable depuis la page produit.
+          </p>
+        </div>
       )}
     </div>
   );

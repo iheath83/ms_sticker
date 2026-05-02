@@ -118,7 +118,8 @@ export type EditorAction =
   | { type: "TOGGLE_SHOW_CUTLINE" }
   | { type: "TOGGLE_SHOW_GRID" }
   | { type: "SET_VALIDATION"; validation: EditorValidation }
-  | { type: "RESET_POSITION" };
+  | { type: "RESET_POSITION" }
+  | { type: "SET_CANVAS_SIZE"; widthMm: number; heightMm: number };
 
 // ─── Props de sortie (onValidate) ─────────────────────────────────────────────
 
