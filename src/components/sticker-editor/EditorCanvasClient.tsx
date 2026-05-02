@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { Stage, Layer, Rect, Image as KonvaImage, Transformer, Path, Line, Group } from "react-konva";
+import { Stage, Layer, Rect, Image as KonvaImage, Transformer, Path, Line, Group, Ellipse } from "react-konva";
 import type Konva from "konva";
 import type { EditorImage, EditorSettings } from "@/lib/sticker-editor/editor.types";
 import { mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
@@ -162,15 +162,23 @@ export default function EditorCanvasClient({
           </Group>
         </Layer>
       )}
-      {/* Mode bounding_box : rect blanc à la position de la cutline */}
-      {settings.cutline.method === "bounding_box" && bbGuides?.cutline &&
-        bbGuides.cutline.width > 0 && bbGuides.cutline.height > 0 && (
-        <Layer listening={false}>
-          <Group x={PAD_PX} y={PAD_PX}>
-            <Rect {...bbGuides.cutline} fill="#ffffff" />
-          </Group>
-        </Layer>
-      )}
+      {/* Modes géométriques (rectangle / rond / arrondi) : fond blanc */}
+      {(settings.cutline.method === "bounding_box" ||
+        settings.cutline.method === "circle" ||
+        settings.cutline.method === "rounded") &&
+        bbGuides?.cutline &&
+        bbGuides.cutline.width > 0 &&
+        bbGuides.cutline.height > 0 && (
+          <Layer listening={false}>
+            <Group x={PAD_PX} y={PAD_PX}>
+              <GeometricCutShape
+                rect={bbGuides.cutline}
+                method={settings.cutline.method}
+                fill="#ffffff"
+              />
+            </Group>
+          </Layer>
+        )}
 
       {/* ── Artwork + Transformer ── */}
       <Layer>
@@ -226,16 +234,19 @@ export default function EditorCanvasClient({
         </Layer>
       )}
 
-      {/* ── Ligne de coupe bounding box (rect) ── */}
+      {/* ── Ligne de coupe géométrique (rectangle / rond / arrondi) ── */}
       {settings.showCutline &&
-        settings.cutline.method === "bounding_box" &&
+        (settings.cutline.method === "bounding_box" ||
+          settings.cutline.method === "circle" ||
+          settings.cutline.method === "rounded") &&
         bbGuides?.cutline &&
         bbGuides.cutline.width > 0 &&
         bbGuides.cutline.height > 0 && (
           <Layer listening={false}>
             <Group x={PAD_PX} y={PAD_PX}>
-              <Rect
-                {...bbGuides.cutline}
+              <GeometricCutShape
+                rect={bbGuides.cutline}
+                method={settings.cutline.method}
                 stroke={cutlineColor}
                 strokeWidth={1.5}
                 fill="transparent"
@@ -258,6 +269,42 @@ export default function EditorCanvasClient({
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Rend la forme de découpe géométrique appropriée à la méthode :
+ * - `bounding_box` : rectangle simple
+ * - `circle`       : ellipse inscrite dans la bounding box
+ * - `rounded`      : rectangle aux coins arrondis (rayon ≈ 12 % du plus petit côté)
+ */
+function GeometricCutShape({
+  rect,
+  method,
+  ...visualProps
+}: {
+  rect: { x: number; y: number; width: number; height: number };
+  method: "bounding_box" | "circle" | "rounded" | "alpha";
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  dash?: number[];
+}) {
+  if (method === "circle") {
+    return (
+      <Ellipse
+        x={rect.x + rect.width / 2}
+        y={rect.y + rect.height / 2}
+        radiusX={rect.width / 2}
+        radiusY={rect.height / 2}
+        {...visualProps}
+      />
+    );
+  }
+  if (method === "rounded") {
+    const cornerRadius = Math.min(rect.width, rect.height) * 0.12;
+    return <Rect {...rect} cornerRadius={cornerRadius} {...visualProps} />;
+  }
+  return <Rect {...rect} {...visualProps} />;
+}
 
 function computeBoundingBoxGuides(
   image: EditorImage,

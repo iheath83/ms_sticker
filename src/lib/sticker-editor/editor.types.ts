@@ -2,7 +2,27 @@
 
 export type CutType = "kiss_cut" | "through_cut";
 
-export type CutlineMethod = "bounding_box" | "alpha";
+/**
+ * Méthode de découpe rendue par le canvas.
+ * - `bounding_box` : rectangle simple (forme « carré » du produit)
+ * - `alpha`        : suit le motif (forme « à la forme / die-cut » du produit)
+ * - `circle`       : ellipse (forme « rond » du produit)
+ * - `rounded`      : rectangle aux coins arrondis (forme « arrondi » du produit)
+ */
+export type CutlineMethod = "bounding_box" | "alpha" | "circle" | "rounded";
+
+/**
+ * Convertit le `code` d'une forme produit (`stickerShapes.code`) en méthode de
+ * découpe utilisée par l'éditeur visuel. Les codes sont insensibles aux tirets
+ * (`die-cut` ↔ `die_cut`) pour absorber les variantes historiques.
+ */
+export function shapeCodeToCutlineMethod(code: string | null | undefined): CutlineMethod {
+  const k = (code ?? "").toLowerCase().replace(/-/g, "_");
+  if (k === "die_cut" || k === "diecut" || k === "custom") return "alpha";
+  if (k === "round" || k === "circle" || k === "ellipse") return "circle";
+  if (k === "rounded" || k === "rounded_square" || k === "rounded_rect") return "rounded";
+  return "bounding_box";
+}
 
 export type CutlineStatus = "not_generated" | "generating" | "generated" | "error";
 

@@ -791,11 +791,11 @@ export function ProductConfigurator({
     const file = new File([blob], filename, { type: "image/png" });
 
     // Injecter la config éditeur dans la note
+    const shapeLabel = selectedShape?.name ?? "—";
     const configNote = [
-      `[Éditeur] Type de coupe : ${output.editorConfig.cutType === "kiss_cut" ? "Demi-chair (Kiss cut)" : "Pleine chair"}`,
+      `[Éditeur] Forme : ${shapeLabel}`,
+      `Type de coupe : ${output.editorConfig.cutType === "kiss_cut" ? "Demi-chair (Kiss cut)" : "Pleine chair"}`,
       `Marge de coupe : ${output.editorConfig.cutlineOffsetMm} mm`,
-      `Fond perdu : ${output.editorConfig.bleedMm} mm`,
-      `Zone de sécurité : ${output.editorConfig.safetyMarginMm} mm`,
       `Résolution : ${output.editorConfig.dpi} DPI`,
       `Fichier original : ${output.editorConfig.originalFilename}`,
     ].join(" · ");
@@ -833,6 +833,9 @@ export function ProductConfigurator({
           productName={productName}
           widthMm={widthMm}
           heightMm={heightMm}
+          shapes={shapes}
+          selectedShapeId={state.selectedShapeId}
+          onShapeChange={(id) => dispatch({ type: "SELECT_SHAPE", id })}
           onValidate={handleEditorValidate}
           onClose={() => setShowEditor(false)}
         />

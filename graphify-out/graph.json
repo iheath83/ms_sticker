@@ -9,7 +9,7 @@
       "source_file": "next-env.d.ts",
       "source_location": "L1",
       "id": "next_env_d_ts",
-      "community": 159
+      "community": 160
     },
     {
       "label": "drizzle.config.ts",
@@ -17,7 +17,7 @@
       "source_file": "drizzle.config.ts",
       "source_location": "L1",
       "id": "drizzle_config_ts",
-      "community": 160
+      "community": 161
     },
     {
       "label": "vitest.config.ts",
@@ -25,7 +25,7 @@
       "source_file": "vitest.config.ts",
       "source_location": "L1",
       "id": "vitest_config_ts",
-      "community": 161
+      "community": 162
     },
     {
       "label": "next.config.ts",
@@ -33,7 +33,7 @@
       "source_file": "next.config.ts",
       "source_location": "L1",
       "id": "next_config_ts",
-      "community": 162
+      "community": 163
     },
     {
       "label": "__init__.py",
@@ -41,7 +41,7 @@
       "source_file": "services/cutline-service/app/__init__.py",
       "source_location": "L1",
       "id": "services_cutline_service_app_init_py",
-      "community": 163
+      "community": 164
     },
     {
       "label": "settings.py",
@@ -177,7 +177,7 @@
       "source_file": "services/cutline-service/app/routers/__init__.py",
       "source_location": "L1",
       "id": "services_cutline_service_app_routers_init_py",
-      "community": 164
+      "community": 165
     },
     {
       "label": "bgremove.py",
@@ -233,7 +233,7 @@
       "source_file": "services/cutline-service/app/services/__init__.py",
       "source_location": "L1",
       "id": "services_cutline_service_app_services_init_py",
-      "community": 165
+      "community": 166
     },
     {
       "label": "bgremove.py",
@@ -417,7 +417,7 @@
       "source_file": "src/app/layout.tsx",
       "source_location": "L1",
       "id": "src_app_layout_tsx",
-      "community": 166
+      "community": 167
     },
     {
       "label": "route.ts",
@@ -497,7 +497,7 @@
       "source_file": "src/app/(shop)/cgv/page.tsx",
       "source_location": "L1",
       "id": "src_app_shop_cgv_page_tsx",
-      "community": 167
+      "community": 168
     },
     {
       "label": "page.tsx",
@@ -505,7 +505,7 @@
       "source_file": "src/app/(shop)/politique-cookies/page.tsx",
       "source_location": "L1",
       "id": "src_app_shop_politique_cookies_page_tsx",
-      "community": 168
+      "community": 169
     },
     {
       "label": "page.tsx",
@@ -537,7 +537,7 @@
       "source_file": "src/app/(shop)/products/page.tsx",
       "source_location": "L1",
       "id": "src_app_shop_products_page_tsx",
-      "community": 169
+      "community": 170
     },
     {
       "label": "page.tsx",
@@ -641,7 +641,7 @@
       "source_file": "src/app/(shop)/mentions-legales/page.tsx",
       "source_location": "L1",
       "id": "src_app_shop_mentions_legales_page_tsx",
-      "community": 170
+      "community": 171
     },
     {
       "label": "page.tsx",
@@ -649,7 +649,7 @@
       "source_file": "src/app/(shop)/politique-confidentialite/page.tsx",
       "source_location": "L1",
       "id": "src_app_shop_politique_confidentialite_page_tsx",
-      "community": 171
+      "community": 172
     },
     {
       "label": "page.tsx",
@@ -1273,7 +1273,7 @@
       "source_file": "src/app/account/layout.tsx",
       "source_location": "L1",
       "id": "src_app_account_layout_tsx",
-      "community": 172
+      "community": 173
     },
     {
       "label": "page.tsx",
@@ -1297,7 +1297,7 @@
       "source_file": "src/app/account/account-nav.tsx",
       "source_location": "L1",
       "id": "src_app_account_account_nav_tsx",
-      "community": 173
+      "community": 174
     },
     {
       "label": "page.tsx",
@@ -1513,7 +1513,7 @@
       "source_file": "src/app/(auth)/layout.tsx",
       "source_location": "L1",
       "id": "src_app_auth_layout_tsx",
-      "community": 174
+      "community": 175
     },
     {
       "label": "page.tsx",
@@ -1553,7 +1553,7 @@
       "source_file": "src/app/(admin)/layout.tsx",
       "source_location": "L1",
       "id": "src_app_admin_layout_tsx",
-      "community": 175
+      "community": 176
     },
     {
       "label": "layout.tsx",
@@ -1705,7 +1705,7 @@
       "source_file": "src/app/(admin)/admin/products/[id]/page.tsx",
       "source_location": "L1",
       "id": "src_app_admin_admin_products_id_page_tsx",
-      "community": 176
+      "community": 177
     },
     {
       "label": "page.tsx",
@@ -1713,7 +1713,7 @@
       "source_file": "src/app/(admin)/admin/emails/page.tsx",
       "source_location": "L1",
       "id": "src_app_admin_admin_emails_page_tsx",
-      "community": 177
+      "community": 178
     },
     {
       "label": "page.tsx",
@@ -1905,7 +1905,7 @@
       "source_file": "src/app/(admin)/admin/shipping/page.tsx",
       "source_location": "L1",
       "id": "src_app_admin_admin_shipping_page_tsx",
-      "community": 178
+      "community": 179
     },
     {
       "label": "page.tsx",
@@ -2105,7 +2105,7 @@
       "source_file": "src/app/(admin)/admin/pages/page.tsx",
       "source_location": "L1",
       "id": "src_app_admin_admin_pages_page_tsx",
-      "community": 179
+      "community": 180
     },
     {
       "label": "page-editor-client.tsx",
@@ -2233,7 +2233,7 @@
       "source_file": "src/app/(admin)/admin/categories/page.tsx",
       "source_location": "L1",
       "id": "src_app_admin_admin_categories_page_tsx",
-      "community": 180
+      "community": 181
     },
     {
       "label": "page.tsx",
@@ -2273,7 +2273,7 @@
       "source_file": "src/app/(admin)/admin/reviews/admin-reviews-client.tsx",
       "source_location": "L1",
       "id": "src_app_admin_admin_reviews_admin_reviews_client_tsx",
-      "community": 181
+      "community": 182
     },
     {
       "label": "review-settings-client.tsx",
@@ -2465,7 +2465,7 @@
       "source_file": "src/server/actions/admin.ts",
       "source_location": "L1",
       "id": "src_server_actions_admin_ts",
-      "community": 182
+      "community": 183
     },
     {
       "label": "orders.ts",
@@ -2473,7 +2473,7 @@
       "source_file": "src/server/actions/orders.ts",
       "source_location": "L1",
       "id": "src_server_actions_orders_ts",
-      "community": 183
+      "community": 184
     },
     {
       "label": "card.tsx",
@@ -2481,7 +2481,7 @@
       "source_file": "src/components/ui/card.tsx",
       "source_location": "L1",
       "id": "src_components_ui_card_tsx",
-      "community": 184
+      "community": 185
     },
     {
       "label": "label.tsx",
@@ -2489,7 +2489,7 @@
       "source_file": "src/components/ui/label.tsx",
       "source_location": "L1",
       "id": "src_components_ui_label_tsx",
-      "community": 185
+      "community": 186
     },
     {
       "label": "drawer.tsx",
@@ -2497,7 +2497,7 @@
       "source_file": "src/components/ui/drawer.tsx",
       "source_location": "L1",
       "id": "src_components_ui_drawer_tsx",
-      "community": 186
+      "community": 187
     },
     {
       "label": "dialog.tsx",
@@ -2505,7 +2505,7 @@
       "source_file": "src/components/ui/dialog.tsx",
       "source_location": "L1",
       "id": "src_components_ui_dialog_tsx",
-      "community": 187
+      "community": 188
     },
     {
       "label": "badge.tsx",
@@ -2529,7 +2529,7 @@
       "source_file": "src/components/ui/button.tsx",
       "source_location": "L1",
       "id": "src_components_ui_button_tsx",
-      "community": 188
+      "community": 189
     },
     {
       "label": "input.tsx",
@@ -2537,7 +2537,7 @@
       "source_file": "src/components/ui/input.tsx",
       "source_location": "L1",
       "id": "src_components_ui_input_tsx",
-      "community": 189
+      "community": 190
     },
     {
       "label": "auth-card.tsx",
@@ -2545,7 +2545,7 @@
       "source_file": "src/components/auth/auth-card.tsx",
       "source_location": "L1",
       "id": "src_components_auth_auth_card_tsx",
-      "community": 190
+      "community": 191
     },
     {
       "label": "register-form.tsx",
@@ -2649,7 +2649,7 @@
       "source_file": "src/components/shop/ticker.tsx",
       "source_location": "L1",
       "id": "src_components_shop_ticker_tsx",
-      "community": 191
+      "community": 192
     },
     {
       "label": "product-card.tsx",
@@ -2721,7 +2721,7 @@
       "source_file": "src/components/shop/footer.tsx",
       "source_location": "L1",
       "id": "src_components_shop_footer_tsx",
-      "community": 192
+      "community": 193
     },
     {
       "label": "logo.tsx",
@@ -2729,7 +2729,7 @@
       "source_file": "src/components/shop/logo.tsx",
       "source_location": "L1",
       "id": "src_components_shop_logo_tsx",
-      "community": 193
+      "community": 194
     },
     {
       "label": "icons.tsx",
@@ -2785,7 +2785,7 @@
       "source_file": "src/components/shop/header.tsx",
       "source_location": "L1",
       "id": "src_components_shop_header_tsx",
-      "community": 194
+      "community": 195
     },
     {
       "label": "page-renderer.tsx",
@@ -2865,7 +2865,7 @@
       "source_file": "src/components/shop/home/categories-section.tsx",
       "source_location": "L1",
       "id": "src_components_shop_home_categories_section_tsx",
-      "community": 195
+      "community": 196
     },
     {
       "label": "feature-strip.tsx",
@@ -2873,7 +2873,7 @@
       "source_file": "src/components/shop/home/feature-strip.tsx",
       "source_location": "L1",
       "id": "src_components_shop_home_feature_strip_tsx",
-      "community": 196
+      "community": 197
     },
     {
       "label": "reviews-section.tsx",
@@ -2881,7 +2881,7 @@
       "source_file": "src/components/shop/home/reviews-section.tsx",
       "source_location": "L1",
       "id": "src_components_shop_home_reviews_section_tsx",
-      "community": 197
+      "community": 198
     },
     {
       "label": "bestsellers-section.tsx",
@@ -2889,7 +2889,7 @@
       "source_file": "src/components/shop/home/bestsellers-section.tsx",
       "source_location": "L1",
       "id": "src_components_shop_home_bestsellers_section_tsx",
-      "community": 198
+      "community": 199
     },
     {
       "label": "hero-section.tsx",
@@ -2897,7 +2897,7 @@
       "source_file": "src/components/shop/home/hero-section.tsx",
       "source_location": "L1",
       "id": "src_components_shop_home_hero_section_tsx",
-      "community": 199
+      "community": 200
     },
     {
       "label": "process-section.tsx",
@@ -2905,7 +2905,7 @@
       "source_file": "src/components/shop/home/process-section.tsx",
       "source_location": "L1",
       "id": "src_components_shop_home_process_section_tsx",
-      "community": 200
+      "community": 201
     },
     {
       "label": "confirmation-client.tsx",
@@ -2913,7 +2913,7 @@
       "source_file": "src/components/shop/checkout/confirmation-client.tsx",
       "source_location": "L1",
       "id": "src_components_shop_checkout_confirmation_client_tsx",
-      "community": 201
+      "community": 202
     },
     {
       "label": "checkout-client.tsx",
@@ -3193,7 +3193,7 @@
       "source_file": "src/components/admin/admin-ui.tsx",
       "source_location": "L1",
       "id": "src_components_admin_admin_ui_tsx",
-      "community": 202
+      "community": 203
     },
     {
       "label": "CustomerDetailClient.tsx",
@@ -3681,7 +3681,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L1",
       "id": "src_components_admin_shipping_shippingmethodsclient_tsx",
-      "community": 24
+      "community": 25
     },
     {
       "label": "openCreate()",
@@ -3689,7 +3689,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L53",
       "id": "shippingmethodsclient_opencreate",
-      "community": 24
+      "community": 25
     },
     {
       "label": "openEdit()",
@@ -3697,7 +3697,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L60",
       "id": "shippingmethodsclient_openedit",
-      "community": 24
+      "community": 25
     },
     {
       "label": "closeForm()",
@@ -3705,7 +3705,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L83",
       "id": "shippingmethodsclient_closeform",
-      "community": 24
+      "community": 25
     },
     {
       "label": "handleSave()",
@@ -3713,7 +3713,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L88",
       "id": "shippingmethodsclient_handlesave",
-      "community": 24
+      "community": 25
     },
     {
       "label": "handleDelete()",
@@ -3721,7 +3721,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L123",
       "id": "shippingmethodsclient_handledelete",
-      "community": 24
+      "community": 25
     },
     {
       "label": "toggleActive()",
@@ -3729,7 +3729,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L129",
       "id": "shippingmethodsclient_toggleactive",
-      "community": 24
+      "community": 25
     },
     {
       "label": "Boolean()",
@@ -3737,7 +3737,7 @@
       "source_file": "src/components/admin/shipping/ShippingMethodsClient.tsx",
       "source_location": "L184",
       "id": "shippingmethodsclient_boolean",
-      "community": 24
+      "community": 25
     },
     {
       "label": "ShippingZonesClient.tsx",
@@ -3745,7 +3745,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L1",
       "id": "src_components_admin_shipping_shippingzonesclient_tsx",
-      "community": 25
+      "community": 26
     },
     {
       "label": "openCreate()",
@@ -3753,7 +3753,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L69",
       "id": "shippingzonesclient_opencreate",
-      "community": 25
+      "community": 26
     },
     {
       "label": "openEdit()",
@@ -3761,7 +3761,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L76",
       "id": "shippingzonesclient_openedit",
-      "community": 25
+      "community": 26
     },
     {
       "label": "closeForm()",
@@ -3769,7 +3769,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L91",
       "id": "shippingzonesclient_closeform",
-      "community": 25
+      "community": 26
     },
     {
       "label": "buildPayload()",
@@ -3777,7 +3777,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L96",
       "id": "shippingzonesclient_buildpayload",
-      "community": 25
+      "community": 26
     },
     {
       "label": "handleSave()",
@@ -3785,7 +3785,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L109",
       "id": "shippingzonesclient_handlesave",
-      "community": 25
+      "community": 26
     },
     {
       "label": "handleDelete()",
@@ -3793,7 +3793,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L140",
       "id": "shippingzonesclient_handledelete",
-      "community": 25
+      "community": 26
     },
     {
       "label": "testPostalCode()",
@@ -3801,7 +3801,7 @@
       "source_file": "src/components/admin/shipping/ShippingZonesClient.tsx",
       "source_location": "L146",
       "id": "shippingzonesclient_testpostalcode",
-      "community": 25
+      "community": 26
     },
     {
       "label": "ShippingSimulatorClient.tsx",
@@ -3889,7 +3889,7 @@
       "source_file": "src/components/checkout/DeliveryTimeSlotPicker.tsx",
       "source_location": "L1",
       "id": "src_components_checkout_deliverytimeslotpicker_tsx",
-      "community": 203
+      "community": 204
     },
     {
       "label": "StickerEditor.tsx",
@@ -3903,7 +3903,7 @@
       "label": "handleFileInput()",
       "file_type": "code",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L228",
+      "source_location": "L276",
       "id": "stickereditor_handlefileinput",
       "community": 32
     },
@@ -3911,7 +3911,7 @@
       "label": "handleDragOver()",
       "file_type": "code",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L234",
+      "source_location": "L282",
       "id": "stickereditor_handledragover",
       "community": 32
     },
@@ -3919,7 +3919,7 @@
       "label": "handleDragLeave()",
       "file_type": "code",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L238",
+      "source_location": "L286",
       "id": "stickereditor_handledragleave",
       "community": 32
     },
@@ -3927,7 +3927,7 @@
       "label": "handleDrop()",
       "file_type": "code",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L239",
+      "source_location": "L287",
       "id": "stickereditor_handledrop",
       "community": 32
     },
@@ -3935,7 +3935,7 @@
       "label": "handleValidate()",
       "file_type": "code",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L247",
+      "source_location": "L295",
       "id": "stickereditor_handlevalidate",
       "community": 32
     },
@@ -3943,7 +3943,7 @@
       "label": "btnStyle()",
       "file_type": "code",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L582",
+      "source_location": "L655",
       "id": "stickereditor_btnstyle",
       "community": 32
     },
@@ -3953,7 +3953,7 @@
       "source_file": "src/components/sticker-editor/EditorCanvasClient.tsx",
       "source_location": "L1",
       "id": "src_components_sticker_editor_editorcanvasclient_tsx",
-      "community": 204
+      "community": 205
     },
     {
       "label": "order-detail-client.tsx",
@@ -4017,7 +4017,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L1",
       "id": "src_components_product_configurator_productconfigurator_tsx",
-      "community": 26
+      "community": 27
     },
     {
       "label": "eur()",
@@ -4025,7 +4025,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L17",
       "id": "productconfigurator_eur",
-      "community": 26
+      "community": 27
     },
     {
       "label": "eurUnit()",
@@ -4033,7 +4033,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L20",
       "id": "productconfigurator_eurunit",
-      "community": 26
+      "community": 27
     },
     {
       "label": "Badge()",
@@ -4041,7 +4041,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L26",
       "id": "productconfigurator_badge",
-      "community": 26
+      "community": 27
     },
     {
       "label": "handleFileSelect()",
@@ -4049,7 +4049,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L682",
       "id": "productconfigurator_handlefileselect",
-      "community": 26
+      "community": 27
     },
     {
       "label": "handleAddToCart()",
@@ -4057,7 +4057,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L726",
       "id": "productconfigurator_handleaddtocart",
-      "community": 26
+      "community": 27
     },
     {
       "label": "handleEditorValidate()",
@@ -4065,7 +4065,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L784",
       "id": "productconfigurator_handleeditorvalidate",
-      "community": 26
+      "community": 27
     },
     {
       "label": "step()",
@@ -4073,7 +4073,7 @@
       "source_file": "src/components/product-configurator/ProductConfigurator.tsx",
       "source_location": "L821",
       "id": "productconfigurator_step",
-      "community": 26
+      "community": 27
     },
     {
       "label": "configurator.types.ts",
@@ -4081,7 +4081,7 @@
       "source_file": "src/components/product-configurator/configurator.types.ts",
       "source_location": "L1",
       "id": "src_components_product_configurator_configurator_types_ts",
-      "community": 205
+      "community": 206
     },
     {
       "label": "ProductRatingSummary.tsx",
@@ -4121,7 +4121,7 @@
       "source_file": "src/components/reviews/ReviewCard.tsx",
       "source_location": "L1",
       "id": "src_components_reviews_reviewcard_tsx",
-      "community": 206
+      "community": 207
     },
     {
       "label": "ReviewStars.tsx",
@@ -4145,7 +4145,7 @@
       "source_file": "src/components/reviews/ReviewMediaGallery.tsx",
       "source_location": "L1",
       "id": "src_components_reviews_reviewmediagallery_tsx",
-      "community": 207
+      "community": 208
     },
     {
       "label": "cart-actions.ts",
@@ -5345,7 +5345,7 @@
       "source_file": "src/lib/page-sections.ts",
       "source_location": "L1",
       "id": "src_lib_page_sections_ts",
-      "community": 208
+      "community": 209
     },
     {
       "label": "order-state.test.ts",
@@ -5353,7 +5353,7 @@
       "source_file": "src/lib/order-state.test.ts",
       "source_location": "L1",
       "id": "src_lib_order_state_test_ts",
-      "community": 209
+      "community": 210
     },
     {
       "label": "products.ts",
@@ -5769,7 +5769,7 @@
       "source_file": "src/lib/vat.test.ts",
       "source_location": "L1",
       "id": "src_lib_vat_test_ts",
-      "community": 210
+      "community": 211
     },
     {
       "label": "vat.ts",
@@ -6273,7 +6273,7 @@
       "source_file": "src/lib/cart-types.ts",
       "source_location": "L1",
       "id": "src_lib_cart_types_ts",
-      "community": 211
+      "community": 212
     },
     {
       "label": "email-defaults.ts",
@@ -6281,7 +6281,7 @@
       "source_file": "src/lib/email-defaults.ts",
       "source_location": "L1",
       "id": "src_lib_email_defaults_ts",
-      "community": 212
+      "community": 213
     },
     {
       "label": "auth.ts",
@@ -6289,7 +6289,7 @@
       "source_file": "src/lib/auth.ts",
       "source_location": "L1",
       "id": "src_lib_auth_ts",
-      "community": 213
+      "community": 214
     },
     {
       "label": "auth-client.ts",
@@ -6297,7 +6297,7 @@
       "source_file": "src/lib/auth-client.ts",
       "source_location": "L1",
       "id": "src_lib_auth_client_ts",
-      "community": 214
+      "community": 215
     },
     {
       "label": "mail.ts",
@@ -6385,7 +6385,7 @@
       "source_file": "src/lib/discounts/discount-types.ts",
       "source_location": "L1",
       "id": "src_lib_discounts_discount_types_ts",
-      "community": 215
+      "community": 216
     },
     {
       "label": "discount-validation.ts",
@@ -6649,7 +6649,7 @@
       "source_file": "src/lib/shipping/types.ts",
       "source_location": "L1",
       "id": "src_lib_shipping_types_ts",
-      "community": 216
+      "community": 217
     },
     {
       "label": "actions.ts",
@@ -6681,7 +6681,7 @@
       "source_file": "src/lib/shipping/validators.ts",
       "source_location": "L1",
       "id": "src_lib_shipping_validators_ts",
-      "community": 217
+      "community": 218
     },
     {
       "label": "postal-rules-parser.ts",
@@ -6713,7 +6713,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L1",
       "id": "src_lib_shipping_carriers_ts",
-      "community": 27
+      "community": 28
     },
     {
       "label": "ColissimoProvider",
@@ -6721,7 +6721,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L25",
       "id": "carriers_colissimoprovider",
-      "community": 27
+      "community": 28
     },
     {
       "label": ".getRates()",
@@ -6729,7 +6729,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L29",
       "id": "carriers_colissimoprovider_getrates",
-      "community": 27
+      "community": 28
     },
     {
       "label": "ChronopostProvider",
@@ -6737,7 +6737,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L56",
       "id": "carriers_chronopostprovider",
-      "community": 27
+      "community": 28
     },
     {
       "label": ".getRates()",
@@ -6745,7 +6745,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L60",
       "id": "carriers_chronopostprovider_getrates",
-      "community": 27
+      "community": 28
     },
     {
       "label": "getCarrierProvider()",
@@ -6753,7 +6753,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L87",
       "id": "carriers_getcarrierprovider",
-      "community": 27
+      "community": 28
     },
     {
       "label": "getAllCarrierProviders()",
@@ -6761,7 +6761,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L91",
       "id": "carriers_getallcarrierproviders",
-      "community": 27
+      "community": 28
     },
     {
       "label": "fetchAllCarrierRates()",
@@ -6769,7 +6769,7 @@
       "source_file": "src/lib/shipping/carriers.ts",
       "source_location": "L99",
       "id": "carriers_fetchallcarrierrates",
-      "community": 27
+      "community": 28
     },
     {
       "label": "editor.reducer.ts",
@@ -6801,7 +6801,7 @@
       "source_file": "src/lib/sticker-editor/cutline-service.ts",
       "source_location": "L1",
       "id": "src_lib_sticker_editor_cutline_service_ts",
-      "community": 28
+      "community": 23
     },
     {
       "label": "generateAlphaCutline()",
@@ -6809,7 +6809,7 @@
       "source_file": "src/lib/sticker-editor/cutline.service.ts",
       "source_location": "L54",
       "id": "cutline_service_generatealphacutline",
-      "community": 28
+      "community": 23
     },
     {
       "label": "isApiResponse()",
@@ -6817,7 +6817,7 @@
       "source_file": "src/lib/sticker-editor/cutline.service.ts",
       "source_location": "L186",
       "id": "cutline_service_isapiresponse",
-      "community": 28
+      "community": 23
     },
     {
       "label": "mapServerError()",
@@ -6825,7 +6825,7 @@
       "source_file": "src/lib/sticker-editor/cutline.service.ts",
       "source_location": "L195",
       "id": "cutline_service_mapservererror",
-      "community": 28
+      "community": 23
     },
     {
       "label": "getImageNaturalSize()",
@@ -6833,7 +6833,7 @@
       "source_file": "src/lib/sticker-editor/cutline.service.ts",
       "source_location": "L209",
       "id": "cutline_service_getimagenaturalsize",
-      "community": 28
+      "community": 23
     },
     {
       "label": "removeBackground()",
@@ -6841,7 +6841,7 @@
       "source_file": "src/lib/sticker-editor/cutline.service.ts",
       "source_location": "L246",
       "id": "cutline_service_removebackground",
-      "community": 28
+      "community": 23
     },
     {
       "label": "geometry.utils.ts",
@@ -6900,20 +6900,28 @@
       "community": 38
     },
     {
+      "label": "fetchCutlineService()",
+      "file_type": "code",
+      "source_file": "src/lib/sticker-editor/cutline-service.ts",
+      "source_location": "L41",
+      "id": "cutline_service_fetchcutlineservice",
+      "community": 23
+    },
+    {
       "label": "callCutlineService()",
       "file_type": "code",
       "source_file": "src/lib/sticker-editor/cutline-service.ts",
-      "source_location": "L60",
+      "source_location": "L103",
       "id": "cutline_service_callcutlineservice",
-      "community": 28
+      "community": 23
     },
     {
       "label": "callBackgroundRemoveService()",
       "file_type": "code",
       "source_file": "src/lib/sticker-editor/cutline-service.ts",
-      "source_location": "L110",
+      "source_location": "L152",
       "id": "cutline_service_callbackgroundremoveservice",
-      "community": 28
+      "community": 23
     },
     {
       "label": "validation.service.ts",
@@ -6945,7 +6953,15 @@
       "source_file": "src/lib/sticker-editor/editor.types.ts",
       "source_location": "L1",
       "id": "src_lib_sticker_editor_editor_types_ts",
-      "community": 218
+      "community": 157
+    },
+    {
+      "label": "shapeCodeToCutlineMethod()",
+      "file_type": "code",
+      "source_file": "src/lib/sticker-editor/editor.types.ts",
+      "source_location": "L19",
+      "id": "editor_types_shapecodetocutlinemethod",
+      "community": 157
     },
     {
       "label": "review-types.ts",
@@ -7129,7 +7145,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L1",
       "id": "src_lib_reviews_review_email_service_ts",
-      "community": 23
+      "community": 24
     },
     {
       "label": "buildReviewLink()",
@@ -7137,7 +7153,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L6",
       "id": "review_email_service_buildreviewlink",
-      "community": 23
+      "community": 24
     },
     {
       "label": "sendReviewRequestEmail()",
@@ -7145,7 +7161,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L10",
       "id": "review_email_service_sendreviewrequestemail",
-      "community": 23
+      "community": 24
     },
     {
       "label": "sendReminderEmail()",
@@ -7153,7 +7169,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L26",
       "id": "review_email_service_sendreminderemail",
-      "community": 23
+      "community": 24
     },
     {
       "label": "sendThankYouEmail()",
@@ -7161,7 +7177,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L42",
       "id": "review_email_service_sendthankyouemail",
-      "community": 23
+      "community": 24
     },
     {
       "label": "buildRequestEmailHtml()",
@@ -7169,7 +7185,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L51",
       "id": "review_email_service_buildrequestemailhtml",
-      "community": 23
+      "community": 24
     },
     {
       "label": "buildReminderEmailHtml()",
@@ -7177,7 +7193,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L89",
       "id": "review_email_service_buildreminderemailhtml",
-      "community": 23
+      "community": 24
     },
     {
       "label": "buildThankYouEmailHtml()",
@@ -7185,7 +7201,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L126",
       "id": "review_email_service_buildthankyouemailhtml",
-      "community": 23
+      "community": 24
     },
     {
       "label": "escapeHtml()",
@@ -7193,7 +7209,7 @@
       "source_file": "src/lib/reviews/review-email-service.ts",
       "source_location": "L161",
       "id": "review_email_service_escapehtml",
-      "community": 23
+      "community": 24
     },
     {
       "label": "schema.ts",
@@ -7209,7 +7225,7 @@
       "source_file": "src/db/seed.ts",
       "source_location": "L1",
       "id": "src_db_seed_ts",
-      "community": 157
+      "community": 158
     },
     {
       "label": "main()",
@@ -7217,7 +7233,7 @@
       "source_file": "src/db/seed.ts",
       "source_location": "L11",
       "id": "seed_main",
-      "community": 157
+      "community": 158
     },
     {
       "label": "index.ts",
@@ -7225,7 +7241,7 @@
       "source_file": "src/db/index.ts",
       "source_location": "L1",
       "id": "src_db_index_ts",
-      "community": 158
+      "community": 159
     },
     {
       "label": "getDb()",
@@ -7233,7 +7249,7 @@
       "source_file": "src/db/index.ts",
       "source_location": "L8",
       "id": "index_getdb",
-      "community": 158
+      "community": 159
     }
   ],
   "links": [
@@ -12197,7 +12213,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L228",
+      "source_location": "L276",
       "weight": 1.0,
       "_src": "src_components_sticker_editor_stickereditor_tsx",
       "_tgt": "stickereditor_handlefileinput",
@@ -12209,7 +12225,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L234",
+      "source_location": "L282",
       "weight": 1.0,
       "_src": "src_components_sticker_editor_stickereditor_tsx",
       "_tgt": "stickereditor_handledragover",
@@ -12221,7 +12237,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L238",
+      "source_location": "L286",
       "weight": 1.0,
       "_src": "src_components_sticker_editor_stickereditor_tsx",
       "_tgt": "stickereditor_handledragleave",
@@ -12233,7 +12249,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L239",
+      "source_location": "L287",
       "weight": 1.0,
       "_src": "src_components_sticker_editor_stickereditor_tsx",
       "_tgt": "stickereditor_handledrop",
@@ -12245,7 +12261,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L247",
+      "source_location": "L295",
       "weight": 1.0,
       "_src": "src_components_sticker_editor_stickereditor_tsx",
       "_tgt": "stickereditor_handlevalidate",
@@ -12257,7 +12273,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/sticker-editor/StickerEditor.tsx",
-      "source_location": "L582",
+      "source_location": "L655",
       "weight": 1.0,
       "_src": "src_components_sticker_editor_stickereditor_tsx",
       "_tgt": "stickereditor_btnstyle",
@@ -17573,7 +17589,19 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/sticker-editor/cutline-service.ts",
-      "source_location": "L60",
+      "source_location": "L41",
+      "weight": 1.0,
+      "_src": "src_lib_sticker_editor_cutline_service_ts",
+      "_tgt": "cutline_service_fetchcutlineservice",
+      "source": "src_lib_sticker_editor_cutline_service_ts",
+      "target": "cutline_service_fetchcutlineservice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/sticker-editor/cutline-service.ts",
+      "source_location": "L103",
       "weight": 1.0,
       "_src": "src_lib_sticker_editor_cutline_service_ts",
       "_tgt": "cutline_service_callcutlineservice",
@@ -17585,7 +17613,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/sticker-editor/cutline-service.ts",
-      "source_location": "L110",
+      "source_location": "L152",
       "weight": 1.0,
       "_src": "src_lib_sticker_editor_cutline_service_ts",
       "_tgt": "cutline_service_callbackgroundremoveservice",
@@ -17702,6 +17730,30 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/sticker-editor/cutline-service.ts",
+      "source_location": "L121",
+      "weight": 1.0,
+      "_src": "cutline_service_callcutlineservice",
+      "_tgt": "cutline_service_fetchcutlineservice",
+      "source": "cutline_service_fetchcutlineservice",
+      "target": "cutline_service_callcutlineservice",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/sticker-editor/cutline-service.ts",
+      "source_location": "L159",
+      "weight": 1.0,
+      "_src": "cutline_service_callbackgroundremoveservice",
+      "_tgt": "cutline_service_fetchcutlineservice",
+      "source": "cutline_service_fetchcutlineservice",
+      "target": "cutline_service_callbackgroundremoveservice",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/lib/sticker-editor/validation.service.ts",
@@ -17723,6 +17775,18 @@
       "_tgt": "validation_service_detecttransparency",
       "source": "src_lib_sticker_editor_validation_service_ts",
       "target": "validation_service_detecttransparency",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/lib/sticker-editor/editor.types.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "_src": "src_lib_sticker_editor_editor_types_ts",
+      "_tgt": "editor_types_shapecodetocutlinemethod",
+      "source": "src_lib_sticker_editor_editor_types_ts",
+      "target": "editor_types_shapecodetocutlinemethod",
       "confidence_score": 1.0
     },
     {

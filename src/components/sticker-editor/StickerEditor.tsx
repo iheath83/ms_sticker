@@ -14,7 +14,12 @@ import { editorReducer, createInitialState } from "@/lib/sticker-editor/editor.r
 import { validateEditor, detectTransparency } from "@/lib/sticker-editor/validation.service";
 import { fitImageToCanvas, computeDpi, mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
 import { generateAlphaCutline, removeBackground } from "@/lib/sticker-editor/cutline.service";
-import type { EditorValidationOutput, CutType, CutlineMethod, EditorImage } from "@/lib/sticker-editor/editor.types";
+import {
+  shapeCodeToCutlineMethod,
+  type EditorValidationOutput,
+  type EditorImage,
+} from "@/lib/sticker-editor/editor.types";
+import type { StickerShape } from "@/db/schema";
 // Konva chargé côté client uniquement (pas de SSR)
 const EditorCanvasClient = dynamic(() => import("./EditorCanvasClient"), {
   ssr: false,
@@ -39,6 +44,13 @@ interface Props {
    * Défaut : true.
    */
   isOpen?: boolean;
+  /** Formes configurées sur le produit (à la forme, carré, rond, arrondi…). */
+  shapes: StickerShape[];
+  /** Forme actuellement sélectionnée dans le configurateur produit. */
+  selectedShapeId?: string | undefined;
+  /** Callback : l'utilisateur change de forme dans l'éditeur → cocher la même
+   * option dans le configurateur produit. */
+  onShapeChange?: (shapeId: string) => void;
 }
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -49,12 +61,36 @@ const MAX_CANVAS_WIDTH = 520;
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-export function StickerEditor({ productName, widthMm, heightMm, onValidate, onClose, isOpen = true }: Props) {
+export function StickerEditor({
+  productName,
+  widthMm,
+  heightMm,
+  onValidate,
+  onClose,
+  isOpen = true,
+  shapes,
+  selectedShapeId,
+  onShapeChange,
+}: Props) {
   const [state, dispatch] = useReducer(
     editorReducer,
     undefined,
     () => createInitialState(widthMm, heightMm),
   );
+
+  // Forme courante (résolue depuis l'id) — pilote la méthode de découpe.
+  const currentShape = shapes.find((s) => s.id === selectedShapeId) ?? shapes[0];
+
+  // Synchronise la méthode de découpe interne avec la forme du produit
+  // (parent → éditeur). Réagit aussi à un changement local côté éditeur.
+  useEffect(() => {
+    if (!currentShape) return;
+    const method = shapeCodeToCutlineMethod(currentShape.code);
+    if (method !== state.settings.cutline.method) {
+      dispatch({ type: "SET_CUTLINE_METHOD", method });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentShape?.id]);
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -292,12 +328,18 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
 
     setIsExporting(false);
 
+    // Déduit le type de coupe à partir de la forme produit : la découpe à la
+    // forme (die-cut) implique généralement une coupe pleine chair, les formes
+    // géométriques (rond, carré, arrondi) restent en kiss-cut planché.
+    const derivedCutType =
+      state.settings.cutline.method === "alpha" ? "through_cut" : "kiss_cut";
+
     onValidate({
       previewDataUrl,
       editorConfig: {
         widthMm: state.image.widthMm,
         heightMm: state.image.heightMm,
-        cutType: state.settings.cutline.cutType,
+        cutType: derivedCutType,
         cutlineOffsetMm: state.settings.cutline.offsetMm,
         bleedMm: state.settings.bleedMm,
         safetyMarginMm: state.settings.safetyMarginMm,
@@ -498,13 +540,29 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
               </SideSection>
             )}
 
-            {/* ── Type de coupe ── */}
-            <SideSection title={image ? "Type de coupe" : "2. Type de coupe"}>
-              <CutTypeSelector
-                value={settings.cutline.cutType}
-                onChange={(v) => dispatch({ type: "SET_CUT_TYPE", cutType: v })}
-              />
-            </SideSection>
+            {/* ── Forme du sticker (cochée aussi sur la fiche produit) ── */}
+            {shapes.length > 0 && (
+              <SideSection title={image ? "Forme du sticker" : "2. Forme du sticker"}>
+                <ShapeSelector
+                  shapes={shapes}
+                  selectedShapeId={currentShape?.id}
+                  hasTransparency={image?.hasTransparency ?? true}
+                  status={settings.cutline.status}
+                  isGenerating={isGeneratingCutline}
+                  genError={cutlineGenError}
+                  onChange={(id) => {
+                    const shape = shapes.find((s) => s.id === id);
+                    if (!shape) return;
+                    dispatch({
+                      type: "SET_CUTLINE_METHOD",
+                      method: shapeCodeToCutlineMethod(shape.code),
+                    });
+                    onShapeChange?.(id);
+                  }}
+                  onRegenerate={handleGenerateCutline}
+                />
+              </SideSection>
+            )}
 
             {/* ── Préparation de l'image ── */}
             {image && (
@@ -515,21 +573,6 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
                   done={bgRemoveDone}
                   error={bgRemoveError}
                   onRemove={handleRemoveBackground}
-                />
-              </SideSection>
-            )}
-
-            {/* ── Méthode de découpe ── */}
-            {image && (
-              <SideSection title="Forme de découpe">
-                <CutlineMethodSelector
-                  method={settings.cutline.method}
-                  status={settings.cutline.status}
-                  isGenerating={isGeneratingCutline}
-                  hasTransparency={image.hasTransparency}
-                  genError={cutlineGenError}
-                  onChangeMethod={(m) => dispatch({ type: "SET_CUTLINE_METHOD", method: m })}
-                  onRegenerate={handleGenerateCutline}
                 />
               </SideSection>
             )}
@@ -595,11 +638,7 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
             {image ? (
               <span>
                 <span style={{ color: cutlineColor, fontWeight: 700 }}>●</span>{" "}
-                {cutlineLabel} ·{" "}
-                {settings.cutline.method === "alpha"
-                  ? "contour à la forme"
-                  : "bounding box"}{" "}
-                · offset {settings.cutline.offsetMm} mm
+                {currentShape?.name ?? "Forme"} · offset {settings.cutline.offsetMm} mm
               </span>
             ) : (
               "Importez un fichier pour commencer"
@@ -640,49 +679,135 @@ function SideSection({ title, children }: { title: string; children: React.React
   );
 }
 
-function CutTypeSelector({
-  value,
+function ShapeIcon({ code, active }: { code: string; active: boolean }) {
+  const fill = active ? "#FFFFFF" : "#9CA3AF";
+  const stroke = active ? "#FFFFFF" : "#9CA3AF";
+  const k = (code ?? "").toLowerCase().replace(/-/g, "_");
+  if (k === "die_cut" || k === "diecut" || k === "custom") {
+    return (
+      <svg width="28" height="22" viewBox="0 0 48 40" aria-hidden>
+        <path d="M8 8 Q24 2 40 8 Q46 20 40 32 Q24 38 8 32 Q2 20 8 8z" fill={fill} />
+      </svg>
+    );
+  }
+  if (k === "round" || k === "circle" || k === "ellipse") {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+        <circle cx="12" cy="12" r="10" fill={fill} />
+      </svg>
+    );
+  }
+  if (k === "rounded" || k === "rounded_square" || k === "rounded_rect") {
+    return (
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+        <rect x="2" y="2" width="20" height="20" rx="6" ry="6" fill={fill} />
+      </svg>
+    );
+  }
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+      <rect x="2" y="2" width="20" height="20" fill={fill} stroke={stroke} />
+    </svg>
+  );
+}
+
+function ShapeSelector({
+  shapes,
+  selectedShapeId,
+  hasTransparency,
+  status,
+  isGenerating,
+  genError,
   onChange,
+  onRegenerate,
 }: {
-  value: CutType;
-  onChange: (v: CutType) => void;
+  shapes: StickerShape[];
+  selectedShapeId: string | undefined;
+  hasTransparency: boolean;
+  status: import("@/lib/sticker-editor/editor.types").CutlineStatus;
+  isGenerating: boolean;
+  genError: string | null;
+  onChange: (id: string) => void;
+  onRegenerate: () => void;
 }) {
-  const options: { v: CutType; label: string; desc: string; color: string }[] = [
-    {
-      v: "kiss_cut",
-      label: "Demi-chair (Kiss cut)",
-      desc: "Coupe le vinyle sans traverser le support. Idéal pour planches.",
-      color: "#E91E8C",
-    },
-    {
-      v: "through_cut",
-      label: "Pleine chair",
-      desc: "Traverse tout le matériau. Sticker découpé à la forme finale.",
-      color: "#00B3D8",
-    },
-  ];
+  const selected = shapes.find((s) => s.id === selectedShapeId);
+  const selectedMethod = shapeCodeToCutlineMethod(selected?.code);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {options.map((opt) => (
-        <button
-          key={opt.v}
-          type="button"
-          onClick={() => onChange(opt.v)}
-          style={{
-            textAlign: "left", padding: "10px 14px", borderRadius: 10,
-            border: `2px solid ${value === opt.v ? opt.color : "#E5E7EB"}`,
-            background: value === opt.v ? `${opt.color}10` : "#fff",
-            cursor: "pointer", transition: "all 0.15s",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ width: 10, height: 10, borderRadius: "50%", background: opt.color, flexShrink: 0 }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27" }}>{opt.label}</span>
-          </div>
-          <p style={{ margin: "4px 0 0 18px", fontSize: 11, color: "#6B7280" }}>{opt.desc}</p>
-        </button>
-      ))}
+      {shapes.map((shape) => {
+        const method = shapeCodeToCutlineMethod(shape.code);
+        const requiresAlpha = method === "alpha";
+        const disabled = requiresAlpha && !hasTransparency;
+        const isActive = shape.id === selectedShapeId && !disabled;
+        return (
+          <button
+            key={shape.id}
+            type="button"
+            onClick={() => !disabled && onChange(shape.id)}
+            disabled={disabled}
+            style={{
+              textAlign: "left", padding: "10px 14px", borderRadius: 10,
+              border: `2px solid ${isActive ? "#0A0E27" : "#E5E7EB"}`,
+              background: isActive ? "#0A0E27" : disabled ? "#F9FAFB" : "#fff",
+              color: isActive ? "#fff" : disabled ? "#9CA3AF" : "#0A0E27",
+              cursor: disabled ? "not-allowed" : "pointer",
+              opacity: disabled ? 0.55 : 1,
+              transition: "all 0.15s",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <ShapeIcon code={shape.code} active={isActive} />
+              <span style={{ fontSize: 13, fontWeight: 700, flex: 1 }}>{shape.name}</span>
+              {isActive && method === "alpha" && status === "generated" && (
+                <span style={{ fontSize: 11, color: "#86EFAC", fontWeight: 600 }}>✓ Calculé</span>
+              )}
+              {isActive && method === "alpha" && status === "generating" && (
+                <span style={{ fontSize: 11, color: "#BFDBFE" }}>⏳</span>
+              )}
+            </div>
+            {shape.description && (
+              <p style={{
+                margin: "4px 0 0 32px", fontSize: 11,
+                color: isActive ? "rgba(255,255,255,0.7)" : "#6B7280",
+                lineHeight: 1.35,
+              }}>
+                {shape.description}
+              </p>
+            )}
+            {disabled && (
+              <p style={{ margin: "4px 0 0 32px", fontSize: 11, color: "#B45309" }}>
+                Fond transparent requis (PNG avec alpha)
+              </p>
+            )}
+          </button>
+        );
+      })}
+
+      {/* Erreur de génération + bouton régénérer (uniquement pour la découpe à la forme) */}
+      {selectedMethod === "alpha" && (
+        <>
+          {genError && (
+            <div style={{
+              padding: "8px 10px", borderRadius: 8, fontSize: 12,
+              background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626",
+            }}>
+              {genError}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={onRegenerate}
+            disabled={isGenerating}
+            style={{
+              ...btnStyle(isGenerating ? "#E5E7EB" : "#EFF6FF", isGenerating ? "#9CA3AF" : "#1D4ED8"),
+              fontSize: 12, padding: "8px 14px",
+            }}
+          >
+            {isGenerating ? "⏳ Calcul en cours…" : "↺ Régénérer le contour"}
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -862,109 +987,6 @@ function BackgroundRemoveAction({
         >
           {error}
         </div>
-      )}
-    </div>
-  );
-}
-
-function CutlineMethodSelector({
-  method,
-  status,
-  isGenerating,
-  hasTransparency,
-  genError,
-  onChangeMethod,
-  onRegenerate,
-}: {
-  method: CutlineMethod;
-  status: import("@/lib/sticker-editor/editor.types").CutlineStatus;
-  isGenerating: boolean;
-  hasTransparency: boolean;
-  genError: string | null;
-  onChangeMethod: (m: CutlineMethod) => void;
-  onRegenerate: () => void;
-}) {
-  const options: { v: CutlineMethod; label: string; desc: string; icon: string; requiresAlpha?: boolean }[] = [
-    {
-      v: "bounding_box",
-      label: "Rectangle",
-      desc: "Découpe rectangulaire autour du visuel.",
-      icon: "⬜",
-    },
-    {
-      v: "alpha",
-      label: "À la forme",
-      desc: "Contour qui suit le motif (nécessite un fond transparent).",
-      icon: "✂️",
-      requiresAlpha: true,
-    },
-  ];
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {options.map((opt) => {
-        const disabled = opt.requiresAlpha && !hasTransparency;
-        return (
-          <button
-            key={opt.v}
-            type="button"
-            onClick={() => !disabled && onChangeMethod(opt.v)}
-            disabled={disabled}
-            style={{
-              textAlign: "left", padding: "10px 14px", borderRadius: 10,
-              border: `2px solid ${method === opt.v && !disabled ? "#0A0E27" : "#E5E7EB"}`,
-              background: method === opt.v && !disabled ? "#0A0E2710" : disabled ? "#F9FAFB" : "#fff",
-              cursor: disabled ? "not-allowed" : "pointer",
-              opacity: disabled ? 0.5 : 1,
-              transition: "all 0.15s",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 16 }}>{opt.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27" }}>{opt.label}</span>
-              {method === opt.v && status === "generated" && (
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "#059669", fontWeight: 600 }}>✓ Généré</span>
-              )}
-              {method === opt.v && status === "generating" && (
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "#6366F1" }}>⏳ Calcul…</span>
-              )}
-              {method === opt.v && status === "error" && (
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "#DC2626" }}>⚠ Erreur</span>
-              )}
-            </div>
-            <p style={{ margin: "3px 0 0 24px", fontSize: 11, color: "#6B7280" }}>{opt.desc}</p>
-            {disabled && (
-              <p style={{ margin: "3px 0 0 24px", fontSize: 11, color: "#B45309" }}>
-                Fond transparent requis (PNG avec alpha)
-              </p>
-            )}
-          </button>
-        );
-      })}
-
-      {/* Erreur de génération + bouton régénérer */}
-      {method === "alpha" && (
-        <>
-          {genError && (
-            <div style={{
-              padding: "8px 10px", borderRadius: 8, fontSize: 12,
-              background: "#FEF2F2", border: "1px solid #FECACA", color: "#DC2626",
-            }}>
-              {genError}
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={onRegenerate}
-            disabled={isGenerating}
-            style={{
-              ...btnStyle(isGenerating ? "#E5E7EB" : "#EFF6FF", isGenerating ? "#9CA3AF" : "#1D4ED8"),
-              fontSize: 12, padding: "8px 14px",
-            }}
-          >
-            {isGenerating ? "⏳ Calcul en cours…" : "↺ Régénérer le contour"}
-          </button>
-        </>
       )}
     </div>
   );
