@@ -81,6 +81,86 @@ function StepCard({
   );
 }
 
+// Pièce de 2 € : Ø 25,75 mm — sert de référence universelle pour la taille
+const COIN_2_EUR_DIAMETER_MM = 25.75;
+
+/**
+ * Aperçu visuel d'une taille de sticker à côté d'une pièce de 2 €,
+ * tous deux à la même échelle. Sert de repère pour le client.
+ */
+function CoinSizePreview({
+  widthMm,
+  heightMm,
+  active,
+}: {
+  widthMm: number;
+  heightMm: number;
+  active: boolean;
+}) {
+  const MAX_PX = 96;
+  const maxDim = Math.max(widthMm, heightMm, COIN_2_EUR_DIAMETER_MM);
+  const scale = MAX_PX / maxDim;
+  const stW = Math.max(8, widthMm * scale);
+  const stH = Math.max(8, heightMm * scale);
+  const coinD = COIN_2_EUR_DIAMETER_MM * scale;
+
+  const stickerColor = active ? "rgba(255,255,255,0.92)" : "#0A0E27";
+  const stickerBorder = active ? "rgba(255,255,255,0.55)" : "#9CA3AF";
+  const coinFill = active ? "#FBBF24" : "#FCD34D";
+  const coinStroke = active ? "#92400E" : "#B45309";
+  const labelColor = active ? "rgba(255,255,255,0.8)" : "#9CA3AF";
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "flex-end", justifyContent: "center",
+      gap: 10, height: MAX_PX + 14, marginTop: 8, marginBottom: 4,
+    }}>
+      {/* Sticker à l'échelle */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        <div
+          aria-hidden
+          style={{
+            width: stW,
+            height: stH,
+            background: active ? "rgba(255,255,255,0.18)" : "#F3F4F6",
+            border: `1.5px solid ${stickerBorder}`,
+            borderRadius: 4,
+            position: "relative",
+          }}
+        >
+          <span style={{
+            position: "absolute", inset: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 9, fontWeight: 700, color: stickerColor, letterSpacing: "0.04em",
+          }}>
+            {widthMm === heightMm ? `${widthMm}` : `${widthMm}×${heightMm}`}
+          </span>
+        </div>
+        <span style={{ fontSize: 9, color: labelColor, fontWeight: 600 }}>Sticker</span>
+      </div>
+
+      {/* Pièce 2 € à la même échelle */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        <div
+          aria-hidden
+          style={{
+            width: coinD, height: coinD, borderRadius: "50%",
+            background: `radial-gradient(circle at 35% 30%, ${coinFill}, ${coinStroke})`,
+            border: `1.5px solid ${coinStroke}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: Math.max(8, coinD * 0.32),
+            fontWeight: 800, color: coinStroke,
+            boxShadow: active ? "0 1px 3px rgba(0,0,0,0.25)" : "0 1px 2px rgba(0,0,0,0.15)",
+          }}
+        >
+          2€
+        </div>
+        <span style={{ fontSize: 9, color: labelColor, fontWeight: 600 }}>Repère</span>
+      </div>
+    </div>
+  );
+}
+
 function OptionCard({
   active, label, sublabel, badge, disabled, onClick,
 }: {
@@ -836,6 +916,10 @@ export function ProductConfigurator({
           shapes={shapes}
           selectedShapeId={state.selectedShapeId}
           onShapeChange={(id) => dispatch({ type: "SELECT_SHAPE", id })}
+          /* Pas de redimensionnement du visuel : il doit toujours remplir
+             le format choisi. Activé uniquement si le produit autorise une
+             taille personnalisée. */
+          allowResize={config.allowCustomWidth}
           onValidate={handleEditorValidate}
           onClose={() => setShowEditor(false)}
         />
@@ -893,25 +977,88 @@ export function ProductConfigurator({
           {(hasSizes || config.allowCustomWidth) && (
             <StepCard number={step()} title="Taille" {...(sizeLabel ? { summary: sizeLabel } : {})}>
               {hasSizes && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                  {sizes.map((size) => (
-                    <OptionCard
-                      key={size.id}
-                      active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
-                      label={size.label}
-                      sublabel={`${size.widthMm} × ${size.heightMm} mm`}
-                      onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
-                    />
-                  ))}
-                  {config.allowCustomWidth && (
-                    <OptionCard
-                      active={state.sizeMode === "custom"}
-                      label="Personnalisée"
-                      sublabel="Dimensions libres"
-                      onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
-                    />
-                  )}
-                </div>
+                <>
+                  <p style={{
+                    margin: "0 0 4px", fontSize: 12, color: "#6B7280",
+                    display: "flex", alignItems: "center", gap: 6,
+                  }}>
+                    <span aria-hidden style={{
+                      display: "inline-block", width: 12, height: 12, borderRadius: "50%",
+                      background: "radial-gradient(circle at 35% 30%, #FCD34D, #B45309)",
+                      border: "1px solid #B45309",
+                    }} />
+                    La pièce de 2 € (Ø 25,75 mm) sert de repère d&apos;échelle.
+                  </p>
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
+                    gap: 12,
+                  }}>
+                    {sizes.map((size) => {
+                      const isActive = state.sizeMode === "preset" && state.selectedSizeId === size.id;
+                      return (
+                        <button
+                          key={size.id}
+                          type="button"
+                          onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
+                          style={{
+                            position: "relative",
+                            padding: "12px 14px 14px",
+                            borderRadius: 14,
+                            border: `2.5px solid ${isActive ? "#0A0E27" : "#E5E7EB"}`,
+                            background: isActive ? "#0A0E27" : "#fff",
+                            color: isActive ? "#fff" : "#374151",
+                            cursor: "pointer",
+                            textAlign: "center",
+                            transition: "all 0.15s",
+                            boxShadow: isActive ? "0 2px 12px rgba(10,14,39,0.18)" : "none",
+                            display: "flex", flexDirection: "column", gap: 2,
+                          }}
+                        >
+                          <CoinSizePreview
+                            widthMm={size.widthMm}
+                            heightMm={size.heightMm}
+                            active={isActive}
+                          />
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{size.label}</div>
+                          <div style={{
+                            fontSize: 12,
+                            opacity: isActive ? 0.78 : 0.65,
+                            fontWeight: 500,
+                          }}>
+                            {size.widthMm} × {size.heightMm} mm
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {config.allowCustomWidth && (
+                      <button
+                        type="button"
+                        onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
+                        style={{
+                          position: "relative",
+                          padding: "12px 14px 14px",
+                          borderRadius: 14,
+                          border: `2.5px solid ${state.sizeMode === "custom" ? "#0A0E27" : "#E5E7EB"}`,
+                          background: state.sizeMode === "custom" ? "#0A0E27" : "#fff",
+                          color: state.sizeMode === "custom" ? "#fff" : "#374151",
+                          cursor: "pointer",
+                          textAlign: "center",
+                          transition: "all 0.15s",
+                          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                          gap: 6,
+                          minHeight: 152,
+                        }}
+                      >
+                        <span style={{ fontSize: 28 }}>✏️</span>
+                        <div style={{ fontSize: 14, fontWeight: 700 }}>Personnalisée</div>
+                        <div style={{ fontSize: 11, opacity: 0.7 }}>
+                          {config.minWidthMm}–{config.maxWidthMm} mm
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
 
               {/* Si aucune taille prédéfinie ET custom autorisé → afficher direct les inputs */}

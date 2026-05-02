@@ -20,6 +20,9 @@ interface Props {
   containerWidth: number;
   stageRef: React.RefObject<Konva.Stage | null>;
   onImageChange: (patch: Partial<EditorImage>) => void;
+  /** Autorise le redimensionnement du visuel via les poignées du Transformer.
+   *  False → seul le déplacement (drag) reste possible. */
+  allowResize?: boolean;
 }
 
 // ─── Composant ───────────────────────────────────────────────────────────────
@@ -31,6 +34,7 @@ export default function EditorCanvasClient({
   containerWidth,
   stageRef,
   onImageChange,
+  allowResize = true,
 }: Props) {
   const transformerRef = useRef<Konva.Transformer | null>(null);
   const imageNodeRef = useRef<Konva.Image | null>(null);
@@ -230,7 +234,12 @@ export default function EditorCanvasClient({
           <Transformer
             ref={transformerRef}
             keepRatio={true}
-            enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
+            resizeEnabled={allowResize}
+            enabledAnchors={
+              allowResize
+                ? ["top-left", "top-right", "bottom-left", "bottom-right"]
+                : []
+            }
             rotateEnabled={true}
             boundBoxFunc={(oldBox, newBox) => {
               if (Math.abs(newBox.width) < 20 || Math.abs(newBox.height) < 20) return oldBox;

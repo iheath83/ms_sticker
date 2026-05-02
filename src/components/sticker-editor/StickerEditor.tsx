@@ -51,6 +51,10 @@ interface Props {
   /** Callback : l'utilisateur change de forme dans l'éditeur → cocher la même
    * option dans le configurateur produit. */
   onShapeChange?: (shapeId: string) => void;
+  /** Autorise le redimensionnement manuel du visuel dans l'éditeur (poignées
+   *  Transformer Konva). Activer uniquement quand le produit autorise une
+   *  taille personnalisée — sinon le visuel doit s'adapter au format strict. */
+  allowResize?: boolean;
 }
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
@@ -71,6 +75,7 @@ export function StickerEditor({
   shapes,
   selectedShapeId,
   onShapeChange,
+  allowResize = false,
 }: Props) {
   const [state, dispatch] = useReducer(
     editorReducer,
@@ -488,6 +493,7 @@ export function StickerEditor({
                     containerWidth={containerWidth}
                     stageRef={stageRef}
                     onImageChange={(patch) => dispatch({ type: "UPDATE_IMAGE", patch })}
+                    allowResize={allowResize}
                   />
                 </div>
 
