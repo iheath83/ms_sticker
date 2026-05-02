@@ -122,11 +122,16 @@ export default function EditorCanvasClient({
   const pathY = imgY + imgH / 2;
 
   // Scale du Path en mode alpha (path en coords image originale → display).
-  // Garde-fou : si l'image n'a pas encore ses dimensions, on évite la division par 0.
-  const origW = image && image.originalWidthPx > 0 ? image.originalWidthPx : 1;
-  const origH = image && image.originalHeightPx > 0 ? image.originalHeightPx : 1;
-  const pathScaleX = imgW / origW;
-  const pathScaleY = imgH / origH;
+  // Garde-fous stricts : on ne rend les Path que si TOUTES les dimensions
+  // sont > 0, sinon Konva peut allouer un sub-canvas de taille 0 (crash
+  // 'drawImage on canvas with width 0').
+  const origW = image && image.originalWidthPx > 0 ? image.originalWidthPx : 0;
+  const origH = image && image.originalHeightPx > 0 ? image.originalHeightPx : 0;
+  const pathScaleX = origW > 0 ? imgW / origW : 1;
+  const pathScaleY = origH > 0 ? imgH / origH : 1;
+  const dimsValid = imgW > 0 && imgH > 0 && origW > 0 && origH > 0;
+  const konvaImgReady =
+    konvaImg && (konvaImg.naturalWidth ?? 0) > 0 && (konvaImg.naturalHeight ?? 0) > 0;
 
   return (
     <Stage ref={stageRef} width={stageW} height={stageH} style={{ cursor: "default" }}>
@@ -139,7 +144,7 @@ export default function EditorCanvasClient({
       {/* ── Fond blanc = surface physique du sticker (intérieur du kiss cut) ── */}
       {/* Mode alpha : suit la silhouette. Le path est en coords image originale,
           on le scale via scaleX/scaleY du node Konva. */}
-      {hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
+      {hasAlphaPath && image && dimsValid && settings.cutline.alphaCutlinePath && (
         <Layer listening={false}>
           <Group x={PAD_PX} y={PAD_PX}>
             <Path
@@ -153,24 +158,16 @@ export default function EditorCanvasClient({
               data={settings.cutline.alphaCutlinePath}
               fill="#ffffff"
               stroke="transparent"
-              shadowColor="rgba(15,23,42,0.18)"
-              shadowBlur={6}
-              shadowOffsetY={2}
             />
           </Group>
         </Layer>
       )}
       {/* Mode bounding_box : rect blanc à la position de la cutline */}
-      {settings.cutline.method === "bounding_box" && bbGuides?.cutline && (
+      {settings.cutline.method === "bounding_box" && bbGuides?.cutline &&
+        bbGuides.cutline.width > 0 && bbGuides.cutline.height > 0 && (
         <Layer listening={false}>
           <Group x={PAD_PX} y={PAD_PX}>
-            <Rect
-              {...bbGuides.cutline}
-              fill="#ffffff"
-              shadowColor="rgba(15,23,42,0.18)"
-              shadowBlur={6}
-              shadowOffsetY={2}
-            />
+            <Rect {...bbGuides.cutline} fill="#ffffff" />
           </Group>
         </Layer>
       )}
@@ -178,10 +175,10 @@ export default function EditorCanvasClient({
       {/* ── Artwork + Transformer ── */}
       <Layer>
         <Group x={PAD_PX} y={PAD_PX}>
-          {konvaImg && image && (
+          {konvaImgReady && image && imgW > 0 && imgH > 0 && (
             <KonvaImage
               ref={imageNodeRef}
-              image={konvaImg}
+              image={konvaImg ?? undefined}
               x={imgX}
               y={imgY}
               width={imgW}
@@ -206,7 +203,7 @@ export default function EditorCanvasClient({
       </Layer>
 
       {/* ── Ligne de coupe alpha (suit l'image) ── */}
-      {settings.showCutline && hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
+      {settings.showCutline && hasAlphaPath && image && dimsValid && settings.cutline.alphaCutlinePath && (
         <Layer listening={false}>
           <Group x={PAD_PX} y={PAD_PX}>
             <Path
@@ -232,7 +229,9 @@ export default function EditorCanvasClient({
       {/* ── Ligne de coupe bounding box (rect) ── */}
       {settings.showCutline &&
         settings.cutline.method === "bounding_box" &&
-        bbGuides?.cutline && (
+        bbGuides?.cutline &&
+        bbGuides.cutline.width > 0 &&
+        bbGuides.cutline.height > 0 && (
           <Layer listening={false}>
             <Group x={PAD_PX} y={PAD_PX}>
               <Rect
