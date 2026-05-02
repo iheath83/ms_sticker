@@ -263,8 +263,30 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
 
     setIsExporting(true);
 
-    // Masquer les guides pour l'export (optionnel — on les garde pour le preview MVP)
-    const previewDataUrl = stageRef.current?.toDataURL({ pixelRatio: 2 }) ?? "";
+    let previewDataUrl = "";
+    const stage = stageRef.current;
+    if (stage) {
+      // Cacher le Transformer pendant l'export pour qu'il ne soit pas
+      // dessiné, et pour éviter le bug "drawImage on canvas with width 0"
+      // (les handles invisibles peuvent créer des sub-canvas vides).
+      const transformers = stage.find("Transformer");
+      const wasVisible = transformers.map((t) => t.visible());
+      transformers.forEach((t) => t.visible(false));
+      stage.batchDraw();
+      // Laisse Konva committer le redraw avant la capture
+      await new Promise<void>((r) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => r())),
+      );
+
+      try {
+        previewDataUrl = stage.toDataURL({ pixelRatio: 2, mimeType: "image/png" });
+      } catch (err) {
+        console.error("[StickerEditor] toDataURL failed:", err);
+      } finally {
+        transformers.forEach((t, i) => t.visible(wasVisible[i] ?? true));
+        stage.batchDraw();
+      }
+    }
 
     const dpi = computeDpi(state.image.originalWidthPx, state.image.widthMm);
 

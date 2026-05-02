@@ -121,6 +121,13 @@ export default function EditorCanvasClient({
   const pathX = imgX + imgW / 2;
   const pathY = imgY + imgH / 2;
 
+  // Scale du Path en mode alpha (path en coords image originale → display).
+  // Garde-fou : si l'image n'a pas encore ses dimensions, on évite la division par 0.
+  const origW = image && image.originalWidthPx > 0 ? image.originalWidthPx : 1;
+  const origH = image && image.originalHeightPx > 0 ? image.originalHeightPx : 1;
+  const pathScaleX = imgW / origW;
+  const pathScaleY = imgH / origH;
+
   return (
     <Stage ref={stageRef} width={stageW} height={stageH} style={{ cursor: "default" }}>
       {/* ── Fond global gris : la zone du sticker physique sera dessinée
@@ -138,10 +145,10 @@ export default function EditorCanvasClient({
             <Path
               x={pathX}
               y={pathY}
-              offsetX={image.originalWidthPx / 2}
-              offsetY={image.originalHeightPx / 2}
-              scaleX={imgW / image.originalWidthPx}
-              scaleY={imgH / image.originalHeightPx}
+              offsetX={origW / 2}
+              offsetY={origH / 2}
+              scaleX={pathScaleX}
+              scaleY={pathScaleY}
               rotation={image.rotationDeg}
               data={settings.cutline.alphaCutlinePath}
               fill="#ffffff"
@@ -205,10 +212,10 @@ export default function EditorCanvasClient({
             <Path
               x={pathX}
               y={pathY}
-              offsetX={image.originalWidthPx / 2}
-              offsetY={image.originalHeightPx / 2}
-              scaleX={imgW / image.originalWidthPx}
-              scaleY={imgH / image.originalHeightPx}
+              offsetX={origW / 2}
+              offsetY={origH / 2}
+              scaleX={pathScaleX}
+              scaleY={pathScaleY}
               rotation={image.rotationDeg}
               data={settings.cutline.alphaCutlinePath}
               stroke={cutlineColor}
