@@ -166,13 +166,14 @@ export default function EditorCanvasClient({
       {(settings.cutline.method === "bounding_box" ||
         settings.cutline.method === "circle" ||
         settings.cutline.method === "rounded") &&
-        bbGuides?.cutline &&
-        bbGuides.cutline.width > 0 &&
-        bbGuides.cutline.height > 0 && (
+        image &&
+        imgW > 0 &&
+        imgH > 0 && (
           <Layer listening={false}>
             <Group x={PAD_PX} y={PAD_PX}>
               <GeometricCutShape
-                rect={bbGuides.cutline}
+                imageRect={{ x: imgX, y: imgY, width: imgW, height: imgH }}
+                offsetPx={mmToPx(settings.cutline.offsetMm, scale)}
                 method={settings.cutline.method}
                 fill="#ffffff"
               />
@@ -239,13 +240,14 @@ export default function EditorCanvasClient({
         (settings.cutline.method === "bounding_box" ||
           settings.cutline.method === "circle" ||
           settings.cutline.method === "rounded") &&
-        bbGuides?.cutline &&
-        bbGuides.cutline.width > 0 &&
-        bbGuides.cutline.height > 0 && (
+        image &&
+        imgW > 0 &&
+        imgH > 0 && (
           <Layer listening={false}>
             <Group x={PAD_PX} y={PAD_PX}>
               <GeometricCutShape
-                rect={bbGuides.cutline}
+                imageRect={{ x: imgX, y: imgY, width: imgW, height: imgH }}
+                offsetPx={mmToPx(settings.cutline.offsetMm, scale)}
                 method={settings.cutline.method}
                 stroke={cutlineColor}
                 strokeWidth={1.5}
@@ -271,34 +273,46 @@ export default function EditorCanvasClient({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Rend la forme de découpe géométrique appropriée à la méthode :
- * - `bounding_box` : rectangle simple
- * - `circle`       : ellipse inscrite dans la bounding box
- * - `rounded`      : rectangle aux coins arrondis (rayon ≈ 12 % du plus petit côté)
+ * Rend la forme de découpe géométrique appropriée à la méthode, en
+ * englobant TOTALEMENT le rectangle de l'image + une marge `offsetPx`.
+ *
+ * - `bounding_box` : rectangle = bbox image élargie de `offsetPx`
+ * - `rounded`      : idem, avec coins arrondis (rayon ≈ 12 % du plus petit côté)
+ * - `circle`       : ellipse **circonscrite** au rect image (passe par les 4
+ *   coins, donc demi-axes = (w/2)·√2 et (h/2)·√2), puis élargie de `offsetPx`
+ *   sur chaque axe pour la marge de coupe.
  */
 function GeometricCutShape({
-  rect,
+  imageRect,
+  offsetPx,
   method,
   ...visualProps
 }: {
-  rect: { x: number; y: number; width: number; height: number };
+  imageRect: { x: number; y: number; width: number; height: number };
+  offsetPx: number;
   method: "bounding_box" | "circle" | "rounded" | "alpha";
   fill?: string;
   stroke?: string;
   strokeWidth?: number;
   dash?: number[];
 }) {
+  const cx = imageRect.x + imageRect.width / 2;
+  const cy = imageRect.y + imageRect.height / 2;
+
   if (method === "circle") {
-    return (
-      <Ellipse
-        x={rect.x + rect.width / 2}
-        y={rect.y + rect.height / 2}
-        radiusX={rect.width / 2}
-        radiusY={rect.height / 2}
-        {...visualProps}
-      />
-    );
+    const SQRT2 = Math.SQRT2;
+    const radiusX = (imageRect.width / 2) * SQRT2 + offsetPx;
+    const radiusY = (imageRect.height / 2) * SQRT2 + offsetPx;
+    return <Ellipse x={cx} y={cy} radiusX={radiusX} radiusY={radiusY} {...visualProps} />;
   }
+
+  const rect = {
+    x: imageRect.x - offsetPx,
+    y: imageRect.y - offsetPx,
+    width: imageRect.width + 2 * offsetPx,
+    height: imageRect.height + 2 * offsetPx,
+  };
+
   if (method === "rounded") {
     const cornerRadius = Math.min(rect.width, rect.height) * 0.12;
     return <Rect {...rect} cornerRadius={cornerRadius} {...visualProps} />;
