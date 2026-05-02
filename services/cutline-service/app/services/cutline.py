@@ -63,6 +63,7 @@ def generate_cutline(
     simplify_epsilon_factor: float = 0.0008,
     smooth_passes: int = 1,
     min_area_ratio: float = 0.0008,
+    single_contour: bool = True,
 ) -> CutlineOutcome:
     """Génère un SVG path en coordonnées **pixels d'image originale**.
 
@@ -76,6 +77,10 @@ def generate_cutline(
         simplify_epsilon_factor: tolérance Douglas-Peucker (% du périmètre)
         smooth_passes: passes de lissage cyclique (1 par défaut, conserve les détails)
         min_area_ratio: contours plus petits que `min_area_ratio * inner²` ignorés
+        single_contour: si True (défaut), garantit un seul contour relié en
+            augmentant progressivement la fermeture morphologique jusqu'à
+            fusionner tous les fragments significatifs. Indispensable pour la
+            production : un sticker doit toujours être découpé d'un seul tenant.
     """
     # ─── 1. Décoder ─────────────────────────────────────────────────────────
     try:
@@ -136,23 +141,37 @@ def generate_cutline(
         )
         mask = cv2.dilate(mask, kernel)
 
+    # ─── 6 bis. Fermeture adaptative pour garantir un contour unique ───────
+    # Un sticker doit toujours être découpé d'un seul tenant. Si l'image
+    # contient plusieurs blocs séparés (ex : logo + texte sous le logo),
+    # on augmente progressivement la fermeture morphologique jusqu'à les
+    # relier — sans dépasser un plafond raisonnable pour ne pas créer de
+    # "blob" géant si les éléments sont trop éloignés.
+    min_area = max(32, min_area_ratio * inner_area)
+    if single_contour:
+        mask = _ensure_single_blob(mask, min_area=min_area, inner=inner)
+
     # ─── 7. Contours externes ───────────────────────────────────────────────
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if not contours:
         return CutlineFailure(ok=False, error="no_contour", message="Aucun contour détecté.")
 
     # Filtrer les fragments
-    min_area = max(32, min_area_ratio * inner_area)
     contours = [c for c in contours if cv2.contourArea(c) >= min_area]
     if not contours:
         return CutlineFailure(ok=False, error="no_contour", message="Contours trop petits.")
 
-    # Si un contour domine massivement (>= 88% de l'aire totale), on ne garde
-    # que celui-là (évite des micro-cutlines parasites). Sinon multi-contour.
-    total = sum(cv2.contourArea(c) for c in contours)
-    biggest = max(contours, key=cv2.contourArea)
-    if total > 0 and cv2.contourArea(biggest) / total >= 0.88:
-        contours = [biggest]
+    # En mode single_contour, on garde uniquement le plus grand (les éventuels
+    # fragments restants sont du bruit < seuil de fusion).
+    if single_contour:
+        contours = [max(contours, key=cv2.contourArea)]
+    else:
+        # Si un contour domine massivement (>= 88% de l'aire totale), on ne
+        # garde que celui-là (évite des micro-cutlines parasites).
+        total = sum(cv2.contourArea(c) for c in contours)
+        biggest = max(contours, key=cv2.contourArea)
+        if total > 0 and cv2.contourArea(biggest) / total >= 0.88:
+            contours = [biggest]
 
     # ─── 8. Pour chaque contour : simplification + lissage + unpad + rescale ─
     sx = orig_w / inner
@@ -201,6 +220,36 @@ def _grid_offset(offset_px: int, orig_w: int, orig_h: int, inner: int) -> int:
         return 0
     scale = inner / max(orig_w, orig_h)
     return max(1, int(round(offset_px * scale)))
+
+
+def _ensure_single_blob(mask: np.ndarray, *, min_area: float, inner: int) -> np.ndarray:
+    """Garantit que le masque ne contient qu'un seul composant connexe
+    significatif en augmentant progressivement la fermeture morphologique.
+
+    Algorithme :
+        - Tant qu'il reste plus d'un contour ≥ min_area :
+          appliquer un MORPH_CLOSE avec un kernel ellipse de taille croissante.
+        - Plafonné à ~30 % de la grille d'analyse pour éviter des "blobs"
+          monstrueux quand les éléments sont vraiment trop éloignés.
+
+    On opère in-place sur une copie pour ne pas muter l'entrée.
+    """
+    out = mask.copy()
+    radius = 2
+    max_radius = max(8, inner // 6)
+    for _ in range(40):  # garde-fou
+        contours, _hier = cv2.findContours(out, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        big = [c for c in contours if cv2.contourArea(c) >= min_area]
+        if len(big) <= 1:
+            return out
+        if radius > max_radius:
+            return out
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (radius * 2 + 1, radius * 2 + 1),
+        )
+        out = cv2.morphologyEx(out, cv2.MORPH_CLOSE, kernel)
+        radius += 2
+    return out
 
 
 def _smooth_cyclic(pts: np.ndarray, passes: int) -> np.ndarray:

@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-05-02)
 
 ## Corpus Check
-- 286 files · ~158,461 words
+- 286 files · ~158,756 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 909 nodes · 921 edges · 222 communities detected
+- 911 nodes · 924 edges · 222 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
@@ -241,7 +241,7 @@
 5. `requireAdmin()` - 12 edges
 6. `PATCH()` - 10 edges
 7. `DELETE()` - 10 edges
-8. `generate_cutline()` - 7 edges
+8. `generate_cutline()` - 8 edges
 9. `requireAdmin()` - 7 edges
 10. `getClient()` - 7 edges
 
@@ -276,20 +276,20 @@ Cohesion: 0.12
 Nodes (2): euros(), formatDate()
 
 ### Community 4 - "Community 4"
+Cohesion: 0.21
+Nodes (12): CutlineFailure, CutlineSuccess, _ensure_single_blob(), generate_cutline(), _grid_offset(), Génération de ligne de coupe (kiss cut) façon prettygoodstickers.com.  Stratégie, Convertit un offset en pixels d'image originale vers la grille d'analyse., Garantit que le masque ne contient qu'un seul composant connexe     significatif (+4 more)
+
+### Community 5 - "Community 5"
 Cohesion: 0.3
 Nodes (12): addToCart(), clearDraftOrder(), clearDraftOrderCookie(), getCart(), getCurrentUserId(), getDraftOrderId(), getOrCreateDraftOrder(), prepareFileUpload() (+4 more)
 
-### Community 5 - "Community 5"
+### Community 6 - "Community 6"
 Cohesion: 0.18
 Nodes (6): closeForm(), handleSave(), newCondition(), newRoot(), openEdit(), ruleToFormState()
 
-### Community 6 - "Community 6"
+### Community 7 - "Community 7"
 Cohesion: 0.27
 Nodes (13): buttonBlock(), dividerBlock(), footerBlock(), heroBlock(), logoBlock(), makeBody(), makeColumn(), makeDesign() (+5 more)
-
-### Community 7 - "Community 7"
-Cohesion: 0.24
-Nodes (10): CutlineFailure, CutlineSuccess, generate_cutline(), _grid_offset(), Génération de ligne de coupe (kiss cut) façon prettygoodstickers.com.  Stratégie, Convertit un offset en pixels d'image originale vers la grille d'analyse., Moyenne mobile cyclique [0.25, 0.5, 0.25]. Conserve la forme., Génère un SVG path en coordonnées **pixels d'image originale**.      Args: (+2 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.18
@@ -1148,7 +1148,7 @@ Cohesion: 1.0
 Nodes (0): 
 
 ## Knowledge Gaps
-- **10 isolated node(s):** `Settings du service via variables d'env (Pydantic Settings).`, `MS Adhésif – Cutline Service.  Microservice Python qui traite les images uploadé`, `Health check endpoint (utilisé par Docker healthcheck + Traefik).`, `Liveness check : 200 dès que uvicorn répond (pas besoin de rembg).`, `Readiness : 200 seulement si le modèle rembg est chargé.` (+5 more)
+- **11 isolated node(s):** `Settings du service via variables d'env (Pydantic Settings).`, `MS Adhésif – Cutline Service.  Microservice Python qui traite les images uploadé`, `Health check endpoint (utilisé par Docker healthcheck + Traefik).`, `Liveness check : 200 dès que uvicorn répond (pas besoin de rembg).`, `Readiness : 200 seulement si le modèle rembg est chargé.` (+6 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **Thin community `Community 95`** (2 nodes): `ShopLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -1409,7 +1409,7 @@ Nodes (0):
 _Questions this graph is uniquely positioned to answer:_
 
 - **What connects `Settings du service via variables d'env (Pydantic Settings).`, `MS Adhésif – Cutline Service.  Microservice Python qui traite les images uploadé`, `Health check endpoint (utilisé par Docker healthcheck + Traefik).` to the rest of the system?**
-  _10 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _11 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.04 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
