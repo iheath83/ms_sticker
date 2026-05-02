@@ -50,11 +50,25 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
+      CUTLINE_SERVICE_URL: http://cutline:8000
     expose:
       - "3000"
     depends_on:
       - postgres
       - minio
+      - cutline
+
+  # ─── Cutline Service (Python FastAPI + OpenCV + rembg) ────────────────────
+  cutline:
+    build:
+      context: ./services/cutline-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      API_KEY: ${CUTLINE_SERVICE_API_KEY:-dev-secret-change-me}
+      REMBG_MODEL: ${CUTLINE_REMBG_MODEL:-isnet-general-use}
+    ports:
+      - "8001:8000"  # exposé en dev pour debug, retiré en prod
 
   # ─── DB migrations (runs once at deploy, then exits) ───────────────────────
   migrate:

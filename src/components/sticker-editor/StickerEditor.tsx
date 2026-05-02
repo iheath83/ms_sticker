@@ -13,7 +13,7 @@ import type Konva from "konva";
 import { editorReducer, createInitialState } from "@/lib/sticker-editor/editor.reducer";
 import { validateEditor, detectTransparency } from "@/lib/sticker-editor/validation.service";
 import { fitImageToCanvas, computeDpi, mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
-import { generateAlphaCutline } from "@/lib/sticker-editor/cutline.service";
+import { generateAlphaCutline, removeBackground } from "@/lib/sticker-editor/cutline.service";
 import type { EditorValidationOutput, CutType, CutlineMethod, EditorImage } from "@/lib/sticker-editor/editor.types";
 // Konva chargé côté client uniquement (pas de SSR)
 const EditorCanvasClient = dynamic(() => import("./EditorCanvasClient"), {
@@ -58,6 +58,9 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingCutline, setIsGeneratingCutline] = useState(false);
   const [cutlineGenError, setCutlineGenError] = useState<string | null>(null);
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
+  const [bgRemoveError, setBgRemoveError] = useState<string | null>(null);
+  const [bgRemoveDone, setBgRemoveDone] = useState(false);
 
   // Mesure la largeur réelle du conteneur canvas
   useEffect(() => {
@@ -159,6 +162,49 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
       setIsGeneratingCutline(false);
     }
   }, [state.image, state.settings.cutline.offsetMm, containerWidth, widthMm]);
+
+  // ── Suppression de fond automatique (rembg côté serveur Python) ──
+  const handleRemoveBackground = useCallback(async () => {
+    if (!state.image || isRemovingBg) return;
+    setBgRemoveError(null);
+    setIsRemovingBg(true);
+    try {
+      const outcome = await removeBackground(state.image.url);
+      if (!outcome.ok) {
+        setBgRemoveError(outcome.message);
+        return;
+      }
+      // Remplacer l'image courante par la version sans fond
+      const img = new window.Image();
+      img.onload = () => {
+        if (!state.image) return;
+        const updated: EditorImage = {
+          ...state.image,
+          url: outcome.url,
+          filename: state.image.filename.replace(/\.[^.]+$/, "") + "-no-bg.png",
+          mimeType: "image/png",
+          sizeBytes: outcome.blob.size,
+          originalWidthPx: img.naturalWidth,
+          originalHeightPx: img.naturalHeight,
+          hasTransparency: true,
+        };
+        dispatch({ type: "SET_IMAGE", image: updated });
+        setBgRemoveDone(true);
+      };
+      img.onerror = () => setBgRemoveError("Impossible de charger l'image résultante.");
+      img.src = outcome.url;
+    } catch {
+      setBgRemoveError("Erreur lors de la suppression du fond.");
+    } finally {
+      setIsRemovingBg(false);
+    }
+  }, [state.image, isRemovingBg]);
+
+  // Réinitialiser l'état "fond supprimé" quand on charge une nouvelle image
+  useEffect(() => {
+    setBgRemoveDone(false);
+    setBgRemoveError(null);
+  }, [state.image?.filename]);
 
   // Déclencher automatiquement la génération quand on passe en mode alpha
   useEffect(() => {
@@ -417,6 +463,19 @@ export function StickerEditor({ productName, widthMm, heightMm, onValidate, onCl
                 onChange={(v) => dispatch({ type: "SET_CUT_TYPE", cutType: v })}
               />
             </SideSection>
+
+            {/* ── Préparation de l'image ── */}
+            {image && (
+              <SideSection title="Préparer l'image">
+                <BackgroundRemoveAction
+                  isRemoving={isRemovingBg}
+                  hasTransparency={image.hasTransparency}
+                  done={bgRemoveDone}
+                  error={bgRemoveError}
+                  onRemove={handleRemoveBackground}
+                />
+              </SideSection>
+            )}
 
             {/* ── Méthode de découpe ── */}
             {image && (
@@ -711,6 +770,94 @@ function InfoChip({ label, color = "default" }: { label: string; color?: "defaul
     }}>
       {label}
     </span>
+  );
+}
+
+function BackgroundRemoveAction({
+  isRemoving,
+  hasTransparency,
+  done,
+  error,
+  onRemove,
+}: {
+  isRemoving: boolean;
+  hasTransparency: boolean;
+  done: boolean;
+  error: string | null;
+  onRemove: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <p style={{ margin: 0, fontSize: 12, color: "#6B7280", lineHeight: 1.4 }}>
+        {hasTransparency
+          ? "Votre image a déjà un fond transparent. Vous pouvez raffiner la transparence si besoin."
+          : "Votre image a un fond. Cliquez pour le supprimer automatiquement (IA)."}
+      </p>
+
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={isRemoving}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          padding: "10px 14px",
+          borderRadius: 8,
+          fontSize: 13,
+          fontWeight: 600,
+          cursor: isRemoving ? "wait" : "pointer",
+          background: isRemoving ? "#E5E7EB" : "#111827",
+          color: isRemoving ? "#9CA3AF" : "#FFFFFF",
+          border: "none",
+          transition: "background 120ms",
+        }}
+      >
+        {isRemoving ? (
+          <>
+            <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>
+              ⏳
+            </span>
+            Suppression en cours…
+          </>
+        ) : done ? (
+          <>↺ Supprimer à nouveau</>
+        ) : (
+          <>✨ Supprimer le fond automatiquement</>
+        )}
+      </button>
+
+      {done && (
+        <div
+          style={{
+            padding: "8px 10px",
+            borderRadius: 8,
+            fontSize: 12,
+            background: "#ECFDF5",
+            border: "1px solid #A7F3D0",
+            color: "#047857",
+          }}
+        >
+          ✓ Fond supprimé. Vous pouvez utiliser la découpe à la forme.
+        </div>
+      )}
+
+      {error && (
+        <div
+          style={{
+            padding: "8px 10px",
+            borderRadius: 8,
+            fontSize: 12,
+            background: "#FEF2F2",
+            border: "1px solid #FECACA",
+            color: "#DC2626",
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </div>
   );
 }
 

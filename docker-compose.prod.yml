@@ -14,8 +14,11 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
+      CUTLINE_SERVICE_URL: http://cutline:8000
     depends_on:
       postgres:
+        condition: service_healthy
+      cutline:
         condition: service_healthy
     networks:
       - web
@@ -66,6 +69,25 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # ─── Cutline Service (Python FastAPI + OpenCV + rembg) ────────────────────
+  cutline:
+    image: ghcr.io/iheath83/ms_sticker-cutline:${IMAGE_TAG:-latest}
+    build:
+      context: ./services/cutline-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      API_KEY: ${CUTLINE_SERVICE_API_KEY:?required}
+      REMBG_MODEL: ${CUTLINE_REMBG_MODEL:-isnet-general-use}
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # ─── DB migration job (runs once at deploy, then exits) ────────────────────
   migrate:
