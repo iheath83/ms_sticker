@@ -273,14 +273,13 @@ export default function EditorCanvasClient({
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Rend la forme de découpe géométrique appropriée à la méthode, en partant
- * du rectangle de l'image élargi de `offsetPx` (= la marge de coupe).
+ * Rend la forme de découpe géométrique appropriée à la méthode.
  *
- * - `bounding_box` : rectangle direct
- * - `rounded`      : rectangle aux coins arrondis (rayon ≈ 12 % du plus petit côté)
- * - `circle`       : ellipse **inscrite** au rect (touche les côtés). À l'utilisateur
- *   de cadrer son visuel ou d'augmenter la marge si nécessaire ; pour un visuel
- *   non circulaire, basculer sur « À la forme ».
+ * - `bounding_box` : rectangle = bbox image élargie de `offsetPx`
+ * - `rounded`      : idem, avec coins arrondis (rayon ≈ 12 % du plus petit côté)
+ * - `circle`       : ellipse **circonscrite** au rect image (passe par les 4
+ *   coins → demi-axes = (w/2)·√2 et (h/2)·√2), puis élargie de `offsetPx`.
+ *   Les visuels déjà ronds devront être agrandis pour être tangents au cercle.
  */
 function GeometricCutShape({
   imageRect,
@@ -296,6 +295,14 @@ function GeometricCutShape({
   strokeWidth?: number;
   dash?: number[];
 }) {
+  if (method === "circle") {
+    const cx = imageRect.x + imageRect.width / 2;
+    const cy = imageRect.y + imageRect.height / 2;
+    const radiusX = (imageRect.width / 2) * Math.SQRT2 + offsetPx;
+    const radiusY = (imageRect.height / 2) * Math.SQRT2 + offsetPx;
+    return <Ellipse x={cx} y={cy} radiusX={radiusX} radiusY={radiusY} {...visualProps} />;
+  }
+
   const rect = {
     x: imageRect.x - offsetPx,
     y: imageRect.y - offsetPx,
@@ -303,17 +310,6 @@ function GeometricCutShape({
     height: imageRect.height + 2 * offsetPx,
   };
 
-  if (method === "circle") {
-    return (
-      <Ellipse
-        x={rect.x + rect.width / 2}
-        y={rect.y + rect.height / 2}
-        radiusX={rect.width / 2}
-        radiusY={rect.height / 2}
-        {...visualProps}
-      />
-    );
-  }
   if (method === "rounded") {
     const cornerRadius = Math.min(rect.width, rect.height) * 0.12;
     return <Rect {...rect} cornerRadius={cornerRadius} {...visualProps} />;
