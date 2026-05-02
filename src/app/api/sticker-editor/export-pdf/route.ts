@@ -112,12 +112,13 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (err) {
+    const detail = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     console.error("[/api/sticker-editor/export-pdf] error:", err);
     return NextResponse.json(
       {
         ok: false,
         error: "internal_error",
-        message: "Erreur lors de la génération du PDF.",
+        message: `Erreur lors de la génération du PDF : ${detail}`,
       },
       { status: 500 },
     );

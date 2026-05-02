@@ -68,6 +68,37 @@ const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml",
 const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.svg,.pdf";
 const MAX_CANVAS_WIDTH = 520;
 
+/**
+ * Re-encode une image (PNG/JPG/SVG…) en PNG RGBA 8 bits standard via canvas.
+ * Garantit que pdf-lib pourra l embedder (il ne supporte pas les PNG indexes
+ * ou interlaces). Conserve la transparence.
+ */
+async function rasterizeImageToPng(url: string): Promise<Blob> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const el = new window.Image();
+    el.crossOrigin = "anonymous";
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Impossible de charger l'image source."));
+    el.src = url;
+  });
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  if (!w || !h) throw new Error("Dimensions image invalides.");
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D indisponible.");
+  ctx.clearRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("Échec d'export PNG."))),
+      "image/png",
+    );
+  });
+}
+
 // ─── Composant principal ─────────────────────────────────────────────────────
 
 export function StickerEditor({
@@ -284,13 +315,14 @@ export function StickerEditor({
 
     setIsExportingPdf(true);
     try {
-      // Récupère le binaire de l'image originale (object URL ou data URL).
-      const imgRes = await fetch(image.url);
-      const imgBlob = await imgRes.blob();
-      const mime = imgBlob.type || image.mimeType || "image/png";
+      // Re-encode l'image en PNG standard (RGBA 8 bits, non-interlacé) via
+      // canvas pour eviter les soucis de PNG indexes / interlaces / palettes
+      // que pdf-lib ne supporte pas. Garantit aussi qu'un SVG / PDF importe
+      // est rasterise proprement avant l envoi.
+      const imgBlob = await rasterizeImageToPng(image.url);
 
       const form = new FormData();
-      form.append("file", imgBlob, image.filename);
+      form.append("file", imgBlob, image.filename.replace(/\.[^.]+$/, "") + ".png");
       form.append("width_mm", String(widthMm));
       form.append("height_mm", String(heightMm));
       form.append("image_center_x_mm", String(image.xMm));
@@ -318,14 +350,7 @@ export function StickerEditor({
       document.body.appendChild(a);
       a.click();
       a.remove();
-      // Libération différée le temps que le navigateur attache le download.
       setTimeout(() => URL.revokeObjectURL(url), 2000);
-      // Mime check pour message d'avertissement (non bloquant)
-      if (mime !== "image/png") {
-        setPdfExportError(
-          "PDF généré. Pour une qualité maximale, préférez un PNG transparent.",
-        );
-      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Erreur inconnue";
       setPdfExportError(`Échec du téléchargement : ${msg}`);
