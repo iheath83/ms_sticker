@@ -1,11 +1,11 @@
 # Graph Report - .  (2026-05-02)
 
 ## Corpus Check
-- 285 files · ~154,403 words
+- 285 files · ~154,421 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 905 nodes · 916 edges · 221 communities detected
+- 904 nodes · 914 edges · 221 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 2 edges (avg confidence: 0.5)
 - Token cost: 0 input · 0 output
 
@@ -351,28 +351,28 @@ Cohesion: 0.33
 Nodes (5): requireAdmin(), resetEmailTemplate(), saveEmailTemplate(), seedEmailTemplates(), seedUnlayerDesigns()
 
 ### Community 23 - "Community 23"
-Cohesion: 0.33
-Nodes (5): generateAlphaCutline(), getImageNaturalSize(), isApiResponse(), mapServerError(), scaleSvgPath()
-
-### Community 24 - "Community 24"
 Cohesion: 0.44
 Nodes (8): buildReminderEmailHtml(), buildRequestEmailHtml(), buildReviewLink(), buildThankYouEmailHtml(), escapeHtml(), sendReminderEmail(), sendReviewRequestEmail(), sendThankYouEmail()
 
-### Community 25 - "Community 25"
+### Community 24 - "Community 24"
 Cohesion: 0.29
 Nodes (2): closeForm(), handleSave()
 
-### Community 26 - "Community 26"
+### Community 25 - "Community 25"
 Cohesion: 0.32
 Nodes (3): buildPayload(), closeForm(), handleSave()
 
-### Community 27 - "Community 27"
+### Community 26 - "Community 26"
 Cohesion: 0.29
 Nodes (2): handleEditorValidate(), handleFileSelect()
 
-### Community 28 - "Community 28"
+### Community 27 - "Community 27"
 Cohesion: 0.25
 Nodes (2): ChronopostProvider, ColissimoProvider
+
+### Community 28 - "Community 28"
+Cohesion: 0.36
+Nodes (4): generateAlphaCutline(), getImageNaturalSize(), isApiResponse(), mapServerError()
 
 ### Community 29 - "Community 29"
 Cohesion: 0.29

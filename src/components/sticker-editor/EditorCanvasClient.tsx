@@ -130,15 +130,18 @@ export default function EditorCanvasClient({
       </Layer>
 
       {/* ── Fond blanc = surface physique du sticker (intérieur du kiss cut) ── */}
-      {/* Mode alpha : suit la silhouette */}
+      {/* Mode alpha : suit la silhouette. Le path est en coords image originale,
+          on le scale via scaleX/scaleY du node Konva. */}
       {hasAlphaPath && image && settings.cutline.alphaCutlinePath && (
         <Layer listening={false}>
           <Group x={PAD_PX} y={PAD_PX}>
             <Path
               x={pathX}
               y={pathY}
-              offsetX={imgW / 2}
-              offsetY={imgH / 2}
+              offsetX={image.originalWidthPx / 2}
+              offsetY={image.originalHeightPx / 2}
+              scaleX={imgW / image.originalWidthPx}
+              scaleY={imgH / image.originalHeightPx}
               rotation={image.rotationDeg}
               data={settings.cutline.alphaCutlinePath}
               fill="#ffffff"
@@ -202,14 +205,18 @@ export default function EditorCanvasClient({
             <Path
               x={pathX}
               y={pathY}
-              offsetX={imgW / 2}
-              offsetY={imgH / 2}
+              offsetX={image.originalWidthPx / 2}
+              offsetY={image.originalHeightPx / 2}
+              scaleX={imgW / image.originalWidthPx}
+              scaleY={imgH / image.originalHeightPx}
               rotation={image.rotationDeg}
               data={settings.cutline.alphaCutlinePath}
               stroke={cutlineColor}
               strokeWidth={1.5}
               fill="transparent"
               dash={[5, 3]}
+              strokeScaleEnabled={false}
+              dashEnabled
             />
           </Group>
         </Layer>

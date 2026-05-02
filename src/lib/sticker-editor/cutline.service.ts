@@ -13,9 +13,12 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface CutlineResult {
-  /** SVG path data en coordonnées d'affichage (0..displayW × 0..displayH) */
+  /** SVG path data en coordonnées d'image originale (0..imageWidthPx × 0..imageHeightPx).
+   *  Le rendu doit appliquer un scale pour adapter à la taille d'affichage. */
   pathData: string;
   pointCount: number;
+  imageWidthPx: number;
+  imageHeightPx: number;
 }
 
 export type CutlineError =
@@ -144,15 +147,19 @@ export async function generateAlphaCutline(
     };
   }
 
-  // 4. Rescaler les coordonnées vers l'espace d'affichage
+  // 4. Le path est retourné en coordonnées d'image originale (px).
+  //    Le rendu Konva applique scaleX/Y pour s'adapter à la taille d'affichage,
+  //    ce qui évite tout décalage si plusieurs scales sont en jeu (canvas
+  //    interne vs zone d'affichage).
   const { svg_path, width_px, height_px, point_count } = json.result;
-  const sx = displayW / width_px;
-  const sy = displayH / height_px;
-  const pathData = scaleSvgPath(svg_path, sx, sy);
-
   return {
     ok: true,
-    result: { pathData, pointCount: point_count },
+    result: {
+      pathData: svg_path,
+      pointCount: point_count,
+      imageWidthPx: width_px,
+      imageHeightPx: height_px,
+    },
   };
 }
 
@@ -215,18 +222,6 @@ async function getImageNaturalSize(
     };
     img.src = url;
   });
-}
-
-/** Rescale un SVG path linéaire (M/L) coordonnée par coordonnée. */
-function scaleSvgPath(path: string, sx: number, sy: number): string {
-  return path.replace(
-    /([MLml])(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g,
-    (_match, cmd: string, x: string, y: string) => {
-      const px = (parseFloat(x) * sx).toFixed(1);
-      const py = (parseFloat(y) * sy).toFixed(1);
-      return `${cmd}${px},${py}`;
-    },
-  );
 }
 
 // ─── Suppression de fond ─────────────────────────────────────────────────────
