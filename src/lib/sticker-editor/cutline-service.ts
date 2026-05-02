@@ -7,8 +7,14 @@
  *
  * Toutes les routes API publiques passent par ce module — jamais directement
  * depuis le client (CORS + protection de la clé).
+ *
+ * IMPORTANT : on utilise un undici.Agent dédié avec keep-alive court pour
+ * éviter que Node.js cache une vieille IP du container `cutline` quand celui-ci
+ * est redéployé (Docker lui assigne alors une nouvelle IP). Sans ça, on a
+ * `ECONNREFUSED <vieille-ip>:8000` jusqu'à ce que l'app soit redémarrée.
  */
 import "server-only";
+import { Agent } from "undici";
 
 const SERVICE_URL = process.env.CUTLINE_SERVICE_URL ?? "http://cutline:8000";
 const SERVICE_API_KEY = process.env.CUTLINE_SERVICE_API_KEY ?? "";
@@ -18,6 +24,43 @@ if (!SERVICE_API_KEY && process.env.NODE_ENV === "production") {
     "[cutline-service] CUTLINE_SERVICE_API_KEY n'est pas défini. " +
       "Le service Python rejettera toutes les requêtes.",
   );
+}
+
+// Agent undici dédié : keep-alive très court → re-résolution DNS rapide
+// si le container cutline change d'IP. La rembg peut prendre 3-15s, donc
+// on autorise une connexion ouverte plus longtemps via headersTimeout.
+const cutlineDispatcher = new Agent({
+  keepAliveTimeout: 1_000,
+  keepAliveMaxTimeout: 2_000,
+  connectTimeout: 5_000,
+  headersTimeout: 60_000,
+  bodyTimeout: 60_000,
+});
+
+/** Fetch avec retry sur ECONNREFUSED (vieille IP en keep-alive). */
+async function fetchCutlineService(
+  path: string,
+  init: RequestInit,
+): Promise<Response> {
+  const url = `${SERVICE_URL}${path}`;
+  const opts: RequestInit & { dispatcher?: Agent } = {
+    ...init,
+    cache: "no-store",
+    dispatcher: cutlineDispatcher,
+  };
+
+  try {
+    return await fetch(url, opts);
+  } catch (err) {
+    const cause = (err as { cause?: { code?: string } } | null)?.cause;
+    if (cause?.code === "ECONNREFUSED" || cause?.code === "ENOTFOUND") {
+      // Re-tente une fois après un court délai → laisse le temps de
+      // récupérer une connexion fraîche vers la nouvelle IP du container
+      await new Promise((r) => setTimeout(r, 250));
+      return await fetch(url, opts);
+    }
+    throw err;
+  }
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -75,11 +118,10 @@ export async function callCutlineService(
     fd.append("smooth_passes", String(params.smoothPasses));
   }
 
-  const res = await fetch(`${SERVICE_URL}/api/cutline`, {
+  const res = await fetchCutlineService("/api/cutline", {
     method: "POST",
     headers: { Authorization: `Bearer ${SERVICE_API_KEY}` },
     body: fd,
-    cache: "no-store",
   });
 
   const text = await res.text();
@@ -114,11 +156,10 @@ export async function callBackgroundRemoveService(
   const fd = new FormData();
   fd.append("file", file, filename);
 
-  const res = await fetch(`${SERVICE_URL}/api/background/remove`, {
+  const res = await fetchCutlineService("/api/background/remove", {
     method: "POST",
     headers: { Authorization: `Bearer ${SERVICE_API_KEY}` },
     body: fd,
-    cache: "no-store",
   });
 
   if (!res.ok) {
