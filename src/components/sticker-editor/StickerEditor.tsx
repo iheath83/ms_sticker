@@ -551,24 +551,19 @@ function StickerEditorInner(
   const editorBody = (
     <div style={{
       display: "flex",
-      flex: 1,
+      flex: embedded ? "0 0 auto" : 1,
       overflow: embedded ? "visible" : "hidden",
       flexDirection: "row",
       minHeight: 0,
     }}>
-          {/* ── Colonne canvas (canvas + bloc belowCanvas optionnel) ── */}
-          <div style={{
-            flex: 1, display: "flex", flexDirection: "column",
-            minWidth: 0,
-            background: "#F9FAFB",
-          }}>
+          {/* ── Zone canvas ── */}
           <div
             ref={canvasContainerRef}
             style={{
-              flex: belowCanvas ? "0 0 auto" : 1,
+              flex: 1,
               display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
-              padding: 24,
+              padding: 24, background: "#F9FAFB",
               overflow: embedded ? "visible" : "auto", minWidth: 0,
             }}
           >
@@ -662,14 +657,6 @@ function StickerEditorInner(
               style={{ display: "none" }}
               onChange={handleFileInput}
             />
-          </div>
-
-          {/* Bloc injecté sous le canvas (sélecteurs Quantité / Matière / … en mode embedded) */}
-          {belowCanvas && (
-            <div style={{ padding: "0 20px 20px" }}>
-              {belowCanvas}
-            </div>
-          )}
           </div>
 
           {/* ── Sidebar droite ── */}
@@ -806,13 +793,24 @@ function StickerEditorInner(
           background: "#fff",
           borderRadius: 16,
           border: "1px solid #E5E7EB",
-          overflow: "hidden",
+          // overflow visible pour que les menus déroulants des sélecteurs
+          // sous le canvas puissent s'afficher au-dessus des autres blocs.
+          overflow: "visible",
           display: "flex",
           flexDirection: "column",
           minHeight: 540,
         }}
       >
         {editorBody}
+        {belowCanvas && (
+          <div style={{
+            padding: "16px 20px 20px",
+            borderTop: "1px solid #E5E7EB",
+            background: "#fff",
+          }}>
+            {belowCanvas}
+          </div>
+        )}
       </div>
     );
   }
