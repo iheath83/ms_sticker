@@ -81,6 +81,200 @@ function StepCard({
   );
 }
 
+// Selector — dropdown custom utilisé pour Quantité, Matière, Finition sous
+// le canvas. Affiche la valeur courante avec un chevron. Au clic, ouvre un
+// menu listant les options avec sublabel/badge optionnels. Click-outside
+// ferme le menu. Support des options désactivées (laminations non compat.).
+type SelectorOption<T> = {
+  value: T;
+  label: string;
+  sublabel?: string;
+  badge?: string;
+  disabled?: boolean;
+};
+
+function Selector<T extends string | number>({
+  value, onChange, options, placeholder, accent,
+}: {
+  value: T | null;
+  onChange: (v: T) => void;
+  options: SelectorOption<T>[];
+  placeholder: string;
+  /** Couleur du texte de la valeur sélectionnée. */
+  accent?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
+  const current = options.find((o) => o.value === value) ?? null;
+
+  return (
+    <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        style={{
+          width: "100%", padding: "10px 12px", borderRadius: 10,
+          border: open ? "1.5px solid #0A0E27" : "1.5px solid #D1D5DB",
+          background: "#fff",
+          textAlign: "left", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          gap: 8,
+          transition: "border-color 0.15s, box-shadow 0.15s",
+          boxShadow: open ? "0 0 0 3px rgba(10,14,39,0.08)" : "none",
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          {current ? (
+            <>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                fontSize: 14, fontWeight: 700, color: accent ?? "#0A0E27",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {current.label}
+                {current.badge && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, padding: "2px 7px",
+                    borderRadius: 8, background: badgeColor(current.badge),
+                    color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em",
+                  }}>
+                    {current.badge}
+                  </span>
+                )}
+              </div>
+              {current.sublabel && (
+                <div style={{
+                  fontSize: 11, color: "#6B7280", marginTop: 2,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>
+                  {current.sublabel}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: 14, color: "#9CA3AF", fontWeight: 500 }}>
+              {placeholder}
+            </div>
+          )}
+        </div>
+        <span style={{
+          fontSize: 10, color: "#9CA3AF", flexShrink: 0,
+          transition: "transform 0.15s",
+          transform: open ? "rotate(180deg)" : "rotate(0deg)",
+        }}>
+          ▼
+        </span>
+      </button>
+
+      {open && (
+        <ul
+          role="listbox"
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+            zIndex: 20, listStyle: "none", margin: 0, padding: 4,
+            background: "#fff",
+            border: "1.5px solid #E5E7EB", borderRadius: 10,
+            boxShadow: "0 12px 28px rgba(10,14,39,0.14)",
+            maxHeight: 280, overflowY: "auto",
+          }}
+        >
+          {options.map((opt, i) => {
+            const isActive = value === opt.value;
+            return (
+              <li key={i} role="option" aria-selected={isActive}>
+                <button
+                  type="button"
+                  disabled={opt.disabled}
+                  onClick={() => {
+                    if (opt.disabled) return;
+                    onChange(opt.value);
+                    setOpen(false);
+                  }}
+                  style={{
+                    width: "100%", padding: "9px 10px",
+                    border: "none", borderRadius: 7,
+                    background: isActive ? "#0A0E27" : "transparent",
+                    color: isActive ? "#fff" : opt.disabled ? "#9CA3AF" : "#0A0E27",
+                    cursor: opt.disabled ? "not-allowed" : "pointer",
+                    opacity: opt.disabled ? 0.5 : 1,
+                    textAlign: "left",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    gap: 8, transition: "background 0.1s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!opt.disabled && !isActive) {
+                      (e.currentTarget as HTMLButtonElement).style.background = "#F3F4F6";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                    }
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>
+                      {opt.label}
+                    </div>
+                    {opt.sublabel && (
+                      <div style={{
+                        fontSize: 11,
+                        marginTop: 2,
+                        opacity: isActive ? 0.75 : 0.65,
+                        lineHeight: 1.3,
+                      }}>
+                        {opt.sublabel}
+                      </div>
+                    )}
+                  </div>
+                  {opt.badge && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 800, padding: "2px 7px",
+                      borderRadius: 8,
+                      background: isActive ? "rgba(255,255,255,0.18)" : badgeColor(opt.badge),
+                      color: "#fff", textTransform: "uppercase", letterSpacing: "0.05em",
+                      flexShrink: 0,
+                    }}>
+                      {opt.badge}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function badgeColor(badge: string): string {
+  if (badge === "Premium") return "#6D28D9";
+  if (badge === "Recommandé") return "#059669";
+  return "#0A0E27";
+}
+
 // Variante compacte de StepCard utilisée dans la sidebar de l'éditeur intégré
 // et dans les blocs sous le canvas. Header avec icône + titre + résumé compact,
 // border subtle, fond blanc, badge ✓ vert quand complète, hover state.
@@ -1265,32 +1459,32 @@ export function ProductConfigurator({
                     summary={`${currentQty} pcs`}
                     complete={currentQty > 0}
                   >
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {QUICK_QUANTITIES.map((qty) => {
-                        const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
-                        return (
-                          <OptionCard
-                            key={qty}
-                            compact
-                            active={!state.useCustomQty && state.quantity === qty}
-                            label={`${qty}`}
-                            {...(tier && tier.discountPct > 0
-                              ? { sublabel: `-${tier.discountPct}%`, badge: tier.discountPct >= 20 ? "Recommandé" : undefined }
-                              : { sublabel: "std" })}
-                            onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
-                          />
-                        );
-                      })}
-                      <OptionCard
-                        compact
-                        active={state.useCustomQty}
-                        label="Autre"
-                        sublabel="Saisir"
-                        onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
-                      />
-                    </div>
+                    <Selector<number | "custom">
+                      value={state.useCustomQty ? "custom" : state.quantity}
+                      placeholder="Choisir une quantité"
+                      onChange={(v) => {
+                        if (v === "custom") {
+                          dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true });
+                        } else {
+                          dispatch({ type: "SELECT_QUANTITY", qty: v as number });
+                        }
+                      }}
+                      options={[
+                        ...QUICK_QUANTITIES.map((qty) => {
+                          const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
+                          const opt: SelectorOption<number | "custom"> = {
+                            value: qty,
+                            label: `${qty} pièces`,
+                            sublabel: tier && tier.discountPct > 0 ? `-${tier.discountPct}% remise volume` : "tarif standard",
+                          };
+                          if (tier && tier.discountPct >= 20) opt.badge = "Recommandé";
+                          return opt;
+                        }),
+                        { value: "custom" as const, label: "Autre quantité…", sublabel: "Saisir une valeur personnalisée" },
+                      ]}
+                    />
                     {state.useCustomQty && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
                         <input
                           type="number"
                           value={state.customQuantity}
@@ -1298,9 +1492,9 @@ export function ProductConfigurator({
                           placeholder="ex : 75"
                           onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
                           autoFocus
-                          style={{ width: 80, padding: "6px 9px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
+                          style={{ flex: 1, padding: "8px 10px", border: "1.5px solid #D1D5DB", borderRadius: 8, fontSize: 13, fontWeight: 600 }}
                         />
-                        <span style={{ fontSize: 11, color: "#6B7280" }}>pcs</span>
+                        <span style={{ fontSize: 12, color: "#6B7280" }}>pcs</span>
                       </div>
                     )}
                   </SidebarSection>
@@ -1313,27 +1507,29 @@ export function ProductConfigurator({
                       summary={selectedMaterial?.name}
                       complete={!!selectedMaterial}
                     >
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {materials.map((mat) => (
-                          <OptionCard
-                            key={mat.id}
-                            compact
-                            active={state.selectedMaterialId === mat.id}
-                            label={mat.name}
-                            {...(mat.description ? { sublabel: mat.description } : {})}
-                            {...(mat.isPremium ? { badge: "Premium" } : {})}
-                            onClick={() => {
-                              dispatch({ type: "SELECT_MATERIAL", id: mat.id });
-                              if (state.selectedLaminationId) {
-                                const lam = laminations.find((l) => l.id === state.selectedLaminationId);
-                                if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
-                                  dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
-                                }
-                              }
-                            }}
-                          />
-                        ))}
-                      </div>
+                      <Selector<string>
+                        value={state.selectedMaterialId}
+                        placeholder="Choisir une matière"
+                        onChange={(id) => {
+                          dispatch({ type: "SELECT_MATERIAL", id });
+                          if (state.selectedLaminationId) {
+                            const mat = materials.find((m) => m.id === id);
+                            const lam = laminations.find((l) => l.id === state.selectedLaminationId);
+                            if (mat && lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
+                              dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
+                            }
+                          }
+                        }}
+                        options={materials.map((mat) => {
+                          const opt: SelectorOption<string> = {
+                            value: mat.id,
+                            label: mat.name,
+                          };
+                          if (mat.description) opt.sublabel = mat.description;
+                          if (mat.isPremium) opt.badge = "Premium";
+                          return opt;
+                        })}
+                      />
                     </SidebarSection>
                   )}
 
@@ -1345,27 +1541,27 @@ export function ProductConfigurator({
                       summary={selectedLamination?.name ?? "Sans"}
                       complete={true}
                     >
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {laminations.map((lam) => {
+                      <Selector<string>
+                        value={state.selectedLaminationId ?? ""}
+                        placeholder="Choisir une finition"
+                        onChange={(id) => dispatch({ type: "SELECT_LAMINATION", id: id || null })}
+                        options={laminations.map((lam) => {
                           const isCompatible = compatibleLaminations.includes(lam);
-                          const lamSublabel = !isCompatible
-                            ? `Non compatible`
-                            : lam.priceModifierValue !== 1
-                            ? `×${lam.priceModifierValue}`
-                            : lam.description ?? undefined;
-                          return (
-                            <OptionCard
-                              key={lam.id}
-                              compact
-                              active={state.selectedLaminationId === lam.id}
-                              label={lam.name}
-                              {...(lamSublabel ? { sublabel: lamSublabel } : {})}
-                              disabled={!isCompatible}
-                              onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
-                            />
-                          );
+                          const opt: SelectorOption<string> = {
+                            value: lam.id,
+                            label: lam.name,
+                            disabled: !isCompatible,
+                          };
+                          if (!isCompatible) {
+                            opt.sublabel = "Non compatible avec la matière";
+                          } else if (lam.priceModifierValue !== 1) {
+                            opt.sublabel = `Multiplicateur ×${lam.priceModifierValue}`;
+                          } else if (lam.description) {
+                            opt.sublabel = lam.description;
+                          }
+                          return opt;
                         })}
-                      </div>
+                      />
                     </SidebarSection>
                   )}
                 </div>
