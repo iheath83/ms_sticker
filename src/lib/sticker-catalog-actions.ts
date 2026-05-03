@@ -231,6 +231,7 @@ const stickerConfigSchema = z.object({
   minHeightMm: z.number().int().min(1).default(20),
   maxHeightMm: z.number().int().min(1).default(1000),
   requireFileUpload: z.boolean().default(true),
+  editorEnabled: z.boolean().default(false),
   allowedFileExtensions: z.array(z.string()).default(["pdf", "ai", "eps", "svg", "png", "jpg", "jpeg"]),
   maxFileSizeMb: z.number().int().min(1).default(100),
   defaultShapeId: z.string().uuid().optional().nullable(),

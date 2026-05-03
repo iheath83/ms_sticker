@@ -830,7 +830,7 @@ export function ProductConfigurator({
           préserver l'image et les paramètres entre les ouvertures. La taille
           du canvas se met a jour en interne via `SET_CANVAS_SIZE` quand
           widthMm/heightMm changent — pas de remount. */}
-      {editorMounted && (
+      {editorMounted && config.editorEnabled && (
         <StickerEditor
           isOpen={showEditor}
           productName={productName}
@@ -1065,8 +1065,9 @@ export function ProductConfigurator({
               onFileSelect={handleFileSelect}
               onRemove={() => dispatch({ type: "SET_UPLOADED_FILE", file: null })}
             />
-            {/* Bouton éditeur visuel */}
-            {!state.uploadedFile && (
+            {/* Bouton éditeur visuel — affiché uniquement si l'éditeur est
+                activé pour ce produit dans le back-office. */}
+            {config.editorEnabled && !state.uploadedFile && (
               <div style={{
                 marginTop: 12, padding: "14px 18px",
                 background: "linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)",
@@ -1098,7 +1099,7 @@ export function ProductConfigurator({
                 </button>
               </div>
             )}
-            {state.uploadedFile && state.customerNote?.includes("[Éditeur]") && (
+            {config.editorEnabled && state.uploadedFile && state.customerNote?.includes("[Éditeur]") && (
               <div style={{
                 marginTop: 10, padding: "10px 14px",
                 background: "#F0FDF4", border: "1px solid #BBF7D0",

@@ -1078,6 +1078,10 @@ export const productStickerConfigs = pgTable(
     minHeightMm: integer("min_height_mm").notNull().default(20),
     maxHeightMm: integer("max_height_mm").notNull().default(1000),
     requireFileUpload: boolean("require_file_upload").notNull().default(true),
+    // Active le bouton « Créer avec l'éditeur visuel » sur la fiche produit.
+    // Désactivé par défaut : le client doit alors fournir un fichier
+    // d'impression prêt-à-imprimer.
+    editorEnabled: boolean("editor_enabled").notNull().default(false),
     allowedFileExtensions: text("allowed_file_extensions").array().notNull().default(["pdf", "ai", "eps", "svg", "png", "jpg", "jpeg"]),
     maxFileSizeMb: integer("max_file_size_mb").notNull().default(100),
     defaultShapeId: uuid("default_shape_id"),

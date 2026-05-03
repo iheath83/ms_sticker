@@ -209,6 +209,7 @@ export function StickerConfigTab({
   const [maxHeightMm, setMaxHeightMm] = useState(initialConfig?.maxHeightMm ?? 1000);
 
   const [requireFileUpload, setRequireFileUpload] = useState(initialConfig?.requireFileUpload ?? true);
+  const [editorEnabled, setEditorEnabled] = useState(initialConfig?.editorEnabled ?? false);
   const [maxFileSizeMb, setMaxFileSizeMb] = useState(initialConfig?.maxFileSizeMb ?? 100);
 
   const [pricingMode, setPricingMode] = useState<"per_cm2" | "unit_price">(
@@ -283,6 +284,7 @@ export function StickerConfigTab({
         minHeightMm,
         maxHeightMm,
         requireFileUpload,
+        editorEnabled,
         allowedFileExtensions: ["pdf", "ai", "eps", "svg", "png", "jpg", "jpeg"],
         maxFileSizeMb,
         defaultShapeId: null,
@@ -663,6 +665,41 @@ export function StickerConfigTab({
             <input type="checkbox" checked={requireFileUpload} onChange={(e) => setRequireFileUpload(e.target.checked)} />
             <span>Fichier client obligatoire</span>
           </label>
+
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              cursor: "pointer",
+              fontSize: 13,
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: `1.5px solid ${editorEnabled ? "#0B3D91" : "#E5E7EB"}`,
+              background: editorEnabled ? "#EFF6FF" : "#F9FAFB",
+              transition: "all 0.15s",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={editorEnabled}
+              onChange={(e) => setEditorEnabled(e.target.checked)}
+              style={{ marginTop: 2 }}
+            />
+            <div>
+              <div style={{ fontWeight: 700, color: "#0A0E27" }}>
+                Activer l&apos;éditeur visuel
+              </div>
+              <div style={{ fontSize: 12, color: "#6B7280", marginTop: 2 }}>
+                Affiche le bouton « Créer avec l&apos;éditeur visuel » sur la fiche
+                produit. Le client peut importer son visuel, le positionner
+                et générer la ligne de coupe (à la forme, rond, carré ou
+                arrondi). Sans cette option, seul le dépôt direct d&apos;un
+                fichier prêt-à-imprimer est proposé.
+              </div>
+            </div>
+          </label>
+
           <div style={{ maxWidth: 200 }}>
             <label style={labelStyle}>Taille max (Mo)</label>
             <input type="number" min="1" max="500" value={maxFileSizeMb} onChange={(e) => setMaxFileSizeMb(parseInt(e.target.value) || 1)} style={inputStyle} />
