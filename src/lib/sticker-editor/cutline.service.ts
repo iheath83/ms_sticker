@@ -305,3 +305,83 @@ export async function removeBackground(
     url: URL.createObjectURL(png),
   };
 }
+
+// ─── Rasterize PDF/AI/EPS/PSD ────────────────────────────────────────────────
+
+export interface RasterizeSuccess {
+  ok: true;
+  /** Object URL d'un PNG aplati — penser à le révoquer après usage */
+  url: string;
+  blob: Blob;
+}
+export interface RasterizeFailure {
+  ok: false;
+  error: CutlineError | "unsupported_extension";
+  message: string;
+}
+export type RasterizeOutcome = RasterizeSuccess | RasterizeFailure;
+
+/**
+ * Convertit un fichier vectoriel ou binaire (PDF, AI, EPS, PSD) en PNG
+ * d'aperçu côté serveur. Le fichier original reste à part pour la
+ * production print — seul l'aperçu rasterisé est utilisé dans le canvas.
+ */
+export async function rasterizePreview(
+  file: File,
+): Promise<RasterizeOutcome> {
+  const fd = new FormData();
+  fd.append("file", file, file.name);
+
+  let res: Response;
+  try {
+    res = await fetch("/api/sticker-editor/rasterize", {
+      method: "POST",
+      body: fd,
+    });
+  } catch {
+    return {
+      ok: false,
+      error: "service_unavailable",
+      message: "Service de conversion temporairement indisponible.",
+    };
+  }
+
+  if (res.status === 429) {
+    return {
+      ok: false,
+      error: "rate_limited",
+      message: "Trop de requêtes, réessayez dans quelques minutes.",
+    };
+  }
+  if (res.status === 413) {
+    return {
+      ok: false,
+      error: "file_too_large",
+      message: "Fichier trop volumineux (max 30 Mo).",
+    };
+  }
+  if (res.status === 400) {
+    let message = "Fichier non lisible ou format non supporté.";
+    try {
+      const j = (await res.json()) as { message?: string };
+      if (j.message) message = j.message;
+    } catch {
+      // ignore
+    }
+    return { ok: false, error: "unsupported_extension", message };
+  }
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: "service_unavailable",
+      message: `Erreur (HTTP ${res.status})`,
+    };
+  }
+
+  const png = await res.blob();
+  return {
+    ok: true,
+    blob: png,
+    url: URL.createObjectURL(png),
+  };
+}

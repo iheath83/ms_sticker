@@ -91,9 +91,12 @@ export function validateEditor(state: StickerEditorState): EditorValidation {
 /**
  * Détecte si une image PNG a de la transparence via un canvas off-screen.
  * Retourne false si le navigateur ne supporte pas l'API.
+ *
+ * Accepte un Blob ou un File — utile pour les PNG produits par la
+ * rasterisation côté serveur (PDF/AI/EPS/PSD → PNG).
  */
 export async function detectTransparency(
-  file: File,
+  file: Blob,
 ): Promise<boolean> {
   if (file.type === "image/svg+xml") return true;
   if (file.type !== "image/png") return false;

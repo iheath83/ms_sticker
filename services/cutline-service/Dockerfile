@@ -8,10 +8,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# Dépendances système pour OpenCV (libgl1, libglib2) et rembg/onnxruntime
+# Dépendances système :
+#  - libgl1, libglib2.0-0 : OpenCV (et rembg/onnxruntime)
+#  - poppler-utils         : rasterisation PDF/AI via pdf2image
+#  - ghostscript           : rasterisation EPS via Pillow.EpsImagePlugin
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libgl1 \
         libglib2.0-0 \
+        poppler-utils \
+        ghostscript \
         curl \
         ca-certificates \
     && rm -rf /var/lib/apt/lists/*

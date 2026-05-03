@@ -176,3 +176,40 @@ export async function callBackgroundRemoveService(
   const png = await res.blob();
   return { ok: true, png };
 }
+
+// ─── Rasterize (PDF/AI/EPS/PSD → PNG aperçu) ─────────────────────────────────
+
+/**
+ * Rasterise un fichier vectoriel ou binaire non-natif (PDF, AI, EPS, PSD)
+ * en PNG d'aperçu utilisable dans le canvas Konva. Le fichier original
+ * reste conservé séparément pour la production.
+ */
+export async function callRasterizeService(
+  file: Blob,
+  filename: string,
+  dpi = 200,
+): Promise<{ ok: true; png: Blob } | { ok: false; error: string; message?: string }> {
+  const fd = new FormData();
+  fd.append("file", file, filename);
+  fd.append("dpi", String(dpi));
+
+  const res = await fetchCutlineService("/api/preview/rasterize", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${SERVICE_API_KEY}` },
+    body: fd,
+  });
+
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`;
+    try {
+      const errorJson = (await res.json()) as { error?: string; message?: string };
+      message = errorJson.message ?? errorJson.error ?? message;
+    } catch {
+      // ignore
+    }
+    return { ok: false, error: "service_error", message };
+  }
+
+  const png = await res.blob();
+  return { ok: true, png };
+}

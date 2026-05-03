@@ -16,7 +16,7 @@ import type Konva from "konva";
 import { editorReducer, createInitialState } from "@/lib/sticker-editor/editor.reducer";
 import { validateEditor, detectTransparency } from "@/lib/sticker-editor/validation.service";
 import { fitImageToCanvas, computeDpi, mmToPx, computeScale } from "@/lib/sticker-editor/geometry.utils";
-import { generateAlphaCutline, removeBackground } from "@/lib/sticker-editor/cutline.service";
+import { generateAlphaCutline, removeBackground, rasterizePreview } from "@/lib/sticker-editor/cutline.service";
 import {
   shapeCodeToCutlineMethod,
   type EditorValidationOutput,
@@ -112,8 +112,25 @@ interface Props {
 
 // ─── Constantes ──────────────────────────────────────────────────────────────
 
-const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "application/pdf"];
-const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.svg,.pdf";
+// Formats lus nativement par le navigateur via <img> ou objectURL.
+const NATIVE_RASTER_EXTS = ["png", "jpg", "jpeg"] as const;
+const NATIVE_VECTOR_EXTS = ["svg"] as const;
+// Formats nécessitant une rasterisation côté serveur (poppler / Ghostscript /
+// Pillow PSD) pour produire un PNG d'aperçu utilisable dans le canvas Konva.
+const SERVER_RASTERIZE_EXTS = ["pdf", "ai", "eps", "psd"] as const;
+
+const ACCEPTED_EXTS = [
+  ...NATIVE_RASTER_EXTS,
+  ...NATIVE_VECTOR_EXTS,
+  ...SERVER_RASTERIZE_EXTS,
+] as const;
+const ACCEPTED_EXTENSIONS = ACCEPTED_EXTS.map((e) => `.${e}`).join(",");
+
+function getFileExt(file: File): string {
+  const i = file.name.lastIndexOf(".");
+  if (i === -1) return "";
+  return file.name.slice(i + 1).toLowerCase();
+}
 const MAX_CANVAS_WIDTH = 520;
 // En mode embedded, le canvas dispose de plus d'espace dans la page produit.
 const MAX_CANVAS_WIDTH_EMBEDDED = 760;
@@ -239,8 +256,12 @@ function StickerEditorInner(
 
   // ── Gestion fichier ──
   const handleFile = useCallback(async (file: File) => {
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      dispatch({ type: "SET_UPLOAD_ERROR", error: `Format non supporté. Utilisez : PNG, JPG, SVG ou PDF.` });
+    const ext = getFileExt(file);
+    if (!ACCEPTED_EXTS.includes(ext as (typeof ACCEPTED_EXTS)[number])) {
+      dispatch({
+        type: "SET_UPLOAD_ERROR",
+        error: "Format non supporté. Utilisez : PNG, JPG, SVG, PDF, AI, EPS ou PSD.",
+      });
       return;
     }
     if (file.size > 30 * 1024 * 1024) {
@@ -250,29 +271,62 @@ function StickerEditorInner(
 
     dispatch({ type: "SET_UPLOADING", value: true });
 
-    const objectUrl = URL.createObjectURL(file);
-    const hasTransparency = await detectTransparency(file);
+    // Pour les formats non-natifs (PDF, AI, EPS, PSD) on demande au backend
+    // Python de produire un PNG aplati utilisable dans le canvas Konva. Le
+    // nom de fichier original est conservé pour la note client.
+    const needsServerRasterize = SERVER_RASTERIZE_EXTS.includes(
+      ext as (typeof SERVER_RASTERIZE_EXTS)[number],
+    );
+
+    let displayUrl: string;
+    let displayMime: string;
+    let displaySize: number;
+    let hasTransparency: boolean;
+
+    if (needsServerRasterize) {
+      const outcome = await rasterizePreview(file);
+      if (!outcome.ok) {
+        dispatch({
+          type: "SET_UPLOAD_ERROR",
+          error: outcome.message ||
+            `Impossible de convertir le fichier .${ext.toUpperCase()} en aperçu.`,
+        });
+        return;
+      }
+      displayUrl = outcome.url;
+      displayMime = "image/png";
+      displaySize = outcome.blob.size;
+      // Le PNG rastérisé côté serveur conserve la transparence (RGBA).
+      hasTransparency = await detectTransparency(outcome.blob);
+    } else {
+      displayUrl = URL.createObjectURL(file);
+      displayMime = file.type || (ext === "svg" ? "image/svg+xml" : `image/${ext}`);
+      displaySize = file.size;
+      hasTransparency = await detectTransparency(file);
+    }
 
     const getImageDimensions = (): Promise<{ w: number; h: number }> =>
       new Promise((resolve) => {
-        if (file.type === "application/pdf" || file.type === "image/svg+xml") {
+        // Le SVG n'a pas de dimensions naturelles fiables (viewBox variable) —
+        // on retombe sur un canvas 1000×1000 que l'utilisateur peut rééchelonner.
+        if (displayMime === "image/svg+xml") {
           resolve({ w: 1000, h: 1000 });
           return;
         }
         const img = new window.Image();
         img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
         img.onerror = () => resolve({ w: 600, h: 600 });
-        img.src = objectUrl;
+        img.src = displayUrl;
       });
 
     const { w, h } = await getImageDimensions();
     const { widthMm: dispW, heightMm: dispH } = fitImageToCanvas(w, h, widthMm, heightMm);
 
     const image: EditorImage = {
-      url: objectUrl,
+      url: displayUrl,
       filename: file.name,
-      mimeType: file.type,
-      sizeBytes: file.size,
+      mimeType: displayMime,
+      sizeBytes: displaySize,
       originalWidthPx: w,
       originalHeightPx: h,
       hasTransparency,
@@ -604,7 +658,7 @@ function StickerEditorInner(
                   {isUploading ? "Chargement…" : "Déposez votre fichier ici"}
                 </span>
                 <span style={{ fontSize: 13, color: "#9CA3AF" }}>
-                  PNG, JPG, SVG, PDF — max 30 Mo
+                  PNG, JPG, SVG, PDF, AI, EPS, PSD — max 30 Mo
                 </span>
                 {uploadError && (
                   <span style={{ fontSize: 13, color: "#DC2626", background: "#FEF2F2", padding: "6px 12px", borderRadius: 8 }}>
@@ -687,7 +741,7 @@ function StickerEditorInner(
                   Choisir un fichier
                 </button>
                 <p style={{ margin: "8px 0 0", fontSize: 12, color: "#9CA3AF" }}>
-                  Formats acceptés : PNG, JPG, SVG, PDF
+                  Formats acceptés : PNG, JPG, SVG, PDF, AI, EPS, PSD
                 </p>
               </SideSection>
             )}

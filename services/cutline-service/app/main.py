@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.routers import bgremove, cutline, health
+from app.routers import bgremove, cutline, health, rasterize
 from app.services.bgremove import warmup_rembg
 from app.settings import settings
 
@@ -79,6 +79,7 @@ async def require_api_key(request: Request) -> None:
 app.include_router(health.router)
 app.include_router(cutline.router, dependencies=[Depends(require_api_key)])
 app.include_router(bgremove.router, dependencies=[Depends(require_api_key)])
+app.include_router(rasterize.router, dependencies=[Depends(require_api_key)])
 
 
 @app.exception_handler(HTTPException)
