@@ -1443,15 +1443,98 @@ export function ProductConfigurator({
               enableProductionDownload={enableProductionDownload}
               onValidate={handleEditorValidate}
               onClose={() => {}}
-              belowCanvas={
-                <div
-                  className="options-row"
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(3, 1fr)",
-                    gap: 12,
-                  }}
-                >
+              optionsSlot={
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {/* Forme */}
+                  {hasShapes && (
+                    <SidebarSection
+                      title="Forme"
+                      icon="◆"
+                      summary={selectedShape?.name}
+                      complete={!!selectedShape}
+                      {...(selectedShape?.requiresCutPath
+                        ? { warning: "Tracé vectoriel requis (PDF, AI, EPS, SVG)." }
+                        : {})}
+                    >
+                      <Selector<string>
+                        value={state.selectedShapeId}
+                        placeholder="Choisir une forme"
+                        onChange={(id) => dispatch({ type: "SELECT_SHAPE", id })}
+                        options={shapes.map((shape) => {
+                          const opt: SelectorOption<string> = {
+                            value: shape.id,
+                            label: shape.name,
+                          };
+                          if (shape.requiresCutPath) opt.sublabel = "Tracé vectoriel requis";
+                          else if (shape.description) opt.sublabel = shape.description;
+                          return opt;
+                        })}
+                      />
+                    </SidebarSection>
+                  )}
+
+                  {/* Taille */}
+                  {(hasSizes || config.allowCustomWidth) && (
+                    <SidebarSection
+                      title="Taille"
+                      icon="📐"
+                      summary={sizeLabel || undefined}
+                      complete={state.sizeMode === "custom" || !!selectedSize}
+                    >
+                      <Selector<string>
+                        value={state.sizeMode === "custom" ? "__custom__" : (state.selectedSizeId ?? "")}
+                        placeholder="Choisir une taille"
+                        onChange={(id) => {
+                          if (id === "__custom__") {
+                            dispatch({ type: "SET_SIZE_MODE", mode: "custom" });
+                          } else {
+                            dispatch({ type: "SELECT_SIZE", id });
+                          }
+                        }}
+                        options={[
+                          ...sizes.map((size) => ({
+                            value: size.id,
+                            label: size.label,
+                            sublabel: `${size.widthMm} × ${size.heightMm} mm`,
+                          })),
+                          ...(config.allowCustomWidth
+                            ? [{ value: "__custom__", label: "Personnalisée", sublabel: "Saisir des dimensions sur mesure" }]
+                            : []),
+                        ]}
+                      />
+                      {state.sizeMode === "custom" && config.allowCustomWidth && (
+                        <div style={{
+                          display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6,
+                          padding: 10, background: "#F9FAFB", borderRadius: 8,
+                          border: "1px solid #E5E7EB",
+                        }}>
+                          {[
+                            { label: "Largeur", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
+                            { label: "Hauteur", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
+                          ].map(({ label, key, value, min, max }) => (
+                            <label key={key} style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 90 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                                <input
+                                  type="number"
+                                  value={value}
+                                  min={min}
+                                  max={max}
+                                  onChange={(e) => dispatch({
+                                    type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
+                                    value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
+                                  })}
+                                  style={{ width: 60, padding: "5px 7px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 12, fontWeight: 600 }}
+                                />
+                                <span style={{ fontSize: 11, color: "#6B7280" }}>mm</span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </SidebarSection>
+                  )}
+
                   {/* Quantité */}
                   <SidebarSection
                     title="Quantité"

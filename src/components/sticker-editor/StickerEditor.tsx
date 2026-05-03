@@ -70,11 +70,13 @@ interface Props {
    */
   embedded?: boolean;
   /**
-   * Contenu rendu sous le canvas (à gauche, à côté de la sidebar interne).
-   * Utile en mode embedded pour afficher des sélecteurs supplémentaires
-   * (quantité, matière, finition…) qui doivent rester alignés sous le visuel.
+   * Contenu rendu en HAUT de la sidebar interne (à droite du canvas).
+   * Utile en mode embedded pour que le configurateur produit injecte ses
+   * propres sélecteurs (forme, taille, quantité, matière, finition) sous
+   * forme de dropdowns. Quand fourni, les sélecteurs natifs Forme/Taille
+   * sont masqués pour éviter la duplication.
    */
-  belowCanvas?: React.ReactNode;
+  optionsSlot?: React.ReactNode;
   /** Formes configurées sur le produit (à la forme, carré, rond, arrondi…). */
   shapes: StickerShape[];
   /** Forme actuellement sélectionnée dans le configurateur produit. */
@@ -152,7 +154,7 @@ function StickerEditorInner(
     onClose,
     isOpen = true,
     embedded = false,
-    belowCanvas,
+    optionsSlot,
     shapes,
     selectedShapeId,
     onShapeChange,
@@ -551,7 +553,7 @@ function StickerEditorInner(
   const editorBody = (
     <div style={{
       display: "flex",
-      flex: embedded ? "0 0 auto" : 1,
+      flex: 1,
       overflow: embedded ? "visible" : "hidden",
       flexDirection: "row",
       minHeight: 0,
@@ -663,9 +665,9 @@ function StickerEditorInner(
           <div style={{
             width: 300, flexShrink: 0,
             borderLeft: "1px solid #E5E7EB",
-            overflowY: "auto",
+            overflowY: "visible",
             padding: 20,
-            display: "flex", flexDirection: "column", gap: 20,
+            display: "flex", flexDirection: "column", gap: 18,
           }}>
             {/* ── Import ── */}
             {!image && (
@@ -683,8 +685,11 @@ function StickerEditorInner(
               </SideSection>
             )}
 
-            {/* ── Forme du sticker (cochée aussi sur la fiche produit) ── */}
-            {shapes.length > 0 && (
+            {/* ── Slot configuré par le parent (5 dropdowns en mode embedded) ── */}
+            {optionsSlot}
+
+            {/* ── Forme du sticker — sélecteur natif si pas de slot fourni ── */}
+            {!optionsSlot && shapes.length > 0 && (
               <SideSection title={image ? "Forme du sticker" : "2. Forme du sticker"}>
                 <ShapeSelector
                   shapes={shapes}
@@ -707,8 +712,8 @@ function StickerEditorInner(
               </SideSection>
             )}
 
-            {/* ── Taille du sticker (cochée aussi sur la fiche produit) ── */}
-            {sizes.length > 0 && (
+            {/* ── Taille du sticker — sélecteur natif si pas de slot fourni ── */}
+            {!optionsSlot && sizes.length > 0 && (
               <SideSection title="Taille du sticker">
                 <SizeSelector
                   sizes={sizes}
@@ -793,8 +798,8 @@ function StickerEditorInner(
           background: "#fff",
           borderRadius: 16,
           border: "1px solid #E5E7EB",
-          // overflow visible pour que les menus déroulants des sélecteurs
-          // sous le canvas puissent s'afficher au-dessus des autres blocs.
+          // overflow visible : les menus déroulants des Selectors de la
+          // sidebar interne peuvent dépasser visuellement le card éditeur.
           overflow: "visible",
           display: "flex",
           flexDirection: "column",
@@ -802,15 +807,6 @@ function StickerEditorInner(
         }}
       >
         {editorBody}
-        {belowCanvas && (
-          <div style={{
-            padding: "16px 20px 20px",
-            borderTop: "1px solid #E5E7EB",
-            background: "#fff",
-          }}>
-            {belowCanvas}
-          </div>
-        )}
       </div>
     );
   }
