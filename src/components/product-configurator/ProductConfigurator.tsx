@@ -275,6 +275,22 @@ function badgeColor(badge: string): string {
   return "#0A0E27";
 }
 
+// Styles partagés pour le topBar de l'éditeur (Forme + Taille en row).
+const topBarLabelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11, fontWeight: 800,
+  color: "#0A0E27",
+  textTransform: "uppercase", letterSpacing: "0.06em",
+  marginBottom: 6,
+};
+const topBarWarningStyle: React.CSSProperties = {
+  margin: "6px 0 0",
+  fontSize: 11, color: "#B45309",
+  background: "#FFFBEB", border: "1px solid #FDE68A",
+  padding: "5px 9px", borderRadius: 6,
+  fontWeight: 600,
+};
+
 // Variante compacte de StepCard utilisée dans la sidebar de l'éditeur intégré
 // et dans les blocs sous le canvas. Header avec icône + titre + résumé compact,
 // border subtle, fond blanc, badge ✓ vert quand complète, hover state.
@@ -1443,19 +1459,18 @@ export function ProductConfigurator({
               enableProductionDownload={enableProductionDownload}
               onValidate={handleEditorValidate}
               onClose={() => {}}
-              optionsSlot={
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              topBar={
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: hasShapes && (hasSizes || config.allowCustomWidth) ? "1fr 1fr" : "1fr",
+                  gap: 12, alignItems: "start",
+                }}>
                   {/* Forme */}
                   {hasShapes && (
-                    <SidebarSection
-                      title="Forme"
-                      icon="◆"
-                      summary={selectedShape?.name}
-                      complete={!!selectedShape}
-                      {...(selectedShape?.requiresCutPath
-                        ? { warning: "Tracé vectoriel requis (PDF, AI, EPS, SVG)." }
-                        : {})}
-                    >
+                    <div>
+                      <label style={topBarLabelStyle}>
+                        ◆ Forme {selectedShape && <span style={{ color: "#10B981", marginLeft: 4 }}>✓</span>}
+                      </label>
                       <Selector<string>
                         value={state.selectedShapeId}
                         placeholder="Choisir une forme"
@@ -1470,17 +1485,20 @@ export function ProductConfigurator({
                           return opt;
                         })}
                       />
-                    </SidebarSection>
+                      {selectedShape?.requiresCutPath && (
+                        <p style={topBarWarningStyle}>
+                          ⚠️ Tracé vectoriel requis (PDF, AI, EPS, SVG).
+                        </p>
+                      )}
+                    </div>
                   )}
 
                   {/* Taille */}
                   {(hasSizes || config.allowCustomWidth) && (
-                    <SidebarSection
-                      title="Taille"
-                      icon="📐"
-                      summary={sizeLabel || undefined}
-                      complete={state.sizeMode === "custom" || !!selectedSize}
-                    >
+                    <div>
+                      <label style={topBarLabelStyle}>
+                        📐 Taille {(state.sizeMode === "custom" || selectedSize) && <span style={{ color: "#10B981", marginLeft: 4 }}>✓</span>}
+                      </label>
                       <Selector<string>
                         value={state.sizeMode === "custom" ? "__custom__" : (state.selectedSizeId ?? "")}
                         placeholder="Choisir une taille"
@@ -1532,9 +1550,12 @@ export function ProductConfigurator({
                           ))}
                         </div>
                       )}
-                    </SidebarSection>
+                    </div>
                   )}
-
+                </div>
+              }
+              optionsSlot={
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {/* Quantité */}
                   <SidebarSection
                     title="Quantité"

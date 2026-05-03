@@ -71,12 +71,18 @@ interface Props {
   embedded?: boolean;
   /**
    * Contenu rendu en HAUT de la sidebar interne (à droite du canvas).
-   * Utile en mode embedded pour que le configurateur produit injecte ses
-   * propres sélecteurs (forme, taille, quantité, matière, finition) sous
-   * forme de dropdowns. Quand fourni, les sélecteurs natifs Forme/Taille
-   * sont masqués pour éviter la duplication.
+   * Utile en mode embedded pour injecter des sélecteurs supplémentaires
+   * (quantité, matière, finition…) sous forme de dropdowns.
    */
   optionsSlot?: React.ReactNode;
+  /**
+   * Contenu rendu en haut de l'éditeur, au-dessus du body (canvas + sidebar).
+   * Pratique pour exposer les sélecteurs principaux (forme, taille) en barre
+   * horizontale et libérer la sidebar pour les options secondaires.
+   * Quand fourni en mode embedded, les sélecteurs natifs Forme/Taille de la
+   * sidebar interne sont masqués pour éviter la duplication.
+   */
+  topBar?: React.ReactNode;
   /** Formes configurées sur le produit (à la forme, carré, rond, arrondi…). */
   shapes: StickerShape[];
   /** Forme actuellement sélectionnée dans le configurateur produit. */
@@ -155,6 +161,7 @@ function StickerEditorInner(
     isOpen = true,
     embedded = false,
     optionsSlot,
+    topBar,
     shapes,
     selectedShapeId,
     onShapeChange,
@@ -685,11 +692,11 @@ function StickerEditorInner(
               </SideSection>
             )}
 
-            {/* ── Slot configuré par le parent (5 dropdowns en mode embedded) ── */}
+            {/* ── Slot configuré par le parent (dropdowns secondaires) ── */}
             {optionsSlot}
 
-            {/* ── Forme du sticker — sélecteur natif si pas de slot fourni ── */}
-            {!optionsSlot && shapes.length > 0 && (
+            {/* ── Forme du sticker — sélecteur natif si ni topBar ni slot ── */}
+            {!optionsSlot && !topBar && shapes.length > 0 && (
               <SideSection title={image ? "Forme du sticker" : "2. Forme du sticker"}>
                 <ShapeSelector
                   shapes={shapes}
@@ -712,8 +719,8 @@ function StickerEditorInner(
               </SideSection>
             )}
 
-            {/* ── Taille du sticker — sélecteur natif si pas de slot fourni ── */}
-            {!optionsSlot && sizes.length > 0 && (
+            {/* ── Taille du sticker — sélecteur natif si ni topBar ni slot ── */}
+            {!optionsSlot && !topBar && sizes.length > 0 && (
               <SideSection title="Taille du sticker">
                 <SizeSelector
                   sizes={sizes}
@@ -798,14 +805,23 @@ function StickerEditorInner(
           background: "#fff",
           borderRadius: 16,
           border: "1px solid #E5E7EB",
-          // overflow visible : les menus déroulants des Selectors de la
-          // sidebar interne peuvent dépasser visuellement le card éditeur.
+          // overflow visible : les menus déroulants des Selectors peuvent
+          // dépasser visuellement le card éditeur sans être rognés.
           overflow: "visible",
           display: "flex",
           flexDirection: "column",
           minHeight: 540,
         }}
       >
+        {topBar && (
+          <div style={{
+            padding: "14px 18px",
+            borderBottom: "1px solid #E5E7EB",
+            background: "#fff",
+          }}>
+            {topBar}
+          </div>
+        )}
         {editorBody}
       </div>
     );
