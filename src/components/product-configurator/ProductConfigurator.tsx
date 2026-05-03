@@ -3,7 +3,7 @@
 import { useReducer, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addToCart, prepareFileUpload, confirmFileUpload } from "@/lib/cart-actions";
-import { StickerEditor } from "@/components/sticker-editor/StickerEditor";
+import { StickerEditor, type StickerEditorHandle } from "@/components/sticker-editor/StickerEditor";
 import type { EditorValidationOutput } from "@/lib/sticker-editor/editor.types";
 // Note: file upload goes through /api/uploads/direct (same-origin proxy → MinIO)
 import { configuratorReducer, createInitialState } from "./configurator.reducer";
@@ -73,6 +73,44 @@ function StepCard({
         <p style={{
           margin: 0, fontSize: 12, color: "#B45309", background: "#FFFBEB",
           padding: "8px 12px", borderRadius: 8, border: "1px solid #FDE68A",
+        }}>
+          ⚠️ {warning}
+        </p>
+      )}
+    </section>
+  );
+}
+
+// Variante compacte de StepCard utilisée dans la sidebar de l'éditeur intégré.
+// Pas de numéro d'étape, padding réduit, utile dans une colonne sticky étroite.
+function SidebarSection({
+  title, summary, children, warning,
+}: {
+  title: string;
+  summary?: string | undefined;
+  children: React.ReactNode;
+  warning?: string | undefined;
+}) {
+  return (
+    <section style={{
+      background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 12,
+      padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: "#0A0E27", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+          {title}
+        </h3>
+        {summary && (
+          <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 500, textAlign: "right" }}>
+            {summary}
+          </span>
+        )}
+      </div>
+      {children}
+      {warning && (
+        <p style={{
+          margin: 0, fontSize: 11, color: "#B45309", background: "#FFFBEB",
+          padding: "6px 10px", borderRadius: 6, border: "1px solid #FDE68A",
         }}>
           ⚠️ {warning}
         </p>
@@ -614,6 +652,7 @@ export function ProductConfigurator({
 
   const priceDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<StickerEditorHandle>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editorMounted, setEditorMounted] = useState(false);
 
@@ -682,40 +721,39 @@ export function ProductConfigurator({
   }, [calculatePrice]);
 
   // ── File upload — via same-origin proxy (no CSP issue, no MinIO URL exposed) ──
+  // Upload bas niveau : prépare la clé, POST vers /api/uploads/direct.
+  // Renvoie l'UploadedFile pour que les appelants puissent l'utiliser sans
+  // attendre un re-render React (utile dans handleEmbeddedAddToCart).
+  async function uploadFileBlob(file: File): Promise<UploadedFile> {
+    const mimeType = file.type || "application/octet-stream";
+    const { key } = await prepareFileUpload({
+      filename: file.name,
+      mimeType,
+      sizeBytes: file.size,
+    });
+    const res = await fetch("/api/uploads/direct", {
+      method: "POST",
+      body: file,
+      headers: {
+        "Content-Type": mimeType,
+        "x-file-name": encodeURIComponent(file.name),
+        "x-file-mime": mimeType,
+        "x-storage-key": key,
+        "content-length": String(file.size),
+      },
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error((data as { error?: string }).error ?? "Erreur d'upload");
+    }
+    return { key, filename: file.name, mimeType, sizeBytes: file.size };
+  }
+
   async function handleFileSelect(file: File) {
     dispatch({ type: "SET_UPLOAD_STATE", state: "uploading" });
     try {
-      const mimeType = file.type || "application/octet-stream";
-
-      // Get order ID and storage key from server action
-      const { key, orderId } = await prepareFileUpload({
-        filename: file.name,
-        mimeType,
-        sizeBytes: file.size,
-      });
-
-      // POST directly to our Next.js route (same origin → no CSP issue)
-      const res = await fetch("/api/uploads/direct", {
-        method: "POST",
-        body: file,
-        headers: {
-          "Content-Type": mimeType,
-          "x-file-name": encodeURIComponent(file.name),
-          "x-file-mime": mimeType,
-          "x-storage-key": key,
-          "content-length": String(file.size),
-        },
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error((data as { error?: string }).error ?? "Erreur d'upload");
-      }
-
-      dispatch({
-        type: "SET_UPLOADED_FILE",
-        file: { key, filename: file.name, mimeType, sizeBytes: file.size },
-      });
+      const uploaded = await uploadFileBlob(file);
+      dispatch({ type: "SET_UPLOADED_FILE", file: uploaded });
     } catch (err) {
       dispatch({
         type: "SET_UPLOAD_STATE",
@@ -794,19 +832,110 @@ export function ProductConfigurator({
     const file = new File([blob], filename, { type: "image/png" });
 
     // Injecter la config éditeur dans la note
+    dispatch({ type: "SET_NOTE", note: buildEditorNote(output) });
+
+    // Uploader le preview comme fichier client
+    await handleFileSelect(file);
+  }
+
+  // Construit la note client résumant le réglage de l'éditeur.
+  function buildEditorNote(output: EditorValidationOutput): string {
     const shapeLabel = selectedShape?.name ?? "—";
-    const configNote = [
+    return [
       `[Éditeur] Forme : ${shapeLabel}`,
       `Type de coupe : ${output.editorConfig.cutType === "kiss_cut" ? "Demi-chair (Kiss cut)" : "Pleine chair"}`,
       `Marge de coupe : ${output.editorConfig.cutlineOffsetMm} mm`,
       `Résolution : ${output.editorConfig.dpi} DPI`,
       `Fichier original : ${output.editorConfig.originalFilename}`,
     ].join(" · ");
+  }
 
-    dispatch({ type: "SET_NOTE", note: configNote });
+  // ── Add to cart — variante intégrée (éditeur dans la page produit) ──
+  // Capture l'aperçu Konva, l'upload puis enchaîne addToCart, sans bouton
+  // « Valider » manuel : tout est résolu au clic « Ajouter au panier ».
+  async function handleEmbeddedAddToCart() {
+    if (!state.priceResult) return;
 
-    // Uploader le preview comme fichier client
-    await handleFileSelect(file);
+    // Si l'éditeur n'a pas d'image → erreur visible et scroll vers l'éditeur.
+    if (!editorRef.current?.hasImage()) {
+      dispatch({
+        type: "SET_UPLOAD_STATE",
+        state: "error",
+        error: "Veuillez importer un visuel dans l'éditeur avant de commander.",
+      });
+      document.querySelector("[data-step='editor']")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    dispatch({ type: "SET_ADD_STATE", state: "loading" });
+    try {
+      // 1. Capture l'aperçu PNG
+      const output = await editorRef.current.validate();
+      if (!output) {
+        dispatch({ type: "SET_ADD_STATE", state: "error" });
+        setTimeout(() => dispatch({ type: "SET_ADD_STATE", state: "idle" }), 3000);
+        return;
+      }
+
+      // 2. Convertit l'aperçu en File et upload
+      const blobRes = await fetch(output.previewDataUrl);
+      const blob = await blobRes.blob();
+      const filename = `sticker-preview-${Date.now()}.png`;
+      const previewFile = new File([blob], filename, { type: "image/png" });
+
+      const uploadedFile = await uploadFileBlob(previewFile);
+      dispatch({ type: "SET_UPLOADED_FILE", file: uploadedFile });
+
+      // 3. Note client résumant la config éditeur
+      const note = buildEditorNote(output);
+      dispatch({ type: "SET_NOTE", note });
+
+      // 4. Add to cart (avec l'uploadedFile direct, sans dépendre du re-render)
+      const shape = selectedShape;
+      const material = selectedMaterial;
+      const lamination = selectedLamination;
+
+      const result = await addToCart({
+        productId, productName, quantity: currentQty,
+        unitPriceCents: state.priceResult.unitPriceCents,
+        customizationNote: note,
+        stickerConfig: {
+          ...(shape ? { shapeId: shape.id, shapeName: shape.name, shapeCode: shape.code } : {}),
+          widthMm, heightMm, quantity: currentQty,
+          ...(material ? { materialId: material.id, materialName: material.name } : {}),
+          ...(lamination ? { laminationId: lamination.id, laminationName: lamination.name } : {}),
+          customerNote: note,
+          pricingSnapshot: {
+            pricingMode: (config.pricingMode ?? "per_cm2") as "per_cm2" | "unit_price",
+            pricePerCm2Cents: config.pricePerCm2Cents,
+            baseUnitPriceCents: config.baseUnitPriceCents ?? 0,
+            surfaceCm2: state.priceResult.surfaceCm2,
+            quantityDiscountPct: state.priceResult.quantityDiscountPct,
+            materialMultiplier: state.priceResult.materialMultiplier,
+            laminationMultiplier: state.priceResult.laminationMultiplier,
+            shapeMultiplier: state.priceResult.shapeMultiplier,
+            setupFeeCents: state.priceResult.setupFeeCents,
+            unitPriceCents: state.priceResult.unitPriceCents,
+            subtotalCents: state.priceResult.subtotalCents,
+          },
+        },
+      });
+
+      if (result.ok) {
+        await confirmFileUpload({
+          orderId: result.data.orderId, itemId: result.data.itemId,
+          key: uploadedFile.key, filename: uploadedFile.filename,
+          mimeType: uploadedFile.mimeType, sizeBytes: uploadedFile.sizeBytes,
+        });
+      }
+
+      dispatch({ type: "SET_ADD_STATE", state: "success" });
+      setTimeout(() => dispatch({ type: "SET_ADD_STATE", state: "idle" }), 3500);
+      router.refresh();
+    } catch {
+      dispatch({ type: "SET_ADD_STATE", state: "error" });
+      setTimeout(() => dispatch({ type: "SET_ADD_STATE", state: "idle" }), 3000);
+    }
   }
 
   const sizeLabel = state.sizeMode === "custom"
@@ -823,6 +952,291 @@ export function ProductConfigurator({
   let stepCounter = 0;
   const step = () => String(++stepCounter).padStart(2, "0");
 
+  // ─── Mode « éditeur intégré » ────────────────────────────────────────────
+  // Si le produit a l'éditeur activé, on remplace la fiche produit classique
+  // par un layout dédié : éditeur à gauche, panneau de configuration sticky
+  // à droite (forme, taille, quantité, prix, panier — tout visible sans
+  // scroll). Les sélecteurs sont mutualisés avec les modes preset.
+  if (config.editorEnabled) {
+    return (
+      <>
+        <ProductHero
+          name={productName}
+          slug={slug}
+          {...(aggregate ? { aggregate } : {})}
+        />
+
+        <div
+          className="editor-layout"
+          style={{
+            maxWidth: 1320, margin: "0 auto",
+            padding: "24px 24px 120px",
+            display: "grid",
+            gridTemplateColumns: "1fr 380px",
+            gap: 24, alignItems: "start",
+          }}
+        >
+          {/* ── Gauche : éditeur visuel intégré ── */}
+          <div data-step="editor" style={{ minWidth: 0 }}>
+            <StickerEditor
+              ref={editorRef}
+              embedded
+              productName={productName}
+              widthMm={widthMm}
+              heightMm={heightMm}
+              shapes={shapes}
+              selectedShapeId={state.selectedShapeId}
+              onShapeChange={(id) => dispatch({ type: "SELECT_SHAPE", id })}
+              sizes={sizes}
+              selectedSizeId={state.selectedSizeId}
+              sizeMode={state.sizeMode}
+              onSizeChange={(id) => dispatch({ type: "SELECT_SIZE", id })}
+              allowResize={config.allowCustomWidth}
+              enableProductionDownload={enableProductionDownload}
+              onValidate={handleEditorValidate}
+              onClose={() => {}}
+            />
+          </div>
+
+          {/* ── Droite : sidebar sticky (forme / taille / quantité / prix) ── */}
+          <aside style={{ position: "sticky", top: 80, display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Forme */}
+            {hasShapes && (
+              <SidebarSection
+                title="Forme"
+                summary={selectedShape?.name}
+                {...(selectedShape?.requiresCutPath
+                  ? { warning: "Cette forme nécessite un fichier vectoriel avec tracé de découpe (PDF, AI, EPS ou SVG)." }
+                  : {})}
+              >
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {shapes.map((shape) => (
+                    <OptionCard
+                      key={shape.id}
+                      active={state.selectedShapeId === shape.id}
+                      label={shape.name}
+                      {...(shape.requiresCutPath
+                        ? { sublabel: "Tracé requis" }
+                        : shape.description
+                        ? { sublabel: shape.description }
+                        : {})}
+                      onClick={() => dispatch({ type: "SELECT_SHAPE", id: shape.id })}
+                    />
+                  ))}
+                </div>
+              </SidebarSection>
+            )}
+
+            {/* Taille */}
+            {(hasSizes || config.allowCustomWidth) && (
+              <SidebarSection title="Taille" summary={sizeLabel || undefined}>
+                {hasSizes && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {sizes.map((size) => (
+                      <OptionCard
+                        key={size.id}
+                        active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
+                        label={size.label}
+                        sublabel={`${size.widthMm} × ${size.heightMm} mm`}
+                        onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
+                      />
+                    ))}
+                    {config.allowCustomWidth && (
+                      <OptionCard
+                        active={state.sizeMode === "custom"}
+                        label="Perso."
+                        sublabel="Sur mesure"
+                        onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
+                      />
+                    )}
+                  </div>
+                )}
+                {(!hasSizes || state.sizeMode === "custom") && config.allowCustomWidth && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 10, padding: 12, background: "#F9FAFB", borderRadius: 10, border: "1px solid #E5E7EB" }}>
+                    {[
+                      { label: "Largeur", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
+                      { label: "Hauteur", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
+                    ].map(({ label, key, value, min, max }) => (
+                      <label key={key} style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 100 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{label}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <input
+                            type="number"
+                            value={value}
+                            min={min}
+                            max={max}
+                            onChange={(e) => dispatch({
+                              type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
+                              value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
+                            })}
+                            style={{ width: 70, padding: "6px 8px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
+                          />
+                          <span style={{ fontSize: 12, color: "#6B7280" }}>mm</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </SidebarSection>
+            )}
+
+            {/* Quantité */}
+            <SidebarSection title="Quantité" summary={`${currentQty} pcs`}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {QUICK_QUANTITIES.map((qty) => {
+                  const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
+                  return (
+                    <OptionCard
+                      key={qty}
+                      active={!state.useCustomQty && state.quantity === qty}
+                      label={`${qty}`}
+                      {...(tier && tier.discountPct > 0
+                        ? { sublabel: `-${tier.discountPct}%` }
+                        : { sublabel: "tarif std" })}
+                      onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
+                    />
+                  );
+                })}
+                <OptionCard
+                  active={state.useCustomQty}
+                  label="Autre"
+                  sublabel="Saisir"
+                  onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
+                />
+              </div>
+              {state.useCustomQty && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                  <input
+                    type="number"
+                    value={state.customQuantity}
+                    min={1}
+                    placeholder="ex : 75"
+                    onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
+                    autoFocus
+                    style={{ width: 100, padding: "8px 10px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 14, fontWeight: 600 }}
+                  />
+                  <span style={{ fontSize: 12, color: "#6B7280" }}>pcs</span>
+                </div>
+              )}
+            </SidebarSection>
+
+            {/* Matière */}
+            {hasMaterials && (
+              <SidebarSection title="Matière" summary={selectedMaterial?.name}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {materials.map((mat) => (
+                    <OptionCard
+                      key={mat.id}
+                      active={state.selectedMaterialId === mat.id}
+                      label={mat.name}
+                      {...(mat.description ? { sublabel: mat.description } : {})}
+                      {...(mat.isPremium ? { badge: "Premium" } : {})}
+                      onClick={() => {
+                        dispatch({ type: "SELECT_MATERIAL", id: mat.id });
+                        if (state.selectedLaminationId) {
+                          const lam = laminations.find((l) => l.id === state.selectedLaminationId);
+                          if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
+                            dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
+                          }
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              </SidebarSection>
+            )}
+
+            {/* Pellicule */}
+            {hasLaminations && (
+              <SidebarSection title="Finition" summary={selectedLamination?.name ?? "Sans"}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {laminations.map((lam) => {
+                    const isCompatible = compatibleLaminations.includes(lam);
+                    const lamSublabel = !isCompatible
+                      ? `Non compatible`
+                      : lam.description
+                      ? lam.description
+                      : lam.priceModifierValue !== 1
+                      ? `×${lam.priceModifierValue}`
+                      : undefined;
+                    return (
+                      <OptionCard
+                        key={lam.id}
+                        active={state.selectedLaminationId === lam.id}
+                        label={lam.name}
+                        {...(lamSublabel ? { sublabel: lamSublabel } : {})}
+                        disabled={!isCompatible}
+                        onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
+                      />
+                    );
+                  })}
+                </div>
+              </SidebarSection>
+            )}
+
+            {/* Quote sticky : prix + bouton ajouter au panier */}
+            <StickyQuoteSummary
+              priceResult={state.priceResult}
+              priceLoading={state.priceLoading}
+              currentQty={currentQty}
+              widthMm={widthMm}
+              heightMm={heightMm}
+              {...(selectedShape ? { shape: { name: selectedShape.name } } : {})}
+              {...(selectedMaterial ? { material: { name: selectedMaterial.name } } : {})}
+              lamination={selectedLamination ? { name: selectedLamination.name } : null}
+              tiers={config.quantityTiers}
+              onAddToCart={handleEmbeddedAddToCart}
+              addState={state.addState}
+              requiresFile={true}
+              hasFile={true}
+              onUpsell={(qty) => dispatch({ type: "SELECT_QUANTITY", qty })}
+            />
+
+            {/* Erreur upload (image manquante, etc.) */}
+            {state.uploadError && (
+              <div style={{
+                padding: "10px 14px", background: "#FEF2F2",
+                border: "1px solid #FECACA", borderRadius: 8,
+                fontSize: 13, color: "#B91C1C", fontWeight: 600,
+              }}>
+                {state.uploadError}
+              </div>
+            )}
+          </aside>
+        </div>
+
+        {/* Mobile sticky bar */}
+        <div className="mobile-sticky-bar">
+          <MobileStickyBar
+            priceResult={state.priceResult}
+            currentQty={currentQty}
+            onAddToCart={handleEmbeddedAddToCart}
+            addState={state.addState}
+            canOrder={!!state.priceResult && !state.priceLoading}
+          />
+        </div>
+
+        <style>{`
+          .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+          }
+          .mobile-sticky-bar { display: none; }
+          @media (max-width: 1024px) {
+            .editor-layout {
+              grid-template-columns: 1fr !important;
+            }
+          }
+          @media (max-width: 860px) {
+            .mobile-sticky-bar { display: block; }
+          }
+        `}</style>
+      </>
+    );
+  }
+
+  // ─── Mode classique (éditeur désactivé) : layout original ────────────────
   return (
     <>
       {/* Éditeur visuel — modal plein écran.
@@ -832,6 +1246,7 @@ export function ProductConfigurator({
           widthMm/heightMm changent — pas de remount. */}
       {editorMounted && config.editorEnabled && (
         <StickerEditor
+          ref={editorRef}
           isOpen={showEditor}
           productName={productName}
           widthMm={widthMm}

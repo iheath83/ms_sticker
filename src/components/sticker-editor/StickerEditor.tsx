@@ -6,7 +6,10 @@ import {
   useCallback,
   useEffect,
   useState,
+  useImperativeHandle,
+  forwardRef,
   type DragEvent,
+  type Ref,
 } from "react";
 import dynamic from "next/dynamic";
 import type Konva from "konva";
@@ -33,6 +36,21 @@ const EditorCanvasClient = dynamic(() => import("./EditorCanvasClient"), {
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+/**
+ * Méthodes impératives exposées via `ref`. Utile en mode `embedded` pour que
+ * le parent (configurateur produit) déclenche l'export de l'aperçu au moment
+ * de l'ajout au panier, sans qu'un bouton « Valider » ne soit nécessaire.
+ */
+export interface StickerEditorHandle {
+  /**
+   * Capture l'aperçu Konva, valide le state et retourne le résultat.
+   * Renvoie `null` si l'éditeur n'a pas d'image ou si la validation échoue.
+   */
+  validate(): Promise<EditorValidationOutput | null>;
+  /** True si une image est chargée dans l'éditeur. */
+  hasImage(): boolean;
+}
+
 interface Props {
   productName: string;
   widthMm: number;
@@ -42,9 +60,15 @@ interface Props {
   /**
    * Si false, le modal est masqué (display: none) mais le composant reste
    * monté → l'image et les paramètres sont préservés entre les ouvertures.
-   * Défaut : true.
+   * Défaut : true. Ignoré en mode `embedded`.
    */
   isOpen?: boolean;
+  /**
+   * Si true, l'éditeur est rendu directement dans la page (pas d'overlay
+   *  modal, pas de header avec bouton fermer, pas de footer Annuler/Valider).
+   *  Le parent doit déclencher la validation via `ref.current.validate()`.
+   */
+  embedded?: boolean;
   /** Formes configurées sur le produit (à la forme, carré, rond, arrondi…). */
   shapes: StickerShape[];
   /** Forme actuellement sélectionnée dans le configurateur produit. */
@@ -77,6 +101,8 @@ interface Props {
 const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "application/pdf"];
 const ACCEPTED_EXTENSIONS = ".png,.jpg,.jpeg,.svg,.pdf";
 const MAX_CANVAS_WIDTH = 520;
+// En mode embedded, le canvas dispose de plus d'espace dans la page produit.
+const MAX_CANVAS_WIDTH_EMBEDDED = 760;
 
 /**
  * Re-encode une image (PNG/JPG/SVG…) en PNG RGBA 8 bits standard via canvas.
@@ -111,23 +137,27 @@ async function rasterizeImageToPng(url: string): Promise<Blob> {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-export function StickerEditor({
-  productName,
-  widthMm,
-  heightMm,
-  onValidate,
-  onClose,
-  isOpen = true,
-  shapes,
-  selectedShapeId,
-  onShapeChange,
-  allowResize = false,
-  enableProductionDownload = false,
-  sizes = [],
-  selectedSizeId,
-  sizeMode = "preset",
-  onSizeChange,
-}: Props) {
+function StickerEditorInner(
+  {
+    productName,
+    widthMm,
+    heightMm,
+    onValidate,
+    onClose,
+    isOpen = true,
+    embedded = false,
+    shapes,
+    selectedShapeId,
+    onShapeChange,
+    allowResize = false,
+    enableProductionDownload = false,
+    sizes = [],
+    selectedSizeId,
+    sizeMode = "preset",
+    onSizeChange,
+  }: Props,
+  forwardedRef: Ref<StickerEditorHandle>,
+) {
   const [state, dispatch] = useReducer(
     editorReducer,
     undefined,
@@ -159,7 +189,8 @@ export function StickerEditor({
   const stageRef = useRef<Konva.Stage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(MAX_CANVAS_WIDTH);
+  const maxCanvasWidth = embedded ? MAX_CANVAS_WIDTH_EMBEDDED : MAX_CANVAS_WIDTH;
+  const [containerWidth, setContainerWidth] = useState(maxCanvasWidth);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingCutline, setIsGeneratingCutline] = useState(false);
@@ -175,13 +206,13 @@ export function StickerEditor({
     const el = canvasContainerRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? MAX_CANVAS_WIDTH;
-      setContainerWidth(Math.min(w, MAX_CANVAS_WIDTH));
+      const w = entries[0]?.contentRect.width ?? maxCanvasWidth;
+      setContainerWidth(Math.min(w, maxCanvasWidth));
     });
     ro.observe(el);
-    setContainerWidth(Math.min(el.clientWidth, MAX_CANVAS_WIDTH));
+    setContainerWidth(Math.min(el.clientWidth, maxCanvasWidth));
     return () => ro.disconnect();
-  }, []);
+  }, [maxCanvasWidth]);
 
   // Validation en temps réel
   useEffect(() => {
@@ -435,28 +466,23 @@ export function StickerEditor({
   };
 
   // ── Export et validation ──
-  const handleValidate = async () => {
+  const buildEditorOutput = useCallback(async (): Promise<EditorValidationOutput | null> => {
     const v = validateEditor(state);
     dispatch({ type: "SET_VALIDATION", validation: v });
-    if (!v.isValid || !state.image) return;
+    if (!v.isValid || !state.image) return null;
 
     setIsExporting(true);
 
     let previewDataUrl = "";
     const stage = stageRef.current;
     if (stage) {
-      // Cacher le Transformer pendant l'export pour qu'il ne soit pas
-      // dessiné, et pour éviter le bug "drawImage on canvas with width 0"
-      // (les handles invisibles peuvent créer des sub-canvas vides).
       const transformers = stage.find("Transformer");
       const wasVisible = transformers.map((t) => t.visible());
       transformers.forEach((t) => t.visible(false));
       stage.batchDraw();
-      // Laisse Konva committer le redraw avant la capture
       await new Promise<void>((r) =>
         requestAnimationFrame(() => requestAnimationFrame(() => r())),
       );
-
       try {
         previewDataUrl = stage.toDataURL({ pixelRatio: 2, mimeType: "image/png" });
       } catch (err) {
@@ -468,16 +494,12 @@ export function StickerEditor({
     }
 
     const dpi = computeDpi(state.image.originalWidthPx, state.image.widthMm);
-
     setIsExporting(false);
 
-    // Déduit le type de coupe à partir de la forme produit : la découpe à la
-    // forme (die-cut) implique généralement une coupe pleine chair, les formes
-    // géométriques (rond, carré, arrondi) restent en kiss-cut planché.
     const derivedCutType =
       state.settings.cutline.method === "alpha" ? "through_cut" : "kiss_cut";
 
-    onValidate({
+    return {
       previewDataUrl,
       editorConfig: {
         widthMm: state.image.widthMm,
@@ -490,8 +512,24 @@ export function StickerEditor({
         hasTransparency: state.image.hasTransparency,
         dpi,
       },
-    });
+    };
+  }, [state]);
+
+  const handleValidate = async () => {
+    const output = await buildEditorOutput();
+    if (output) onValidate(output);
   };
+
+  // Expose la validation au parent (utile en mode embedded — le configurateur
+  // déclenche l'export Konva au clic « Ajouter au panier »).
+  useImperativeHandle(
+    forwardedRef,
+    () => ({
+      validate: buildEditorOutput,
+      hasImage: () => !!state.image,
+    }),
+    [buildEditorOutput, state.image],
+  );
 
   // ── Dérivées ──
   const { image, settings, validation, isUploading, uploadError } = state;
@@ -502,62 +540,15 @@ export function StickerEditor({
 
   const dpi = image ? computeDpi(image.originalWidthPx, image.widthMm) : 0;
 
-  return (
-    /* ── Overlay ── */
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 9999,
-        background: "rgba(10,14,39,0.72)", backdropFilter: "blur(4px)",
-        display: isOpen ? "flex" : "none",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-      aria-hidden={!isOpen}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      {/* ── Modal ── */}
-      <div
-        style={{
-          background: "#fff", borderRadius: 20, margin: "auto",
-          width: "100%", maxWidth: 1100, maxHeight: "96vh",
-          display: "flex", flexDirection: "column",
-          overflow: "hidden", boxShadow: "0 24px 80px rgba(10,14,39,0.32)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* ── Header ── */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "16px 24px", borderBottom: "1px solid #E5E7EB", flexShrink: 0,
-        }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#0A0E27" }}>
-              Éditeur de sticker
-            </h2>
-            <p style={{ margin: 0, fontSize: 13, color: "#6B7280", marginTop: 2 }}>
-              {productName} — {widthMm} × {heightMm} mm
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer l'éditeur"
-            style={{
-              background: "none", border: "none", cursor: "pointer",
-              fontSize: 20, color: "#6B7280", padding: "6px 10px", borderRadius: 8,
-              lineHeight: 1,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* ── Corps ── */}
-        <div style={{
-          display: "flex", flex: 1, overflow: "hidden",
-          flexDirection: "row",
-          minHeight: 0,
-        }}>
+  // Body de l'éditeur (canvas + sidebar). Réutilisé en modal et en embedded.
+  const editorBody = (
+    <div style={{
+      display: "flex",
+      flex: 1,
+      overflow: embedded ? "visible" : "hidden",
+      flexDirection: "row",
+      minHeight: 0,
+    }}>
           {/* ── Zone canvas ── */}
           <div
             ref={canvasContainerRef}
@@ -565,7 +556,7 @@ export function StickerEditor({
               flex: 1, display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
               padding: 24, background: "#F9FAFB",
-              overflow: "auto", minWidth: 0,
+              overflow: embedded ? "visible" : "auto", minWidth: 0,
             }}
           >
             {/* Upload zone ou canvas */}
@@ -684,8 +675,10 @@ export function StickerEditor({
               </SideSection>
             )}
 
-            {/* ── Forme du sticker (cochée aussi sur la fiche produit) ── */}
-            {shapes.length > 0 && (
+            {/* ── Forme du sticker (cochée aussi sur la fiche produit) ──
+                En mode embedded, le configurateur produit gère les sélecteurs
+                forme/taille à part dans sa sidebar — on évite la duplication. */}
+            {!embedded && shapes.length > 0 && (
               <SideSection title={image ? "Forme du sticker" : "2. Forme du sticker"}>
                 <ShapeSelector
                   shapes={shapes}
@@ -709,7 +702,7 @@ export function StickerEditor({
             )}
 
             {/* ── Taille du sticker (cochée aussi sur la fiche produit) ── */}
-            {sizes.length > 0 && (
+            {!embedded && sizes.length > 0 && (
               <SideSection title="Taille du sticker">
                 <SizeSelector
                   sizes={sizes}
@@ -794,13 +787,85 @@ export function StickerEditor({
               </SideSection>
             )}
 
-            {/* ── Validation ── */}
-            <ValidationPanel validation={validation} />
+            {/* ── Validation ──
+                En mode embedded, la validation est silencieuse : aucun bouton
+                « Valider » manuel, les avertissements éventuels sont affichés
+                par le configurateur produit (uploadError + canOrder). */}
+            {!embedded && <ValidationPanel validation={validation} />}
 
           </div>
+    </div>
+  );
+
+  // ─── Mode embedded : rendu inline dans la page produit ────────────────────
+  if (embedded) {
+    return (
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 16,
+          border: "1px solid #E5E7EB",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 540,
+        }}
+      >
+        {editorBody}
+      </div>
+    );
+  }
+
+  // ─── Mode modal ───────────────────────────────────────────────────────────
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 9999,
+        background: "rgba(10,14,39,0.72)", backdropFilter: "blur(4px)",
+        display: isOpen ? "flex" : "none",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+      aria-hidden={!isOpen}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        style={{
+          background: "#fff", borderRadius: 20, margin: "auto",
+          width: "100%", maxWidth: 1100, maxHeight: "96vh",
+          display: "flex", flexDirection: "column",
+          overflow: "hidden", boxShadow: "0 24px 80px rgba(10,14,39,0.32)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "16px 24px", borderBottom: "1px solid #E5E7EB", flexShrink: 0,
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#0A0E27" }}>
+              Éditeur de sticker
+            </h2>
+            <p style={{ margin: 0, fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+              {productName} — {widthMm} × {heightMm} mm
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer l'éditeur"
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 20, color: "#6B7280", padding: "6px 10px", borderRadius: 8,
+              lineHeight: 1,
+            }}
+          >
+            ✕
+          </button>
         </div>
 
-        {/* ── Footer ── */}
+        {editorBody}
+
         <div style={{
           padding: "16px 24px",
           borderTop: "1px solid #E5E7EB",
@@ -838,6 +903,9 @@ export function StickerEditor({
     </div>
   );
 }
+
+export const StickerEditor = forwardRef<StickerEditorHandle, Props>(StickerEditorInner);
+StickerEditor.displayName = "StickerEditor";
 
 // ─── Sous-composants ─────────────────────────────────────────────────────────
 
