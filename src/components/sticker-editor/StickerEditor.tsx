@@ -69,6 +69,12 @@ interface Props {
    *  Le parent doit déclencher la validation via `ref.current.validate()`.
    */
   embedded?: boolean;
+  /**
+   * Contenu rendu sous le canvas (à gauche, à côté de la sidebar interne).
+   * Utile en mode embedded pour afficher des sélecteurs supplémentaires
+   * (quantité, matière, finition…) qui doivent rester alignés sous le visuel.
+   */
+  belowCanvas?: React.ReactNode;
   /** Formes configurées sur le produit (à la forme, carré, rond, arrondi…). */
   shapes: StickerShape[];
   /** Forme actuellement sélectionnée dans le configurateur produit. */
@@ -146,6 +152,7 @@ function StickerEditorInner(
     onClose,
     isOpen = true,
     embedded = false,
+    belowCanvas,
     shapes,
     selectedShapeId,
     onShapeChange,
@@ -549,13 +556,19 @@ function StickerEditorInner(
       flexDirection: "row",
       minHeight: 0,
     }}>
-          {/* ── Zone canvas ── */}
+          {/* ── Colonne canvas (canvas + bloc belowCanvas optionnel) ── */}
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            minWidth: 0,
+            background: "#F9FAFB",
+          }}>
           <div
             ref={canvasContainerRef}
             style={{
-              flex: 1, display: "flex", flexDirection: "column",
+              flex: belowCanvas ? "0 0 auto" : 1,
+              display: "flex", flexDirection: "column",
               alignItems: "center", justifyContent: "center",
-              padding: 24, background: "#F9FAFB",
+              padding: 24,
               overflow: embedded ? "visible" : "auto", minWidth: 0,
             }}
           >
@@ -651,6 +664,14 @@ function StickerEditorInner(
             />
           </div>
 
+          {/* Bloc injecté sous le canvas (sélecteurs Quantité / Matière / … en mode embedded) */}
+          {belowCanvas && (
+            <div style={{ padding: "0 20px 20px" }}>
+              {belowCanvas}
+            </div>
+          )}
+          </div>
+
           {/* ── Sidebar droite ── */}
           <div style={{
             width: 300, flexShrink: 0,
@@ -737,24 +758,6 @@ function StickerEditorInner(
                   onChange={(v) => dispatch({ type: "SET_CUTLINE_OFFSET", offsetMm: v })}
                 />
               </label>
-            </SideSection>
-
-            {/* ── Affichage guides ── */}
-            <SideSection title="Affichage">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <ToggleRow
-                  label="Ligne de coupe"
-                  color={cutlineColor}
-                  checked={settings.showCutline}
-                  onChange={() => dispatch({ type: "TOGGLE_SHOW_CUTLINE" })}
-                />
-                <ToggleRow
-                  label="Grille"
-                  color="#9CA3AF"
-                  checked={settings.showGrid}
-                  onChange={() => dispatch({ type: "TOGGLE_SHOW_GRID" })}
-                />
-              </div>
             </SideSection>
 
             {/* ── Positionnement ── */}
@@ -1139,18 +1142,6 @@ function SliderWithValue({
         {value} {unit}
       </span>
     </div>
-  );
-}
-
-function ToggleRow({ label, color, checked, onChange }: {
-  label: string; color: string; checked: boolean; onChange: () => void;
-}) {
-  return (
-    <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: "#374151" }}>
-      <span style={{ width: 12, height: 12, borderRadius: 2, background: color, flexShrink: 0 }} />
-      <span style={{ flex: 1 }}>{label}</span>
-      <input type="checkbox" checked={checked} onChange={onChange} style={{ accentColor: color }} />
-    </label>
   );
 }
 

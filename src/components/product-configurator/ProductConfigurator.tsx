@@ -81,34 +81,73 @@ function StepCard({
   );
 }
 
-// Variante compacte de StepCard utilisée dans la sidebar de l'éditeur intégré.
-// Pas de numéro d'étape, padding réduit, utile dans une colonne sticky étroite.
+// Variante compacte de StepCard utilisée dans la sidebar de l'éditeur intégré
+// et dans les blocs sous le canvas. Header avec icône + titre + résumé compact,
+// border subtle, fond blanc, badge ✓ vert quand complète, hover state.
 function SidebarSection({
-  title, summary, children, warning, complete,
+  title, summary, children, warning, complete, icon,
 }: {
   title: string;
   summary?: string | undefined;
   children: React.ReactNode;
   warning?: string | undefined;
   complete?: boolean | undefined;
+  /** Petit pictogramme placé à gauche du titre (esthétique). */
+  icon?: string | undefined;
 }) {
   return (
     <section style={{
-      background: "#fff", border: "1.5px solid #E5E7EB", borderRadius: 12,
-      padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
+      background: "#fff",
+      border: complete ? "1.5px solid #10B981" : "1.5px solid #E5E7EB",
+      borderRadius: 14,
+      padding: "14px 16px 16px",
+      display: "flex", flexDirection: "column", gap: 10,
+      transition: "border-color 0.2s, box-shadow 0.2s",
+      boxShadow: complete
+        ? "0 1px 0 rgba(16,185,129,0.08), 0 4px 12px rgba(16,185,129,0.05)"
+        : "0 1px 0 rgba(10,14,39,0.02)",
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 800, color: "#0A0E27", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6 }}>
-          {complete && <span style={{ color: "#10B981", fontSize: 13 }}>✓</span>}
-          {title}
-        </h3>
+      <header style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 8, paddingBottom: 8,
+        borderBottom: "1px solid #F3F4F6",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          {icon && (
+            <span aria-hidden style={{
+              fontSize: 14, lineHeight: 1,
+              width: 26, height: 26, borderRadius: 8,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              background: complete ? "#ECFDF5" : "#F3F4F6",
+              color: complete ? "#10B981" : "#6B7280",
+              flexShrink: 0,
+            }}>
+              {complete ? "✓" : icon}
+            </span>
+          )}
+          <h3 style={{
+            margin: 0,
+            fontSize: 12, fontWeight: 800, color: "#0A0E27",
+            textTransform: "uppercase", letterSpacing: "0.06em",
+            whiteSpace: "nowrap",
+          }}>
+            {title}
+          </h3>
+        </div>
         {summary && (
-          <span style={{ fontSize: 12, color: "#374151", fontWeight: 600, textAlign: "right" }}>
+          <span style={{
+            fontSize: 11, color: "#6B7280", fontWeight: 600,
+            textAlign: "right",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            minWidth: 0,
+          }}>
             {summary}
           </span>
         )}
+      </header>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {children}
       </div>
-      {children}
       {warning && (
         <p style={{
           margin: 0, fontSize: 11, color: "#B45309", background: "#FFFBEB",
@@ -1190,8 +1229,8 @@ export function ProductConfigurator({
             gap: 24, alignItems: "start",
           }}
         >
-          {/* ── Gauche : éditeur (forme/taille gérées dans sa sidebar)
-                                 + grille 3 colonnes (qté/matière/finition) ── */}
+          {/* ── Gauche : éditeur (avec forme/taille dans sa sidebar et
+                                       qté/matière/finition injectés sous le canvas) ── */}
           <div data-step="editor" style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
             <StickerEditor
               ref={editorRef}
@@ -1210,114 +1249,128 @@ export function ProductConfigurator({
               enableProductionDownload={enableProductionDownload}
               onValidate={handleEditorValidate}
               onClose={() => {}}
-            />
-
-            {/* Grille 3 colonnes : quantité, matière, finition.
-                Limitée à la colonne gauche du layout (sous le canvas). */}
-            <div
-              className="options-row"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 12,
-              }}
-            >
-              {/* Quantité */}
-              <SidebarSection title="Quantité" summary={`${currentQty} pcs`} complete={currentQty > 0}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {QUICK_QUANTITIES.map((qty) => {
-                    const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
-                    return (
+              belowCanvas={
+                <div
+                  className="options-row"
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, 1fr)",
+                    gap: 12,
+                  }}
+                >
+                  {/* Quantité */}
+                  <SidebarSection
+                    title="Quantité"
+                    icon="🔢"
+                    summary={`${currentQty} pcs`}
+                    complete={currentQty > 0}
+                  >
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {QUICK_QUANTITIES.map((qty) => {
+                        const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
+                        return (
+                          <OptionCard
+                            key={qty}
+                            compact
+                            active={!state.useCustomQty && state.quantity === qty}
+                            label={`${qty}`}
+                            {...(tier && tier.discountPct > 0
+                              ? { sublabel: `-${tier.discountPct}%`, badge: tier.discountPct >= 20 ? "Recommandé" : undefined }
+                              : { sublabel: "std" })}
+                            onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
+                          />
+                        );
+                      })}
                       <OptionCard
-                        key={qty}
                         compact
-                        active={!state.useCustomQty && state.quantity === qty}
-                        label={`${qty}`}
-                        {...(tier && tier.discountPct > 0
-                          ? { sublabel: `-${tier.discountPct}%`, badge: tier.discountPct >= 20 ? "Recommandé" : undefined }
-                          : { sublabel: "std" })}
-                        onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
+                        active={state.useCustomQty}
+                        label="Autre"
+                        sublabel="Saisir"
+                        onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
                       />
-                    );
-                  })}
-                  <OptionCard
-                    compact
-                    active={state.useCustomQty}
-                    label="Autre"
-                    sublabel="Saisir"
-                    onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
-                  />
-                </div>
-                {state.useCustomQty && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
-                    <input
-                      type="number"
-                      value={state.customQuantity}
-                      min={1}
-                      placeholder="ex : 75"
-                      onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
-                      autoFocus
-                      style={{ width: 80, padding: "6px 9px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
-                    />
-                    <span style={{ fontSize: 11, color: "#6B7280" }}>pcs</span>
-                  </div>
-                )}
-              </SidebarSection>
-
-              {/* Matière */}
-              {hasMaterials && (
-                <SidebarSection title="Matière" summary={selectedMaterial?.name} complete={!!selectedMaterial}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {materials.map((mat) => (
-                      <OptionCard
-                        key={mat.id}
-                        compact
-                        active={state.selectedMaterialId === mat.id}
-                        label={mat.name}
-                        {...(mat.description ? { sublabel: mat.description } : {})}
-                        {...(mat.isPremium ? { badge: "Premium" } : {})}
-                        onClick={() => {
-                          dispatch({ type: "SELECT_MATERIAL", id: mat.id });
-                          if (state.selectedLaminationId) {
-                            const lam = laminations.find((l) => l.id === state.selectedLaminationId);
-                            if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
-                              dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
-                            }
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
-                </SidebarSection>
-              )}
-
-              {/* Finition */}
-              {hasLaminations && (
-                <SidebarSection title="Finition" summary={selectedLamination?.name ?? "Sans"} complete={true}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {laminations.map((lam) => {
-                      const isCompatible = compatibleLaminations.includes(lam);
-                      const lamSublabel = !isCompatible
-                        ? `Non compatible`
-                        : lam.priceModifierValue !== 1
-                        ? `×${lam.priceModifierValue}`
-                        : lam.description ?? undefined;
-                      return (
-                        <OptionCard
-                          key={lam.id}
-                          compact
-                          active={state.selectedLaminationId === lam.id}
-                          label={lam.name}
-                          {...(lamSublabel ? { sublabel: lamSublabel } : {})}
-                          disabled={!isCompatible}
-                          onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
+                    </div>
+                    {state.useCustomQty && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <input
+                          type="number"
+                          value={state.customQuantity}
+                          min={1}
+                          placeholder="ex : 75"
+                          onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
+                          autoFocus
+                          style={{ width: 80, padding: "6px 9px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
                         />
-                      );
-                    })}
-                  </div>
-                </SidebarSection>
-              )}
-            </div>
+                        <span style={{ fontSize: 11, color: "#6B7280" }}>pcs</span>
+                      </div>
+                    )}
+                  </SidebarSection>
+
+                  {/* Matière */}
+                  {hasMaterials && (
+                    <SidebarSection
+                      title="Matière"
+                      icon="🎞️"
+                      summary={selectedMaterial?.name}
+                      complete={!!selectedMaterial}
+                    >
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {materials.map((mat) => (
+                          <OptionCard
+                            key={mat.id}
+                            compact
+                            active={state.selectedMaterialId === mat.id}
+                            label={mat.name}
+                            {...(mat.description ? { sublabel: mat.description } : {})}
+                            {...(mat.isPremium ? { badge: "Premium" } : {})}
+                            onClick={() => {
+                              dispatch({ type: "SELECT_MATERIAL", id: mat.id });
+                              if (state.selectedLaminationId) {
+                                const lam = laminations.find((l) => l.id === state.selectedLaminationId);
+                                if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
+                                  dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
+                                }
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </SidebarSection>
+                  )}
+
+                  {/* Finition */}
+                  {hasLaminations && (
+                    <SidebarSection
+                      title="Finition"
+                      icon="✨"
+                      summary={selectedLamination?.name ?? "Sans"}
+                      complete={true}
+                    >
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {laminations.map((lam) => {
+                          const isCompatible = compatibleLaminations.includes(lam);
+                          const lamSublabel = !isCompatible
+                            ? `Non compatible`
+                            : lam.priceModifierValue !== 1
+                            ? `×${lam.priceModifierValue}`
+                            : lam.description ?? undefined;
+                          return (
+                            <OptionCard
+                              key={lam.id}
+                              compact
+                              active={state.selectedLaminationId === lam.id}
+                              label={lam.name}
+                              {...(lamSublabel ? { sublabel: lamSublabel } : {})}
+                              disabled={!isCompatible}
+                              onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
+                            />
+                          );
+                        })}
+                      </div>
+                    </SidebarSection>
+                  )}
+                </div>
+              }
+            />
 
             {/* Avertissement progression discret */}
             {!allConfigured && (
