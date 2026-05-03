@@ -317,7 +317,7 @@ function EditorPriceCard({
 }
 
 function OptionCard({
-  active, label, sublabel, badge, disabled, onClick,
+  active, label, sublabel, badge, disabled, onClick, compact = false,
 }: {
   active: boolean;
   label: string;
@@ -325,6 +325,8 @@ function OptionCard({
   badge?: string | undefined;
   disabled?: boolean | undefined;
   onClick: () => void;
+  /** Variante dense pour les grilles 3-colonnes (sidebar étroite). */
+  compact?: boolean | undefined;
 }) {
   return (
     <button
@@ -333,32 +335,39 @@ function OptionCard({
       disabled={disabled}
       style={{
         position: "relative",
-        padding: "14px 18px",
-        borderRadius: 12,
-        border: `2.5px solid ${active ? "#0A0E27" : disabled ? "#E5E7EB" : "#E5E7EB"}`,
+        padding: compact ? "8px 10px" : "14px 18px",
+        borderRadius: compact ? 10 : 12,
+        border: `${compact ? 2 : 2.5}px solid ${active ? "#0A0E27" : disabled ? "#E5E7EB" : "#E5E7EB"}`,
         background: active ? "#0A0E27" : disabled ? "#F9FAFB" : "#fff",
         color: active ? "#fff" : disabled ? "#9CA3AF" : "#374151",
         cursor: disabled ? "not-allowed" : "pointer",
         textAlign: "left",
-        minWidth: 110,
+        minWidth: compact ? 0 : 110,
+        flex: compact ? "1 1 70px" : undefined,
         opacity: disabled ? 0.55 : 1,
         transition: "all 0.15s",
         boxShadow: active ? "0 2px 12px rgba(10,14,39,0.18)" : "none",
+        lineHeight: 1.2,
       }}
     >
       {badge && (
         <span style={{
-          position: "absolute", top: -9, left: 12,
+          position: "absolute", top: compact ? -7 : -9, left: compact ? 8 : 12,
           background: badge === "Premium" ? "#6D28D9" : badge === "Recommandé" ? "#059669" : "#0A0E27",
-          color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 8px",
+          color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 7px",
           borderRadius: 10, textTransform: "uppercase", letterSpacing: "0.05em",
         }}>
           {badge}
         </span>
       )}
-      <div style={{ fontSize: 14, fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: compact ? 12 : 14, fontWeight: 700 }}>{label}</div>
       {sublabel && (
-        <div style={{ fontSize: 11, opacity: active ? 0.75 : 0.6, marginTop: 3, lineHeight: 1.3 }}>
+        <div style={{
+          fontSize: compact ? 10 : 11,
+          opacity: active ? 0.75 : 0.6,
+          marginTop: compact ? 1 : 3,
+          lineHeight: 1.25,
+        }}>
           {sublabel}
         </div>
       )}
@@ -1203,9 +1212,8 @@ export function ProductConfigurator({
             />
           </div>
 
-          {/* ── Droite : sidebar sticky CRO-optimisée ── */}
-          <aside style={{ position: "sticky", top: 80, display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* 1. Prix + CTA above-the-fold (priorité absolue) */}
+          {/* ── Droite : sidebar sticky compacte (prix + CTA + tarifs) ── */}
+          <aside style={{ position: "sticky", top: 80, display: "flex", flexDirection: "column", gap: 12 }}>
             <EditorPriceCard
               priceResult={state.priceResult}
               priceLoading={state.priceLoading}
@@ -1219,212 +1227,223 @@ export function ProductConfigurator({
               nextTier={nextTier}
               onUpsell={(qty) => dispatch({ type: "SELECT_QUANTITY", qty })}
             />
-
-            {/* 2. Configuration condensée — un bloc unique pour réduire le bruit */}
-            <div style={{
-              display: "flex", flexDirection: "column", gap: 10,
-            }}>
-              {/* Forme */}
-              {hasShapes && (
-                <SidebarSection
-                  title="Forme"
-                  summary={selectedShape?.name}
-                  complete={!!selectedShape}
-                  {...(selectedShape?.requiresCutPath
-                    ? { warning: "Tracé vectoriel requis (PDF, AI, EPS, SVG)." }
-                    : {})}
-                >
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {shapes.map((shape) => (
-                      <OptionCard
-                        key={shape.id}
-                        active={state.selectedShapeId === shape.id}
-                        label={shape.name}
-                        {...(shape.requiresCutPath
-                          ? { sublabel: "Tracé requis" }
-                          : shape.description
-                          ? { sublabel: shape.description }
-                          : {})}
-                        onClick={() => dispatch({ type: "SELECT_SHAPE", id: shape.id })}
-                      />
-                    ))}
-                  </div>
-                </SidebarSection>
-              )}
-
-              {/* Taille */}
-              {(hasSizes || config.allowCustomWidth) && (
-                <SidebarSection
-                  title="Taille"
-                  summary={sizeLabel || undefined}
-                  complete={state.sizeMode === "custom" || !!selectedSize}
-                >
-                  {hasSizes && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {sizes.map((size) => (
-                        <OptionCard
-                          key={size.id}
-                          active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
-                          label={size.label}
-                          sublabel={`${size.widthMm}×${size.heightMm}`}
-                          onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
-                        />
-                      ))}
-                      {config.allowCustomWidth && (
-                        <OptionCard
-                          active={state.sizeMode === "custom"}
-                          label="Perso."
-                          sublabel="Sur mesure"
-                          onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
-                        />
-                      )}
-                    </div>
-                  )}
-                  {(!hasSizes || state.sizeMode === "custom") && config.allowCustomWidth && (
-                    <div style={{
-                      display: "flex", flexWrap: "wrap", gap: 10, marginTop: 8,
-                      padding: 10, background: "#F9FAFB", borderRadius: 8,
-                      border: "1px solid #E5E7EB",
-                    }}>
-                      {[
-                        { label: "Larg.", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
-                        { label: "Haut.", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
-                      ].map(({ label, key, value, min, max }) => (
-                        <label key={key} style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 90 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                            <input
-                              type="number"
-                              value={value}
-                              min={min}
-                              max={max}
-                              onChange={(e) => dispatch({
-                                type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
-                                value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
-                              })}
-                              style={{ width: 60, padding: "5px 7px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
-                            />
-                            <span style={{ fontSize: 11, color: "#6B7280" }}>mm</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </SidebarSection>
-              )}
-
-              {/* Quantité */}
-              <SidebarSection title="Quantité" summary={`${currentQty} pcs`} complete={currentQty > 0}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {QUICK_QUANTITIES.map((qty) => {
-                    const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
-                    return (
-                      <OptionCard
-                        key={qty}
-                        active={!state.useCustomQty && state.quantity === qty}
-                        label={`${qty}`}
-                        {...(tier && tier.discountPct > 0
-                          ? { sublabel: `-${tier.discountPct}%`, badge: tier.discountPct >= 20 ? "Recommandé" : undefined }
-                          : { sublabel: "tarif std" })}
-                        onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
-                      />
-                    );
-                  })}
-                  <OptionCard
-                    active={state.useCustomQty}
-                    label="Autre"
-                    sublabel="Saisir"
-                    onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
-                  />
-                </div>
-                {state.useCustomQty && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-                    <input
-                      type="number"
-                      value={state.customQuantity}
-                      min={1}
-                      placeholder="ex : 75"
-                      onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
-                      autoFocus
-                      style={{ width: 90, padding: "7px 10px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 14, fontWeight: 600 }}
-                    />
-                    <span style={{ fontSize: 12, color: "#6B7280" }}>pcs</span>
-                  </div>
-                )}
-              </SidebarSection>
-
-              {/* Matière */}
-              {hasMaterials && (
-                <SidebarSection title="Matière" summary={selectedMaterial?.name} complete={!!selectedMaterial}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {materials.map((mat) => (
-                      <OptionCard
-                        key={mat.id}
-                        active={state.selectedMaterialId === mat.id}
-                        label={mat.name}
-                        {...(mat.description ? { sublabel: mat.description } : {})}
-                        {...(mat.isPremium ? { badge: "Premium" } : {})}
-                        onClick={() => {
-                          dispatch({ type: "SELECT_MATERIAL", id: mat.id });
-                          if (state.selectedLaminationId) {
-                            const lam = laminations.find((l) => l.id === state.selectedLaminationId);
-                            if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
-                              dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
-                            }
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
-                </SidebarSection>
-              )}
-
-              {/* Pellicule / Finition */}
-              {hasLaminations && (
-                <SidebarSection title="Finition" summary={selectedLamination?.name ?? "Sans"} complete={true}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {laminations.map((lam) => {
-                      const isCompatible = compatibleLaminations.includes(lam);
-                      const lamSublabel = !isCompatible
-                        ? `Non compatible`
-                        : lam.description
-                        ? lam.description
-                        : lam.priceModifierValue !== 1
-                        ? `×${lam.priceModifierValue}`
-                        : undefined;
-                      return (
-                        <OptionCard
-                          key={lam.id}
-                          active={state.selectedLaminationId === lam.id}
-                          label={lam.name}
-                          {...(lamSublabel ? { sublabel: lamSublabel } : {})}
-                          disabled={!isCompatible}
-                          onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
-                        />
-                      );
-                    })}
-                  </div>
-                </SidebarSection>
-              )}
-            </div>
-
-            {/* 3. Tarifs dégressifs (anchor pricing — montre les économies à venir) */}
             <TierPricingCard
               tiers={config.quantityTiers}
               currentQty={currentQty}
               {...(sizeLabel ? { sizeLabel } : {})}
             />
-
-            {/* 4. Indicateur progression discret */}
-            {!allConfigured && (
-              <p style={{
-                margin: 0, fontSize: 11, color: "#6B7280", textAlign: "center",
-                fontStyle: "italic", lineHeight: 1.4,
-              }}>
-                Complétez la configuration pour finaliser votre commande.
-              </p>
-            )}
           </aside>
+        </div>
+
+        {/* ── Options en 3 colonnes sous l'éditeur ─────────────────────── */}
+        <div
+          className="options-row"
+          style={{
+            maxWidth: 1320, margin: "0 auto",
+            padding: "0 24px 32px",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 12,
+          }}
+        >
+          {/* Forme */}
+          {hasShapes && (
+            <SidebarSection
+              title="Forme"
+              summary={selectedShape?.name}
+              complete={!!selectedShape}
+              {...(selectedShape?.requiresCutPath
+                ? { warning: "Tracé vectoriel requis (PDF, AI, EPS, SVG)." }
+                : {})}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {shapes.map((shape) => (
+                  <OptionCard
+                    key={shape.id}
+                    compact
+                    active={state.selectedShapeId === shape.id}
+                    label={shape.name}
+                    {...(shape.requiresCutPath ? { sublabel: "Tracé requis" } : {})}
+                    onClick={() => dispatch({ type: "SELECT_SHAPE", id: shape.id })}
+                  />
+                ))}
+              </div>
+            </SidebarSection>
+          )}
+
+          {/* Taille */}
+          {(hasSizes || config.allowCustomWidth) && (
+            <SidebarSection
+              title="Taille"
+              summary={sizeLabel || undefined}
+              complete={state.sizeMode === "custom" || !!selectedSize}
+            >
+              {hasSizes && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {sizes.map((size) => (
+                    <OptionCard
+                      key={size.id}
+                      compact
+                      active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
+                      label={size.label}
+                      sublabel={`${size.widthMm}×${size.heightMm}`}
+                      onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
+                    />
+                  ))}
+                  {config.allowCustomWidth && (
+                    <OptionCard
+                      compact
+                      active={state.sizeMode === "custom"}
+                      label="Perso."
+                      sublabel="Sur mesure"
+                      onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
+                    />
+                  )}
+                </div>
+              )}
+              {(!hasSizes || state.sizeMode === "custom") && config.allowCustomWidth && (
+                <div style={{
+                  display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6,
+                  padding: 8, background: "#F9FAFB", borderRadius: 8,
+                  border: "1px solid #E5E7EB",
+                }}>
+                  {[
+                    { label: "Larg.", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
+                    { label: "Haut.", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
+                  ].map(({ label, key, value, min, max }) => (
+                    <label key={key} style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 70 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <input
+                          type="number"
+                          value={value}
+                          min={min}
+                          max={max}
+                          onChange={(e) => dispatch({
+                            type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
+                            value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
+                          })}
+                          style={{ width: 56, padding: "4px 6px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 12, fontWeight: 600 }}
+                        />
+                        <span style={{ fontSize: 11, color: "#6B7280" }}>mm</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </SidebarSection>
+          )}
+
+          {/* Quantité */}
+          <SidebarSection title="Quantité" summary={`${currentQty} pcs`} complete={currentQty > 0}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {QUICK_QUANTITIES.map((qty) => {
+                const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
+                return (
+                  <OptionCard
+                    key={qty}
+                    compact
+                    active={!state.useCustomQty && state.quantity === qty}
+                    label={`${qty}`}
+                    {...(tier && tier.discountPct > 0
+                      ? { sublabel: `-${tier.discountPct}%`, badge: tier.discountPct >= 20 ? "Recommandé" : undefined }
+                      : { sublabel: "std" })}
+                    onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
+                  />
+                );
+              })}
+              <OptionCard
+                compact
+                active={state.useCustomQty}
+                label="Autre"
+                sublabel="Saisir"
+                onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
+              />
+            </div>
+            {state.useCustomQty && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6 }}>
+                <input
+                  type="number"
+                  value={state.customQuantity}
+                  min={1}
+                  placeholder="ex : 75"
+                  onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
+                  autoFocus
+                  style={{ width: 80, padding: "6px 9px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
+                />
+                <span style={{ fontSize: 11, color: "#6B7280" }}>pcs</span>
+              </div>
+            )}
+          </SidebarSection>
+
+          {/* Matière */}
+          {hasMaterials && (
+            <SidebarSection title="Matière" summary={selectedMaterial?.name} complete={!!selectedMaterial}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {materials.map((mat) => (
+                  <OptionCard
+                    key={mat.id}
+                    compact
+                    active={state.selectedMaterialId === mat.id}
+                    label={mat.name}
+                    {...(mat.description ? { sublabel: mat.description } : {})}
+                    {...(mat.isPremium ? { badge: "Premium" } : {})}
+                    onClick={() => {
+                      dispatch({ type: "SELECT_MATERIAL", id: mat.id });
+                      if (state.selectedLaminationId) {
+                        const lam = laminations.find((l) => l.id === state.selectedLaminationId);
+                        if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
+                          dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
+                        }
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </SidebarSection>
+          )}
+
+          {/* Finition */}
+          {hasLaminations && (
+            <SidebarSection title="Finition" summary={selectedLamination?.name ?? "Sans"} complete={true}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {laminations.map((lam) => {
+                  const isCompatible = compatibleLaminations.includes(lam);
+                  const lamSublabel = !isCompatible
+                    ? `Non compatible`
+                    : lam.priceModifierValue !== 1
+                    ? `×${lam.priceModifierValue}`
+                    : lam.description ?? undefined;
+                  return (
+                    <OptionCard
+                      key={lam.id}
+                      compact
+                      active={state.selectedLaminationId === lam.id}
+                      label={lam.name}
+                      {...(lamSublabel ? { sublabel: lamSublabel } : {})}
+                      disabled={!isCompatible}
+                      onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
+                    />
+                  );
+                })}
+              </div>
+            </SidebarSection>
+          )}
+
+          {/* Indicateur progression — occupe la dernière cellule si dispo */}
+          {!allConfigured && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "14px 16px",
+              background: "#FFFBEB",
+              border: "1px dashed #FDE68A",
+              borderRadius: 12,
+              fontSize: 12, color: "#B45309", fontWeight: 600,
+              textAlign: "center", lineHeight: 1.4,
+            }}>
+              Complétez les options ci-dessus pour finaliser votre commande.
+            </div>
+          )}
         </div>
 
         {/* Mobile sticky bar — prix + CTA toujours visibles */}
@@ -1441,8 +1460,11 @@ export function ProductConfigurator({
         <style>{`
           .editor-layout {
             display: grid;
-            grid-template-columns: 1fr 380px;
+            grid-template-columns: 1fr 360px;
             gap: 24px;
+          }
+          .options-row {
+            grid-template-columns: repeat(3, 1fr);
           }
           .mobile-sticky-bar { display: none; }
           @media (max-width: 1024px) {
@@ -1451,6 +1473,14 @@ export function ProductConfigurator({
             }
             .editor-layout > aside {
               position: static !important;
+            }
+            .options-row {
+              grid-template-columns: repeat(2, 1fr) !important;
+            }
+          }
+          @media (max-width: 640px) {
+            .options-row {
+              grid-template-columns: 1fr !important;
             }
           }
           @media (max-width: 860px) {
