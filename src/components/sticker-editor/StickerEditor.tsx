@@ -675,10 +675,8 @@ function StickerEditorInner(
               </SideSection>
             )}
 
-            {/* ── Forme du sticker (cochée aussi sur la fiche produit) ──
-                En mode embedded, le configurateur produit gère les sélecteurs
-                forme/taille à part dans sa sidebar — on évite la duplication. */}
-            {!embedded && shapes.length > 0 && (
+            {/* ── Forme du sticker (cochée aussi sur la fiche produit) ── */}
+            {shapes.length > 0 && (
               <SideSection title={image ? "Forme du sticker" : "2. Forme du sticker"}>
                 <ShapeSelector
                   shapes={shapes}
@@ -702,7 +700,7 @@ function StickerEditorInner(
             )}
 
             {/* ── Taille du sticker (cochée aussi sur la fiche produit) ── */}
-            {!embedded && sizes.length > 0 && (
+            {sizes.length > 0 && (
               <SideSection title="Taille du sticker">
                 <SizeSelector
                   sizes={sizes}
