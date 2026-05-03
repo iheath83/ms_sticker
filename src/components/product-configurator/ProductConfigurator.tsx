@@ -84,12 +84,13 @@ function StepCard({
 // Variante compacte de StepCard utilisée dans la sidebar de l'éditeur intégré.
 // Pas de numéro d'étape, padding réduit, utile dans une colonne sticky étroite.
 function SidebarSection({
-  title, summary, children, warning,
+  title, summary, children, warning, complete,
 }: {
   title: string;
   summary?: string | undefined;
   children: React.ReactNode;
   warning?: string | undefined;
+  complete?: boolean | undefined;
 }) {
   return (
     <section style={{
@@ -97,11 +98,12 @@ function SidebarSection({
       padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10,
     }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: "#0A0E27", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 800, color: "#0A0E27", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 6 }}>
+          {complete && <span style={{ color: "#10B981", fontSize: 13 }}>✓</span>}
           {title}
         </h3>
         {summary && (
-          <span style={{ fontSize: 12, color: "#6B7280", fontWeight: 500, textAlign: "right" }}>
+          <span style={{ fontSize: 12, color: "#374151", fontWeight: 600, textAlign: "right" }}>
             {summary}
           </span>
         )}
@@ -116,6 +118,201 @@ function SidebarSection({
         </p>
       )}
     </section>
+  );
+}
+
+// ─── TrustBar ────────────────────────────────────────────────────────────────
+// Bande horizontale d'arguments commerciaux placée juste sous le hero.
+// Améliore la conversion en montrant les rassurances clés AVANT que
+// l'utilisateur n'arrive au prix (impression de France, délais, qualité).
+function TrustBar() {
+  const items = [
+    { icon: "🇫🇷", label: "Imprimé en France", sub: "À Bordeaux" },
+    { icon: "⚡", label: "Production sous 48h", sub: "Délai garanti" },
+    { icon: "✅", label: "Vérification fichier", sub: "Par notre équipe" },
+    { icon: "🚚", label: "Livraison offerte", sub: "Dès 50 €" },
+    { icon: "🔒", label: "Paiement sécurisé", sub: "CB · Apple Pay · PayPal" },
+  ];
+  return (
+    <div style={{
+      maxWidth: 1320, margin: "16px auto 0", padding: "0 24px",
+    }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: 10,
+        background: "#F9FAFB",
+        border: "1px solid #E5E7EB",
+        borderRadius: 14,
+        padding: "14px 18px",
+      }}>
+        {items.map((it) => (
+          <div key={it.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }} aria-hidden>{it.icon}</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0A0E27", lineHeight: 1.2 }}>
+                {it.label}
+              </div>
+              <div style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>
+                {it.sub}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── EditorPriceCard ─────────────────────────────────────────────────────────
+// Carte prix + CTA compacte affichée EN HAUT de la sidebar de l'éditeur intégré.
+// Le but CRO est que le prix et le bouton « Ajouter au panier » soient toujours
+// visibles above-the-fold, et que les changements de configuration produisent
+// un feedback prix instantané juste à droite du canvas.
+function EditorPriceCard({
+  priceResult, priceLoading, currentQty, widthMm, heightMm,
+  onAddToCart, addState, hasFile, fileWarning,
+  nextTier, onUpsell,
+}: {
+  priceResult: ReturnType<typeof configuratorReducer>["priceResult"];
+  priceLoading: boolean;
+  currentQty: number;
+  widthMm: number;
+  heightMm: number;
+  onAddToCart: () => void;
+  addState: string;
+  hasFile: boolean;
+  fileWarning: string | null;
+  nextTier: { minQty: number; discountPct: number } | null;
+  onUpsell: (qty: number) => void;
+}) {
+  const canOrder = !!priceResult && !priceLoading;
+  return (
+    <div style={{
+      background: "#0A0E27", color: "#fff", borderRadius: 16,
+      padding: "20px 22px", boxShadow: "0 4px 24px rgba(10,14,39,0.18)",
+    }}>
+      {/* Quantité + dimensions résumés (micro-info) */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        fontSize: 11, opacity: 0.6, marginBottom: 14,
+        textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700,
+      }}>
+        <span>{currentQty} pcs · {widthMm}×{heightMm} mm</span>
+        <span style={{
+          padding: "2px 8px", borderRadius: 8,
+          background: priceLoading ? "rgba(255,255,255,0.15)" : "rgba(34,197,94,0.18)",
+          color: priceLoading ? "#9CA3AF" : "#86EFAC",
+        }}>
+          {priceLoading ? "Calcul…" : "Live"}
+        </span>
+      </div>
+
+      {/* Prix */}
+      {priceResult ? (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 38, fontWeight: 900, letterSpacing: "-1.5px", lineHeight: 1 }} aria-live="polite">
+            {eur(priceResult.totalCents)}
+          </div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 4, fontWeight: 600 }}>
+            soit {eurUnit(priceResult.unitPriceCents)} / sticker
+          </div>
+          <div style={{ fontSize: 11, opacity: 0.45, marginTop: 2 }}>
+            TVA 20% incluse
+          </div>
+          {priceResult.quantityDiscountPct > 0 && (
+            <span style={{
+              display: "inline-block", marginTop: 8,
+              fontSize: 11, fontWeight: 800,
+              padding: "3px 10px", borderRadius: 8,
+              background: "rgba(34,197,94,0.2)", color: "#86EFAC",
+              textTransform: "uppercase", letterSpacing: "0.06em",
+            }}>
+              ✓ -{priceResult.quantityDiscountPct}% remise volume
+            </span>
+          )}
+        </div>
+      ) : (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 32, fontWeight: 900, opacity: 0.3 }}>— €</div>
+          <div style={{ fontSize: 12, opacity: 0.4, marginTop: 4 }}>Choisissez vos options</div>
+        </div>
+      )}
+
+      {/* CTA principal */}
+      <button
+        type="button"
+        onClick={onAddToCart}
+        disabled={!canOrder || addState === "loading"}
+        style={{
+          width: "100%", padding: "16px 20px", borderRadius: 12, border: "none",
+          background: addState === "success" ? "#059669" : canOrder ? "#FF385C" : "#374151",
+          color: "#fff", fontWeight: 900, fontSize: 16,
+          cursor: canOrder ? "pointer" : "not-allowed",
+          opacity: !canOrder && addState !== "loading" ? 0.5 : 1,
+          transition: "all 0.2s", letterSpacing: "0.01em",
+          boxShadow: canOrder ? "0 4px 16px rgba(255,56,92,0.35)" : "none",
+        }}
+      >
+        {addState === "loading" ? "Ajout en cours…" :
+         addState === "success" ? "✓ Ajouté au panier !" :
+         "Ajouter au panier →"}
+      </button>
+
+      {/* Avertissement fichier — couleur ambrée pas alarmiste */}
+      {!hasFile && (
+        <p style={{
+          margin: "10px 0 0", fontSize: 11, color: "#FCD34D", textAlign: "center",
+          lineHeight: 1.4,
+        }}>
+          📎 Importez votre visuel dans l'éditeur pour finaliser
+        </p>
+      )}
+      {fileWarning && (
+        <p style={{ margin: "10px 0 0", fontSize: 11, color: "#FCA5A5", textAlign: "center" }}>
+          {fileWarning}
+        </p>
+      )}
+
+      {/* Upsell tier suivant — incite à augmenter la quantité */}
+      {nextTier && priceResult && (
+        <button
+          type="button"
+          onClick={() => onUpsell(nextTier.minQty)}
+          style={{
+            marginTop: 12, width: "100%", padding: "9px 12px", borderRadius: 10,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.18)",
+            color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
+            textAlign: "left",
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          }}
+        >
+          <span>
+            💡 Passez à <strong>{nextTier.minQty}</strong> et économisez <strong>{nextTier.discountPct}%</strong>
+          </span>
+          <span style={{ opacity: 0.6 }}>→</span>
+        </button>
+      )}
+
+      {/* Trust mini en bas du card prix */}
+      <div style={{
+        marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.08)",
+        display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 12px",
+      }}>
+        {[
+          "BAT offert",
+          "Vérif. fichier",
+          "Production 48h",
+          "Paiement sécurisé",
+        ].map((f) => (
+          <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, opacity: 0.7 }}>
+            <span style={{ color: "#34D399" }}>✓</span>
+            <span>{f}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -953,11 +1150,17 @@ export function ProductConfigurator({
   const step = () => String(++stepCounter).padStart(2, "0");
 
   // ─── Mode « éditeur intégré » ────────────────────────────────────────────
-  // Si le produit a l'éditeur activé, on remplace la fiche produit classique
-  // par un layout dédié : éditeur à gauche, panneau de configuration sticky
-  // à droite (forme, taille, quantité, prix, panier — tout visible sans
-  // scroll). Les sélecteurs sont mutualisés avec les modes preset.
+  // Layout CRO-optimisé pour la fiche produit avec éditeur visuel :
+  //  1. Hero compact (titre, avis, USP)
+  //  2. TrustBar pleine largeur (5 piliers de réassurance)
+  //  3. Grid 2 colonnes : éditeur à gauche, sidebar sticky à droite
+  //     - Sidebar (top) : EditorPriceCard → prix big + CTA above-the-fold
+  //     - Sidebar (mid) : configuration condensée (forme, taille, qté, …)
+  //     - Sidebar (bot) : tarifs dégressifs (anchor pricing + upsell)
+  //  4. MobileStickyBar : prix + CTA toujours visibles sur mobile
   if (config.editorEnabled) {
+    const allConfigured = !!selectedShape && (state.sizeMode === "custom" || !!selectedSize) && currentQty > 0;
+    const nextTier = config.quantityTiers.find((t) => t.minQty > currentQty) ?? null;
     return (
       <>
         <ProductHero
@@ -966,11 +1169,13 @@ export function ProductConfigurator({
           {...(aggregate ? { aggregate } : {})}
         />
 
+        <TrustBar />
+
         <div
           className="editor-layout"
           style={{
             maxWidth: 1320, margin: "0 auto",
-            padding: "24px 24px 120px",
+            padding: "20px 24px 120px",
             display: "grid",
             gridTemplateColumns: "1fr 380px",
             gap: 24, alignItems: "start",
@@ -998,214 +1203,231 @@ export function ProductConfigurator({
             />
           </div>
 
-          {/* ── Droite : sidebar sticky (forme / taille / quantité / prix) ── */}
-          <aside style={{ position: "sticky", top: 80, display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Forme */}
-            {hasShapes && (
-              <SidebarSection
-                title="Forme"
-                summary={selectedShape?.name}
-                {...(selectedShape?.requiresCutPath
-                  ? { warning: "Cette forme nécessite un fichier vectoriel avec tracé de découpe (PDF, AI, EPS ou SVG)." }
-                  : {})}
-              >
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {shapes.map((shape) => (
-                    <OptionCard
-                      key={shape.id}
-                      active={state.selectedShapeId === shape.id}
-                      label={shape.name}
-                      {...(shape.requiresCutPath
-                        ? { sublabel: "Tracé requis" }
-                        : shape.description
-                        ? { sublabel: shape.description }
-                        : {})}
-                      onClick={() => dispatch({ type: "SELECT_SHAPE", id: shape.id })}
-                    />
-                  ))}
-                </div>
-              </SidebarSection>
-            )}
-
-            {/* Taille */}
-            {(hasSizes || config.allowCustomWidth) && (
-              <SidebarSection title="Taille" summary={sizeLabel || undefined}>
-                {hasSizes && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {sizes.map((size) => (
-                      <OptionCard
-                        key={size.id}
-                        active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
-                        label={size.label}
-                        sublabel={`${size.widthMm} × ${size.heightMm} mm`}
-                        onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
-                      />
-                    ))}
-                    {config.allowCustomWidth && (
-                      <OptionCard
-                        active={state.sizeMode === "custom"}
-                        label="Perso."
-                        sublabel="Sur mesure"
-                        onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
-                      />
-                    )}
-                  </div>
-                )}
-                {(!hasSizes || state.sizeMode === "custom") && config.allowCustomWidth && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 10, padding: 12, background: "#F9FAFB", borderRadius: 10, border: "1px solid #E5E7EB" }}>
-                    {[
-                      { label: "Largeur", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
-                      { label: "Hauteur", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
-                    ].map(({ label, key, value, min, max }) => (
-                      <label key={key} style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1, minWidth: 100 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: "#374151" }}>{label}</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <input
-                            type="number"
-                            value={value}
-                            min={min}
-                            max={max}
-                            onChange={(e) => dispatch({
-                              type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
-                              value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
-                            })}
-                            style={{ width: 70, padding: "6px 8px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
-                          />
-                          <span style={{ fontSize: 12, color: "#6B7280" }}>mm</span>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </SidebarSection>
-            )}
-
-            {/* Quantité */}
-            <SidebarSection title="Quantité" summary={`${currentQty} pcs`}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {QUICK_QUANTITIES.map((qty) => {
-                  const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
-                  return (
-                    <OptionCard
-                      key={qty}
-                      active={!state.useCustomQty && state.quantity === qty}
-                      label={`${qty}`}
-                      {...(tier && tier.discountPct > 0
-                        ? { sublabel: `-${tier.discountPct}%` }
-                        : { sublabel: "tarif std" })}
-                      onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
-                    />
-                  );
-                })}
-                <OptionCard
-                  active={state.useCustomQty}
-                  label="Autre"
-                  sublabel="Saisir"
-                  onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
-                />
-              </div>
-              {state.useCustomQty && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-                  <input
-                    type="number"
-                    value={state.customQuantity}
-                    min={1}
-                    placeholder="ex : 75"
-                    onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
-                    autoFocus
-                    style={{ width: 100, padding: "8px 10px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 14, fontWeight: 600 }}
-                  />
-                  <span style={{ fontSize: 12, color: "#6B7280" }}>pcs</span>
-                </div>
-              )}
-            </SidebarSection>
-
-            {/* Matière */}
-            {hasMaterials && (
-              <SidebarSection title="Matière" summary={selectedMaterial?.name}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {materials.map((mat) => (
-                    <OptionCard
-                      key={mat.id}
-                      active={state.selectedMaterialId === mat.id}
-                      label={mat.name}
-                      {...(mat.description ? { sublabel: mat.description } : {})}
-                      {...(mat.isPremium ? { badge: "Premium" } : {})}
-                      onClick={() => {
-                        dispatch({ type: "SELECT_MATERIAL", id: mat.id });
-                        if (state.selectedLaminationId) {
-                          const lam = laminations.find((l) => l.id === state.selectedLaminationId);
-                          if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
-                            dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
-                          }
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              </SidebarSection>
-            )}
-
-            {/* Pellicule */}
-            {hasLaminations && (
-              <SidebarSection title="Finition" summary={selectedLamination?.name ?? "Sans"}>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {laminations.map((lam) => {
-                    const isCompatible = compatibleLaminations.includes(lam);
-                    const lamSublabel = !isCompatible
-                      ? `Non compatible`
-                      : lam.description
-                      ? lam.description
-                      : lam.priceModifierValue !== 1
-                      ? `×${lam.priceModifierValue}`
-                      : undefined;
-                    return (
-                      <OptionCard
-                        key={lam.id}
-                        active={state.selectedLaminationId === lam.id}
-                        label={lam.name}
-                        {...(lamSublabel ? { sublabel: lamSublabel } : {})}
-                        disabled={!isCompatible}
-                        onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
-                      />
-                    );
-                  })}
-                </div>
-              </SidebarSection>
-            )}
-
-            {/* Quote sticky : prix + bouton ajouter au panier */}
-            <StickyQuoteSummary
+          {/* ── Droite : sidebar sticky CRO-optimisée ── */}
+          <aside style={{ position: "sticky", top: 80, display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* 1. Prix + CTA above-the-fold (priorité absolue) */}
+            <EditorPriceCard
               priceResult={state.priceResult}
               priceLoading={state.priceLoading}
               currentQty={currentQty}
               widthMm={widthMm}
               heightMm={heightMm}
-              {...(selectedShape ? { shape: { name: selectedShape.name } } : {})}
-              {...(selectedMaterial ? { material: { name: selectedMaterial.name } } : {})}
-              lamination={selectedLamination ? { name: selectedLamination.name } : null}
-              tiers={config.quantityTiers}
               onAddToCart={handleEmbeddedAddToCart}
               addState={state.addState}
-              requiresFile={true}
-              hasFile={true}
+              hasFile={!!state.uploadedFile}
+              fileWarning={state.uploadError}
+              nextTier={nextTier}
               onUpsell={(qty) => dispatch({ type: "SELECT_QUANTITY", qty })}
             />
 
-            {/* Erreur upload (image manquante, etc.) */}
-            {state.uploadError && (
-              <div style={{
-                padding: "10px 14px", background: "#FEF2F2",
-                border: "1px solid #FECACA", borderRadius: 8,
-                fontSize: 13, color: "#B91C1C", fontWeight: 600,
+            {/* 2. Configuration condensée — un bloc unique pour réduire le bruit */}
+            <div style={{
+              display: "flex", flexDirection: "column", gap: 10,
+            }}>
+              {/* Forme */}
+              {hasShapes && (
+                <SidebarSection
+                  title="Forme"
+                  summary={selectedShape?.name}
+                  complete={!!selectedShape}
+                  {...(selectedShape?.requiresCutPath
+                    ? { warning: "Tracé vectoriel requis (PDF, AI, EPS, SVG)." }
+                    : {})}
+                >
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {shapes.map((shape) => (
+                      <OptionCard
+                        key={shape.id}
+                        active={state.selectedShapeId === shape.id}
+                        label={shape.name}
+                        {...(shape.requiresCutPath
+                          ? { sublabel: "Tracé requis" }
+                          : shape.description
+                          ? { sublabel: shape.description }
+                          : {})}
+                        onClick={() => dispatch({ type: "SELECT_SHAPE", id: shape.id })}
+                      />
+                    ))}
+                  </div>
+                </SidebarSection>
+              )}
+
+              {/* Taille */}
+              {(hasSizes || config.allowCustomWidth) && (
+                <SidebarSection
+                  title="Taille"
+                  summary={sizeLabel || undefined}
+                  complete={state.sizeMode === "custom" || !!selectedSize}
+                >
+                  {hasSizes && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {sizes.map((size) => (
+                        <OptionCard
+                          key={size.id}
+                          active={state.sizeMode === "preset" && state.selectedSizeId === size.id}
+                          label={size.label}
+                          sublabel={`${size.widthMm}×${size.heightMm}`}
+                          onClick={() => dispatch({ type: "SELECT_SIZE", id: size.id })}
+                        />
+                      ))}
+                      {config.allowCustomWidth && (
+                        <OptionCard
+                          active={state.sizeMode === "custom"}
+                          label="Perso."
+                          sublabel="Sur mesure"
+                          onClick={() => dispatch({ type: "SET_SIZE_MODE", mode: "custom" })}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {(!hasSizes || state.sizeMode === "custom") && config.allowCustomWidth && (
+                    <div style={{
+                      display: "flex", flexWrap: "wrap", gap: 10, marginTop: 8,
+                      padding: 10, background: "#F9FAFB", borderRadius: 8,
+                      border: "1px solid #E5E7EB",
+                    }}>
+                      {[
+                        { label: "Larg.", key: "width" as const, value: state.customWidth, min: config.minWidthMm, max: config.maxWidthMm },
+                        { label: "Haut.", key: "height" as const, value: state.customHeight, min: config.minHeightMm, max: config.maxHeightMm },
+                      ].map(({ label, key, value, min, max }) => (
+                        <label key={key} style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, minWidth: 90 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "#374151", textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <input
+                              type="number"
+                              value={value}
+                              min={min}
+                              max={max}
+                              onChange={(e) => dispatch({
+                                type: key === "width" ? "SET_CUSTOM_WIDTH" : "SET_CUSTOM_HEIGHT",
+                                value: Math.min(max, Math.max(min, parseInt(e.target.value) || min)),
+                              })}
+                              style={{ width: 60, padding: "5px 7px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 13, fontWeight: 600 }}
+                            />
+                            <span style={{ fontSize: 11, color: "#6B7280" }}>mm</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </SidebarSection>
+              )}
+
+              {/* Quantité */}
+              <SidebarSection title="Quantité" summary={`${currentQty} pcs`} complete={currentQty > 0}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {QUICK_QUANTITIES.map((qty) => {
+                    const tier = [...config.quantityTiers].reverse().find((t) => t.minQty <= qty);
+                    return (
+                      <OptionCard
+                        key={qty}
+                        active={!state.useCustomQty && state.quantity === qty}
+                        label={`${qty}`}
+                        {...(tier && tier.discountPct > 0
+                          ? { sublabel: `-${tier.discountPct}%`, badge: tier.discountPct >= 20 ? "Recommandé" : undefined }
+                          : { sublabel: "tarif std" })}
+                        onClick={() => dispatch({ type: "SELECT_QUANTITY", qty })}
+                      />
+                    );
+                  })}
+                  <OptionCard
+                    active={state.useCustomQty}
+                    label="Autre"
+                    sublabel="Saisir"
+                    onClick={() => dispatch({ type: "SET_CUSTOM_QTY_MODE", on: true })}
+                  />
+                </div>
+                {state.useCustomQty && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
+                    <input
+                      type="number"
+                      value={state.customQuantity}
+                      min={1}
+                      placeholder="ex : 75"
+                      onChange={(e) => dispatch({ type: "SET_CUSTOM_QTY_VALUE", value: e.target.value })}
+                      autoFocus
+                      style={{ width: 90, padding: "7px 10px", border: "1.5px solid #D1D5DB", borderRadius: 6, fontSize: 14, fontWeight: 600 }}
+                    />
+                    <span style={{ fontSize: 12, color: "#6B7280" }}>pcs</span>
+                  </div>
+                )}
+              </SidebarSection>
+
+              {/* Matière */}
+              {hasMaterials && (
+                <SidebarSection title="Matière" summary={selectedMaterial?.name} complete={!!selectedMaterial}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {materials.map((mat) => (
+                      <OptionCard
+                        key={mat.id}
+                        active={state.selectedMaterialId === mat.id}
+                        label={mat.name}
+                        {...(mat.description ? { sublabel: mat.description } : {})}
+                        {...(mat.isPremium ? { badge: "Premium" } : {})}
+                        onClick={() => {
+                          dispatch({ type: "SELECT_MATERIAL", id: mat.id });
+                          if (state.selectedLaminationId) {
+                            const lam = laminations.find((l) => l.id === state.selectedLaminationId);
+                            if (lam && mat.compatibleLaminationCodes.length > 0 && !mat.compatibleLaminationCodes.includes(lam.code)) {
+                              dispatch({ type: "SELECT_LAMINATION", id: laminations.find((l) => l.isDefault)?.id ?? null });
+                            }
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </SidebarSection>
+              )}
+
+              {/* Pellicule / Finition */}
+              {hasLaminations && (
+                <SidebarSection title="Finition" summary={selectedLamination?.name ?? "Sans"} complete={true}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {laminations.map((lam) => {
+                      const isCompatible = compatibleLaminations.includes(lam);
+                      const lamSublabel = !isCompatible
+                        ? `Non compatible`
+                        : lam.description
+                        ? lam.description
+                        : lam.priceModifierValue !== 1
+                        ? `×${lam.priceModifierValue}`
+                        : undefined;
+                      return (
+                        <OptionCard
+                          key={lam.id}
+                          active={state.selectedLaminationId === lam.id}
+                          label={lam.name}
+                          {...(lamSublabel ? { sublabel: lamSublabel } : {})}
+                          disabled={!isCompatible}
+                          onClick={() => isCompatible && dispatch({ type: "SELECT_LAMINATION", id: lam.id })}
+                        />
+                      );
+                    })}
+                  </div>
+                </SidebarSection>
+              )}
+            </div>
+
+            {/* 3. Tarifs dégressifs (anchor pricing — montre les économies à venir) */}
+            <TierPricingCard
+              tiers={config.quantityTiers}
+              currentQty={currentQty}
+              {...(sizeLabel ? { sizeLabel } : {})}
+            />
+
+            {/* 4. Indicateur progression discret */}
+            {!allConfigured && (
+              <p style={{
+                margin: 0, fontSize: 11, color: "#6B7280", textAlign: "center",
+                fontStyle: "italic", lineHeight: 1.4,
               }}>
-                {state.uploadError}
-              </div>
+                Complétez la configuration pour finaliser votre commande.
+              </p>
             )}
           </aside>
         </div>
 
-        {/* Mobile sticky bar */}
+        {/* Mobile sticky bar — prix + CTA toujours visibles */}
         <div className="mobile-sticky-bar">
           <MobileStickyBar
             priceResult={state.priceResult}
@@ -1226,6 +1448,9 @@ export function ProductConfigurator({
           @media (max-width: 1024px) {
             .editor-layout {
               grid-template-columns: 1fr !important;
+            }
+            .editor-layout > aside {
+              position: static !important;
             }
           }
           @media (max-width: 860px) {
